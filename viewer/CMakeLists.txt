@@ -28,8 +28,20 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 add_executable(hsViewer
   main.cpp
+  DataLoader.h
+  DataLoader.cpp
   )
 target_link_libraries(hsViewer
   hayStack
   )
+
+# add_executable(hsViewerMPI
+#   main.cpp
+#   DataLoader.h
+#   DataLoader.cpp
+#   )
+# target_compile_definitions(hsViewerMPI PUBLIC -DHS_MPI=1)
+# target_link_libraries(hsViewerMPI
+#   hayStack
+#   )
 

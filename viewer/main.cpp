@@ -15,15 +15,18 @@
 // ======================================================================== //
 
 #include "haystack/HayStack.h"
+#include "viewer/DataLoader.h"
+#include "barney/MPIWrappers.h"
+// #include "mpiInf/Comms.h"
 
 namespace hs {
 
   struct FromCL {
-    /*! data groups per rank */
-    int dpr = 1;
+    /*! data groups per rank. '0' means 'auto - use few as we can, as
+        many as we have to fit for given number of ranks */
+    int dpr = 0;
     /*! num data groups */
     int ndg = 1;
-    std::vector<std::string> inFileNames;
 
     std::string outFileName = "";
     
@@ -38,170 +41,6 @@ namespace hs {
       throw std::runtime_error("fatal error: " +error);
     exit(0);
   }
-
-  struct LoadableContent {
-    virtual size_t projectedSize() = 0;
-    virtual void   executeLoad(DataGroup &dataGroup) = 0;
-  };
-
-  inline bool startsWith(const std::string &haystack,
-                         const std::string &needle)
-  {
-    return haystack.substr(0,needle.size()) == needle;
-  }
-  
-  inline size_t getFileSize(const std::string &fileName)
-  {
-    FILE *file = fopen(fileName.c_str(),"rb");
-    if (!file) throw std::runtime_error
-                 ("when trying to determine file size: could not open file "+fileName);
-    fseek(file,0,SEEK_END);
-    size_t size = ftell(file);
-    fclose(file);
-    return size;
-  }
-  
-  struct SpheresFromFile : public LoadableContent {
-    SpheresFromFile(const std::string &dataURL)
-    {
-      assert(dataURL.substr(0,strlen("spheres://")) == "spheres://");
-      const char *s = dataURL.c_str() + strlen("spheres://");
-      const char *atSign = strstr(s,"@");
-      if (atSign) {
-        numPartsToSplitInto = atoi(s);
-        s = atSign + 1;
-      }
-      fileName = s;
-      fileSize = getFileSize(fileName);
-    }
-    
-    size_t projectedSize() override
-    { return (100/12) * divRoundUp(fileSize, (size_t)numPartsToSplitInto); }
-    
-    void   executeLoad(DataGroup &dataGroup) override
-    {
-      SphereSet::SP spheres = SphereSet::create();
-      spheres->radius = 0.1f;
-      FILE *file = fopen(fileName.c_str(),"rb");
-      assert(file);
-      size_t sizeOfSphere = sizeof(spheres->origins[0]);
-      size_t numSpheresTotal = fileSize / sizeOfSphere;
-      size_t my_begin = (numSpheresTotal * (thisPartID+0)) / numPartsToSplitInto;
-      size_t my_end = (numSpheresTotal * (thisPartID+1)) / numPartsToSplitInto;
-      size_t my_count = my_end - my_begin;
-      spheres->origins.resize(my_count);
-      fseek(file,my_begin*sizeOfSphere,SEEK_SET);
-      size_t numRead = fread(spheres->origins.data(),sizeOfSphere,my_count,file);
-      assert(numRead == my_count);
-      std::cout << "#hs: done loading " << prettyNumber(my_count)
-                << " spheres from " << fileName << std::endl;
-      fclose(file);
-    }
-
-    std::string fileName;
-    
-    size_t fileSize;
-    int thisPartID = 0;
-    int numPartsToSplitInto = 1;
-  };
-  
-
-
-  struct DataLoader {
-    virtual void loadData(ThisRankData &rankData,
-                          BarnConfig &config,
-                          FromCL &fromCL,
-                          int mpiRank,
-                          int mpiSize) = 0;
-  };
-
-  struct DynamicDataLoader : public DataLoader {
-
-    std::vector<std::tuple<size_t /*projected size*/,
-                           int    /* linear index, to ensure stable sorting */,
-                           LoadableContent *>> allContent;
-    std::vector<std::vector<LoadableContent *>> perDataGroup;
-    
-    void addContent(LoadableContent *content)
-    {
-      allContent.push_back({content->projectedSize(),int(allContent.size()),content});
-    }
-    
-    void addContent(const std::string &fileName)
-    {
-      if (startsWith(fileName,"spheres://"))
-        addContent(new SpheresFromFile(fileName));
-      else
-        throw std::runtime_error("un-recognized input file '"+fileName+"'");
-    }
-    
-    void createContent(FromCL &cl)
-    {
-      if (cl.inFileNames.empty())
-        throw std::runtime_error("no input file name(s) specified!?");
-      for (auto in : cl.inFileNames)
-        addContent(in);
-    }
-    
-    void assignContent(FromCL &fromCL)
-    {
-      int numDifferentDataGroups = fromCL.ndg;
-      perDataGroup.resize(numDifferentDataGroups);
-
-      std::priority_queue<std::pair<size_t,int>> loadedGroups;
-      for (int i=0;i<numDifferentDataGroups;i++)
-        loadedGroups.push({0,i});
-
-      std::sort(allContent.begin(),allContent.end());
-      for (auto addtl : allContent) {
-        size_t addtlWeight = std::get<0>(addtl);
-        LoadableContent *addtlContent = std::get<2>(addtl);
-        auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
-        size_t currentWeight = currentlyLeastLoaded.first;
-        int groupID = currentlyLeastLoaded.second;
-        perDataGroup[groupID].push_back(addtlContent);
-        loadedGroups.push({currentWeight+addtlWeight,groupID});
-      }
-    }
-    
-    void loadDataGroup(DataGroup &dataGroup, int dataGroupID)
-    {
-      dataGroup.dataGroupID = dataGroupID;
-      for (auto content : perDataGroup[dataGroupID])
-        content->executeLoad(dataGroup);
-    }
-    
-    void loadData(ThisRankData &rankData,
-                  BarnConfig &config,
-                  FromCL &fromCL,
-                  int mpiRank,
-                  int mpiSize) override
-    {
-      if (fromCL.dpr < 1)
-        throw std::runtime_error("invalid data-per-rank value - must be at least 1");
-      int dataPerRank = fromCL.dpr;
-    
-      rankData.dataGroups.resize(dataPerRank);
-
-      int numTotalDataSlots = fromCL.dpr * mpiSize;
-      int numDifferentDataGroups = fromCL.ndg;
-      if (numTotalDataSlots < numDifferentDataGroups)
-        throw std::runtime_error
-          ("invalid data group size - it is greater than the total"
-           " num data slots we have");
-      if (numTotalDataSlots % numDifferentDataGroups)
-        throw std::runtime_error
-          ("invalid data group size - total total number of data "
-           "slots is not a multiple of data groups size");
-
-      createContent(fromCL);
-      assignContent(fromCL);
-      for (int i=0;i<dataPerRank;i++)
-        loadDataGroup(rankData.dataGroups[i],
-                      (mpiRank*dataPerRank+i) % numDifferentDataGroups);
-    }
-  };
-  
 
   // void loadDataGroup(DataGroup &dataGroup,
   //                    BarnConfig &config,
@@ -220,6 +59,31 @@ namespace hs {
   //               int mpiSize)
   // {
   // }
+
+
+
+  struct WorkersAbstraction {
+    virtual void barrier() = 0;
+    int rank = 0;
+    int size = 1;
+  };
+
+  struct LocalWorker : public WorkersAbstraction
+  {
+    void barrier() override {}
+  };
+
+  struct MPIWorkers : public WorkersAbstraction
+  {
+    MPIWorkers(barney::mpi::Comm &comm)
+      : comm(comm)
+    { rank = comm.rank; size = comm.size; }
+    
+    void barrier() override { comm.barrier(); }
+    
+    barney::mpi::Comm &comm;
+  };
+
   
 }
 
@@ -227,12 +91,19 @@ using namespace hs;
 
 int main(int ac, char **av)
 {
+  barney::mpi::init(ac,av);
+
   FromCL fromCL;
   BarnConfig config;
+  bool verbose = true;
+
+  DynamicDataLoader loader;
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
     if (arg[0] != '-') {
-      fromCL.inFileNames.push_back(arg);
+      loader.addContent(arg);
+    } else if (arg == "--default-radius") {
+      loader.defaultRadius = std::stoi(av[++i]);
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
     } else if (arg == "-ndg") {
@@ -246,10 +117,63 @@ int main(int ac, char **av)
     }    
   }
 
-  ThisRankData rankData;
-
-  DynamicDataLoader loader;
-  loader.loadData(rankData,config,fromCL,0,1);
+  barney::mpi::Comm world(MPI_COMM_WORLD);
+  if (verbose) {
+    world.barrier();
+    if (world.rank == 0)
+      std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
+    world.barrier();
+  }
   
+  // LocalWorker workers;
+  MPIWorkers workers(world);
+  
+  int numDataGroups = fromCL.ndg;
+  int dataPerRank = fromCL.dpr;
+  if (dataPerRank == 0) {
+    if (workers.size < numDataGroups) {
+      dataPerRank = numDataGroups / workers.size;
+    } else {
+      dataPerRank = 1;
+    }
+  }
+
+  if (numDataGroups % dataPerRank) {
+    std::cout << "warning - num data groups is not a "
+              << "multiple of data groups per rank?!" << std::endl;
+    std::cout << "increasing num data groups to " << numDataGroups
+              << " to ensure equal num data groups for each rank" << std::endl;
+  }
+  
+  loader.assignGroups(numDataGroups);
+  ThisRankData rankData(dataPerRank);
+  for (int i=0;i<dataPerRank;i++) {
+    int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
+    if (verbose) {
+      for (int r=0;r<workers.rank;r++) 
+        workers.barrier();
+      std::cout << "#hv: worker #" << workers.rank
+                << " loading data group " << dataGroupID << " into slot " << workers.rank << "." << i << ":"
+                << std::endl << std::flush;
+      usleep(100);
+      fflush(0);
+    }
+    loader.loadDataGroup(rankData.dataGroups[i],
+                         dataGroupID,
+                         verbose);
+    if (verbose) 
+      for (int r=workers.rank;r<workers.size;r++) 
+        workers.barrier();
+  }
+  if (verbose) {
+    workers.barrier();
+    if (workers.rank == 0)
+      std::cout << "#hv: all workers done loading their data..." << std::endl;
+    workers.barrier();
+  }
+
+
+  world.barrier();
+  barney::mpi::finalize();
   return 0;
 }

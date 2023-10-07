@@ -32,8 +32,13 @@ option(MO_CUTEE "Use QT Viewer and XFEditor" OFF)
 # ------------------------------------------------------------------
 add_subdirectory(submodules/owl          EXCLUDE_FROM_ALL)
 add_subdirectory(submodules/mpiRenderInf EXCLUDE_FROM_ALL)
-add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
-add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
+if (NOT (TARGET miniScene))
+  add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
+endif()
+if (NOT (TARGET umesh))
+  add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
+endif()
+add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
 
 
 add_subdirectory(haystack)

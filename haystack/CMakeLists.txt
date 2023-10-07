@@ -25,5 +25,6 @@ target_link_libraries(hayStack
   miniScene
   umesh
   mpiRenderInf
+  barney_mpi
   )
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
