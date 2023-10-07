@@ -45,6 +45,9 @@ namespace hs {
     return size;
   }
 
+
+
+
   SpheresFromFile::SpheresFromFile(const std::string &fileName,
                                    size_t fileSize,
                                    int thisPartID,
@@ -106,6 +109,81 @@ namespace hs {
 
 
 
+
+
+
+  TSTriContent::TSTriContent(const std::string &fileName,
+                                   size_t fileSize,
+                                   int thisPartID,
+                                   int numPartsToSplitInto,
+                                   float radius)
+    : fileName(fileName),
+      fileSize(fileSize),
+      thisPartID(thisPartID),
+      numPartsToSplitInto(numPartsToSplitInto)
+  {}
+    
+  void TSTriContent::create(DataLoader *loader,
+                            const std::string &dataURL)
+  {
+    assert(dataURL.substr(0,strlen("ts.tri://")) == "ts.tri://");
+    const char *s = dataURL.c_str() + strlen("ts.tri://");
+    const char *atSign = strstr(s,"@");
+    int numPartsToSplitInto = 1;
+    if (atSign) {
+      numPartsToSplitInto = atoi(s);
+      s = atSign + 1;
+    }
+    const std::string fileName = s;
+    size_t fileSize = getFileSize(fileName);
+    for (int i=0;i<numPartsToSplitInto;i++)
+      loader->addContent(new TSTriContent(fileName,fileSize,i,numPartsToSplitInto,
+                                          loader->defaultRadius));
+  }
+    
+  size_t TSTriContent::projectedSize() 
+  {
+    int numTriangles = divRoundUp(divRoundUp(fileSize,3*sizeof(vec3f)),(size_t)numPartsToSplitInto);
+    return 100*numTriangles;
+  }
+    
+  void   TSTriContent::executeLoad(DataGroup &dataGroup, bool verbose) 
+  {
+    size_t sizeOfTri = 3*sizeof(vec3f);
+    size_t numTrisTotal = fileSize / sizeof(sizeOfTri);
+    size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
+    size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
+    size_t my_count = my_end - my_begin;
+
+    PRINT(my_count);
+    mini::Mesh::SP mesh = mini::Mesh::create();
+    mesh->vertices.resize(3*my_count);
+    
+    FILE *file = fopen(fileName.c_str(),"rb");
+    fseek(file,my_begin*sizeOfTri,SEEK_SET);
+    size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
+    assert(numRead == my_count);
+    fclose(file);
+
+    if (verbose) {
+      std::cout << "   ... done loading " << prettyNumber(my_count)
+                << " triangles from " << fileName << std::endl << std::flush;
+      fflush(0);
+    }
+    mesh->indices.resize(my_count);
+    for (int i=0;i<my_count;i++)
+      mesh->indices[i] = 3*i + vec3i(0,1,2);
+
+    mini::Object::SP object = mini::Object::create({mesh});
+    mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
+    dataGroup.minis.push_back(scene);
+
+    // dataGroup.sphereSets.push_back(spheres);
+  }
+  
+
+
+
   void DataLoader::addContent(LoadableContent *content) 
   {
     allContent.push_back({content->projectedSize(),int(allContent.size()),content});
@@ -117,6 +195,8 @@ namespace hs {
       SpheresFromFile::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
+    } else if (startsWith(contentDescriptor,"ts.tri://")) {
+      TSTriContent::create(this,contentDescriptor);
     } else
       throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }

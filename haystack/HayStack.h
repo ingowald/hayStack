@@ -42,7 +42,7 @@ namespace hs {
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
   struct DataGroup {
-    std::vector<mini::Scene::SP>  geometry;
+    std::vector<mini::Scene::SP>  minis;
     std::vector<umesh::UMesh::SP> unsts;
     std::vector<SphereSet::SP>    sphereSets;
     int                           dataGroupID = -1;

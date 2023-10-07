@@ -25,8 +25,8 @@ namespace hs {
                   const std::string &needle);
   /*! helper function that checks if a given string has another as prefix */
   bool endsWith(const std::string &haystack,
-                  const std::string &needle);
-
+                const std::string &needle);
+  
   /*! helper function that returns the size (in bytes) of a given file
     (or throws an exception if this file cannot be opened */
   size_t getFileSize(const std::string &fileName);
@@ -138,6 +138,30 @@ namespace hs {
     }
 
     const float radius;
+    const std::string fileName;
+    const size_t fileSize;
+    const int thisPartID = 0;
+    const int numPartsToSplitInto = 1;
+  };
+  
+  /*! "Tim Sandstrom" type ".tri" files */
+  struct TSTriContent : public LoadableContent {
+    TSTriContent(const std::string &fileName,
+                 size_t fileSize,
+                 int thisPartID,
+                 int numPartsToSplitInto,
+                 float radius);
+    static void create(DataLoader *loader,
+                       const std::string &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
+
+    std::string toString() override
+    {
+      return "Tim-Triangles{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
+        + std::to_string(numPartsToSplitInto)+", proj size "
+        +prettyNumber(projectedSize())+"B}";
+    }
     const std::string fileName;
     const size_t fileSize;
     const int thisPartID = 0;
