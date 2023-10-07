@@ -18,12 +18,4 @@
 
 namespace hs {
 
-  struct CmdLineData {
-    /*! data groups per rank */
-    int dpr = 1;
-    /*! num data groups */
-    int ndg = 1;
-    std::vector<std::string> inFileNames;
-  };
-  
 }

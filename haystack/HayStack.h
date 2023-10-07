@@ -20,9 +20,12 @@
 #include "umesh/UMesh.h"
 
 namespace hs {
-
+  using namespace mini;
+  
   struct SphereSet {
-    static std::shared_ptr<SphereSet> SP;
+    typedef std::shared_ptr<SphereSet> SP;
+
+    static SP create() { return std::make_shared<SphereSet>(); }
     
     std::vector<vec3f> origins;
     
@@ -31,30 +34,31 @@ namespace hs {
         same size as `origins` */
     std::vector<float> radii;
     
-    float radius;
+    float radius = .1f;
   };
 
-  /*! smallest entity in which a (Possibly distributed) model's data
-      could possibly get split. for multi-gpu data parallel multi-gpu
+  /*! smallest entity in which the entirety of the data to be rendered
+      is goind to be split into. for multi-gpu data parallel multi-gpu
       rendering a single application process (or given mpi rank) could
-      still have multiple such packs */
-  struct DataPack {
+      still have multiple such data groups */
+  struct DataGroup {
     std::vector<mini::Scene::SP>  geometry;
     std::vector<umesh::UMesh::SP> unsts;
     std::vector<SphereSet::SP>    sphereSets;
-    int                           dataGroupID;
+    int                           dataGroupID = -1;
   };
 
   /*! data for one mpi rank - each mpi rank can still have multiple
       data groups (for local multi-gpu data parallel rendering, for
-      example - so it has multiple data packs */
+      example - so it has multiple data groups */
   struct ThisRankData {
-    std::vector<DataPack> dataPacks;
+    std::vector<DataGroup> dataGroups;
   };
 
   struct BarnConfig {
+    typedef enum { WORKER, HEAD_NODE, DISPLAY } Role;
     bool  hasHeadNode   = false;
-    bool  isHeadNode    = false;
+    Role  role          = WORKER;
     vec2i fbSize        = vec2i{ 800, 600 };
     int   workerRank    = 0;
     int   numWorkers    = 1;

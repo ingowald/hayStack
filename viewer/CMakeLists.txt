@@ -14,16 +14,22 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-add_library(hayStack
-  HayStack.h
-  HayStack.cpp
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+add_executable(hsViewer
+  main.cpp
+  )
+target_link_libraries(hsViewer
+  hayStack
   )
 
-target_link_libraries(hayStack
-  PUBLIC
-  owl
-  miniScene
-  umesh
-  mpiRenderInf
-  )
-target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})

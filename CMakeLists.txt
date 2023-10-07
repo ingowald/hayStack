@@ -37,6 +37,7 @@ add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 
 
 add_subdirectory(haystack)
+add_subdirectory(viewer)
 
 
 # # ------------------------------------------------------------------
