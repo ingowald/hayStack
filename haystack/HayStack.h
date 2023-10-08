@@ -52,9 +52,8 @@ namespace hs {
       data groups (for local multi-gpu data parallel rendering, for
       example - so it has multiple data groups */
   struct ThisRankData {
-    ThisRankData(int dataPerRank)
-      : dataGroups(dataPerRank)
-    {}
+    void resize(int numDataGroups)
+    { dataGroups.resize(numDataGroups); }
     std::vector<DataGroup> dataGroups;
   };
 

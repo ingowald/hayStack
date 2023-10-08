@@ -155,7 +155,6 @@ namespace hs {
     size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
     size_t my_count = my_end - my_begin;
 
-    PRINT(my_count);
     mini::Mesh::SP mesh = mini::Mesh::create();
     mesh->vertices.resize(3*my_count);
     
@@ -177,8 +176,6 @@ namespace hs {
     mini::Object::SP object = mini::Object::create({mesh});
     mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
     dataGroup.minis.push_back(scene);
-
-    // dataGroup.sphereSets.push_back(spheres);
   }
   
 

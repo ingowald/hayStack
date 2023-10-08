@@ -26,13 +26,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-add_executable(hsViewer
+add_executable(hayThere
   main.cpp
   DataLoader.h
   DataLoader.cpp
+
+  Renderer.h
+  MPIRenderer.h
+  MPIRenderer.cpp
   )
-target_link_libraries(hsViewer
+target_link_libraries(hayThere
   hayStack
+  owl_viewer
   )
 
 # add_executable(hsViewerMPI
