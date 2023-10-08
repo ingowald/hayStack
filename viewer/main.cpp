@@ -17,13 +17,13 @@
 #include "haystack/HayStack.h"
 #include "viewer/DataLoader.h"
 #include "barney/MPIWrappers.h"
-// #include "mpiInf/Comms.h"
 
-#define HS_VIEWER 1
- 
 #if HS_VIEWER
 # include "samples/common/owlViewer/InspectMode.h"
 # include "samples/common/owlViewer/OWLViewer.h"
+#else
+# define STB_IMAGE_WRITE_IMPLEMENTATION 1
+# include "stb/stb_image_write.h"
 #endif
 
 #include "MPIRenderer.h"
@@ -37,8 +37,8 @@ namespace hs {
     /*! num data groups */
     int ndg = 1;
 
-    std::string outFileName = "";
-    
+    std::string outFileName = "hay.png";
+    vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
     static bool verbose;
@@ -162,10 +162,16 @@ int main(int ac, char **av)
       loader.defaultRadius = std::stoi(av[++i]);
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "-res") {
+      fromCL.fbSize.x = std::stoi(av[++i]);
+      fromCL.fbSize.y = std::stoi(av[++i]);
     } else if (arg == "-ndg") {
       fromCL.ndg = std::stoi(av[++i]);
     } else if (arg == "-dpr") {
       fromCL.dpr = std::stoi(av[++i]);
+    } else if (arg == "-hn" || arg == "-chn" ||
+               arg == "--head-node" || arg == "--create-head-node") {
+      fromCL.createHeadNode = true;
     } else if (arg == "-h" || arg == "--help") {
       usage();
     } else {
@@ -198,7 +204,13 @@ int main(int ac, char **av)
   Viewer *viewer = new Viewer(renderer);
   viewer->showAndRun();
 #else
-  throw std::runtime_error("no-viewer offline mode not yet implemented");
+
+  auto &fbSize = fromCL.fbSize;
+  std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
+  renderer->resize(fbSize,pixels.data());
+  stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
+                 pixels.data(),fbSize.x*sizeof(uint32_t));
+  
 #endif
   
   world.barrier();
