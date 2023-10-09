@@ -14,9 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "haystack/HayStack.h"
-#include "viewer/DataLoader.h"
-#include "barney/MPIWrappers.h"
+#include "viewer/HayMaker.h"
 
 #if HS_VIEWER
 # include "samples/common/owlViewer/InspectMode.h"
@@ -25,8 +23,6 @@
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
 # include "stb/stb_image_write.h"
 #endif
-
-#include "MPIRenderer.h"
 
 namespace hs {
 
@@ -56,70 +52,6 @@ namespace hs {
     exit(0);
   }
 
-  
-  struct HayMaker : public Renderer
-  {
-    HayMaker(Comm &world, bool isActiveWorker)
-      : world(world),
-        workers(world.split(isActiveWorker)),
-        isActiveWorker(isActiveWorker)
-    {}
-    
-
-    void loadData(DynamicDataLoader &loader, FromCL &fromCL)
-    {
-      if (!isActiveWorker)
-        return;
-      int numDataGroups = fromCL.ndg;
-      int dataPerRank = fromCL.dpr;
-      if (dataPerRank == 0) {
-        if (workers.size < numDataGroups) {
-          dataPerRank = numDataGroups / workers.size;
-        } else {
-          dataPerRank = 1;
-        }
-      }
-
-      if (numDataGroups % dataPerRank) {
-        std::cout << "warning - num data groups is not a "
-                  << "multiple of data groups per rank?!" << std::endl;
-        std::cout << "increasing num data groups to " << numDataGroups
-                  << " to ensure equal num data groups for each rank" << std::endl;
-      }
-  
-      loader.assignGroups(numDataGroups);
-      rankData.resize(dataPerRank);
-      for (int i=0;i<dataPerRank;i++) {
-        int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
-        if (verbose()) {
-          for (int r=0;r<workers.rank;r++) 
-            workers.barrier();
-          std::cout << "#hv: worker #" << workers.rank
-                    << " loading data group " << dataGroupID << " into slot " << workers.rank << "." << i << ":"
-                    << std::endl << std::flush;
-          usleep(100);
-          fflush(0);
-        }
-        loader.loadDataGroup(rankData.dataGroups[i],
-                             dataGroupID,
-                             verbose());
-        if (verbose()) 
-          for (int r=workers.rank;r<workers.size;r++) 
-            workers.barrier();
-      }
-      if (verbose()) {
-        workers.barrier();
-        if (workers.rank == 0)
-          std::cout << "#hv: all workers done loading their data..." << std::endl;
-        workers.barrier();
-      }
-    }
-    
-    Comm        &world;
-    const bool   isActiveWorker;
-    Comm         workers;
-    ThisRankData rankData;
-  };
   
 #if HS_VIEWER
   struct Viewer : public owl::viewer::OWLViewer
@@ -181,9 +113,13 @@ int main(int ac, char **av)
 
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   HayMaker hayMaker(/* the ring that binds them all : */world,
-                    /* whether this is a active worker */!isHeadNode);
+                    /* whether this is a active worker */!isHeadNode,
+                    verbose());
+  int numDataGroups = fromCL.ndg;
+  int dataPerRank = fromCL.dpr;
   if (!isHeadNode)
-    hayMaker.loadData(loader,fromCL);
+    hayMaker.loadData(loader,numDataGroups,dataPerRank);
+  hayMaker.createBarney();
 
   Renderer *renderer = nullptr;
   if (world.size == 1)

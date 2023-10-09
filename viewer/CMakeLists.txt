@@ -34,6 +34,8 @@ set(SOURCES
   Renderer.h
   MPIRenderer.h
   MPIRenderer.cpp
+  HayMaker.h
+  HayMaker.cpp
   )  
 add_executable(hayThere
   ${SOURCES}
