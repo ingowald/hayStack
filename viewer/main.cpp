@@ -81,6 +81,14 @@ namespace hs {
       renderer->renderFrame();
     }
     
+    void cameraChanged()
+    {
+      hs::Camera camera;
+      OWLViewer::getCameraOrientation(camera.vp,camera.vi,camera.vu,camera.fovy);
+      renderer->setCamera(camera);
+      renderer->resetAccumulation();
+    }
+
     Renderer *const renderer;
   };
 #endif  

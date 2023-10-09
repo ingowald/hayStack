@@ -102,13 +102,23 @@ namespace hs {
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     assert(fb);
+    this->fbSize = fbSize;
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,(world.rank==0)?hostRGBA:nullptr);
   }
   
   void HayMaker::renderFrame()
   {
-    assert(bn);
-    BNCamera camera;
     bnRender(model,&camera,fb,nullptr);
   }
+
+  void HayMaker::setCamera(const Camera &camera)
+  {
+    bnPinholeCamera(&this->camera,
+                    (const float3&)camera.vp,
+                    (const float3&)camera.vi,
+                    (const float3&)camera.vu,
+                    camera.fovy,
+                    make_int2(fbSize.x,fbSize.y));
+  }
+  
 }

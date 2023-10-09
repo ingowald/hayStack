@@ -40,7 +40,14 @@ namespace hs {
 
     void renderFrame() override;
     box3f getWorldBounds() const;
-    
+    void resetAccumulation() {}
+
+    void setCamera(const Camera &camera);
+
+
+    BNCamera     camera;
+    /*! need this for the camera aspect ratio */
+    vec2i        fbSize;
     Comm        &world;
     const bool   isActiveWorker;
     Comm         workers;
