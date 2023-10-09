@@ -68,6 +68,12 @@ namespace hs {
       OWLViewer::resize(newSize);
       renderer->resize(newSize,fbPointer);
     }
+
+    /*! gets called whenever the viewer needs us to re-render out widget */
+    void render() override
+    {
+      renderer->renderFrame();
+    }
     
     Renderer *const renderer;
   };

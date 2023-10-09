@@ -37,6 +37,8 @@ namespace hs {
                   int dataPerRank);
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
+
+    void renderFrame() override;
     
     Comm        &world;
     const bool   isActiveWorker;
@@ -45,6 +47,7 @@ namespace hs {
     bool         verbose;
 
     BNContext barney = 0;
+    BNModel   model = 0;
     BNFrameBuffer fb = 0;
   };
 

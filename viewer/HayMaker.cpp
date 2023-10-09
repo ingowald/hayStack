@@ -33,10 +33,13 @@ namespace hs {
       std::vector<int> dataGroupIDs;
       for (auto dg : rankData.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
-      barney = bnContextCreate(/*data*/dataGroupIDs.data(),dataGroupIDs.size(),
+      barney = bnMPIContextCreate(world.comm,/*data*/dataGroupIDs.data(),dataGroupIDs.size(),
                                /*gpus*/nullptr,-1);
     } else
-      barney = bnContextCreate(/*data*/nullptr,0,/*gpus*/nullptr,0);
+      barney = bnMPIContextCreate(world.comm,/*data*/nullptr,0,/*gpus*/nullptr,0);
+
+    fb = bnFrameBufferCreate(barney,0);
+    model = bnModelCreate(barney);
   }
   
   void HayMaker::loadData(DynamicDataLoader &loader,
@@ -90,10 +93,14 @@ namespace hs {
   
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
-    assert(barney);
-    if (!fb)
-      fb = bnFrameBufferCreate(barney,0);
+    assert(fb);
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,(world.rank==0)?hostRGBA:nullptr);
   }
   
+  void HayMaker::renderFrame()
+  {
+    assert(bn);
+    BNCamera camera;
+    bnRender(model,&camera,fb,nullptr);
+  }
 }
