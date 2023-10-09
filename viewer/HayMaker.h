@@ -44,8 +44,8 @@ namespace hs {
     ThisRankData rankData;
     bool         verbose;
 
-    BNContext barney;
-    BNFrameBuffer fb;
+    BNContext barney = 0;
+    BNFrameBuffer fb = 0;
   };
 
 }

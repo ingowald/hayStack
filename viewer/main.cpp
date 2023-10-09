@@ -60,14 +60,20 @@ namespace hs {
       : renderer(renderer)
     {}
     
+    /*! window notifies us that we got resized. We HAVE to override
+      this to know our actual render dimensions, and get pointer
+      to the device frame buffer that the viewer cated for us */
+    void resize(const vec2i &newSize) override
+    {
+      PING;
+      PRINT(renderer);
+      OWLViewer::resize(newSize);
+      renderer->resize(newSize,fbPointer);
+    }
+    
     Renderer *const renderer;
   };
 #endif  
-
-
-  struct WorkerData {
-  };
-
 }
 
 using namespace hs;
@@ -119,8 +125,12 @@ int main(int ac, char **av)
   int dataPerRank = fromCL.dpr;
   if (!isHeadNode)
     hayMaker.loadData(loader,numDataGroups,dataPerRank);
+  
+  world.barrier();
   hayMaker.createBarney();
 
+  world.barrier();
+  
   Renderer *renderer = nullptr;
   if (world.size == 1)
     // no MPI, render direcftly

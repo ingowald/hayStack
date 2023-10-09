@@ -90,8 +90,11 @@ namespace hs {
   
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
+    PING;
+    assert(barney);
     if (!fb)
       fb = bnFrameBufferCreate(barney,0);
+    PING; PRINT(fbSize); PRINT(fb);
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,(world.rank==0)?hostRGBA:nullptr);
   }
   

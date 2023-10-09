@@ -72,6 +72,8 @@ namespace hs {
       passThrough(passThrough)
   {
     int handShake = 29031974;
+    std::cout << "MASTER: sending handshake: " << std::endl;
+    comm.barrier();
     sendToWorkers(handShake);
   }
 
@@ -311,6 +313,7 @@ namespace hs {
     // ------------------------------------------------------------------
     int cmd = RESIZE;
     sendToWorkers(cmd);
+    PING; PRINT(newSize);
     sendToWorkers(newSize);
     sendEndOfMessage();
     
@@ -333,6 +336,9 @@ namespace hs {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
+    
+    PING; PRINT(newSize);
+
     renderer->resize(newSize,nullptr);
 
     comm.barrier();
@@ -499,6 +505,8 @@ namespace hs {
   void WorkerLoop::runWorker()
   {
     int handShake = -1;
+    std::cout << "worker - aksing for handshake" << std::endl;
+    comm.barrier();
     fromMaster(handShake);
     if (handShake != 29031974)
       throw std::runtime_error("could not handshake with master");
