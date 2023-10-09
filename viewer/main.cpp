@@ -65,8 +65,6 @@ namespace hs {
       to the device frame buffer that the viewer cated for us */
     void resize(const vec2i &newSize) override
     {
-      PING;
-      PRINT(renderer);
       OWLViewer::resize(newSize);
       renderer->resize(newSize,fbPointer);
     }
@@ -107,6 +105,8 @@ int main(int ac, char **av)
       fromCL.ndg = std::stoi(av[++i]);
     } else if (arg == "-dpr") {
       fromCL.dpr = std::stoi(av[++i]);
+    } else if (arg == "-nhn" || arg == "--no-head-node") {
+      fromCL.createHeadNode = false;
     } else if (arg == "-hn" || arg == "-chn" ||
                arg == "--head-node" || arg == "--create-head-node") {
       fromCL.createHeadNode = true;
