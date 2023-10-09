@@ -26,6 +26,7 @@ namespace hs {
     typedef std::shared_ptr<SphereSet> SP;
 
     static SP create() { return std::make_shared<SphereSet>(); }
+    box3f getBounds() const;
     
     std::vector<vec3f> origins;
     
@@ -42,6 +43,8 @@ namespace hs {
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
   struct DataGroup {
+    box3f getBounds() const;
+    
     std::vector<mini::Scene::SP>  minis;
     std::vector<umesh::UMesh::SP> unsts;
     std::vector<SphereSet::SP>    sphereSets;
@@ -52,8 +55,11 @@ namespace hs {
       data groups (for local multi-gpu data parallel rendering, for
       example - so it has multiple data groups */
   struct ThisRankData {
+    box3f getBounds() const;
+    
     void resize(int numDataGroups)
     { dataGroups.resize(numDataGroups); }
+    
     std::vector<DataGroup> dataGroups;
   };
 

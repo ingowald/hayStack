@@ -91,6 +91,14 @@ namespace hs {
     }
   }
   
+  box3f HayMaker::getWorldBounds() const
+  {
+    box3f bb = rankData.getBounds();
+    bb.lower = world.allReduceMin(bb.lower);
+    bb.upper = world.allReduceMax(bb.upper);
+    return bb;
+  }
+  
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     assert(fb);

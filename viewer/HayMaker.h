@@ -39,6 +39,7 @@ namespace hs {
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
 
     void renderFrame() override;
+    box3f getWorldBounds() const;
     
     Comm        &world;
     const bool   isActiveWorker;

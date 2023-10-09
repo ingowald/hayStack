@@ -38,6 +38,12 @@ namespace hs {
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
     static bool verbose;
+    struct {
+      vec3f vp   = vec3f(0.f);
+      vec3f vi   = vec3f(0.f);
+      vec3f vu   = vec3f(0.f,1.f,0.f);
+      float fovy = 60.f;
+    } camera;
   };
   
   bool FromCL::verbose = true;
@@ -131,6 +137,18 @@ int main(int ac, char **av)
   int dataPerRank = fromCL.dpr;
   if (!isHeadNode)
     hayMaker.loadData(loader,numDataGroups,dataPerRank);
+
+  world.barrier();
+  const box3f worldBounds = hayMaker.getWorldBounds();
+  if (world.rank == 0)
+    std::cout << "#hs: world bounds is " << worldBounds << std::endl;
+
+  if (fromCL.camera.vp == fromCL.camera.vi) {
+    fromCL.camera.vp
+      = worldBounds.center()
+      + vec3f(-.3f, .7f, +1.f) * worldBounds.span();
+    fromCL.camera.vi = worldBounds.center();
+  }
   
   world.barrier();
   hayMaker.createBarney();
@@ -151,10 +169,18 @@ int main(int ac, char **av)
     barney::mpi::finalize();
     exit(0);
   }
-  
+
 #if HS_VIEWER
-  Viewer *viewer = new Viewer(renderer);
-  viewer->showAndRun();
+  Viewer viewer(renderer);
+  
+  viewer.enableFlyMode();
+  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds);
+  viewer.setWorldScale(owl::length(worldBounds.span()));
+  viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
+                              /*lookat   */fromCL.camera.vi,
+                              /*up-vector*/fromCL.camera.vu,
+                              /*fovy(deg)*/fromCL.camera.fovy);
+  viewer.showAndRun();
 #else
 
   auto &fbSize = fromCL.fbSize;
