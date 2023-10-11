@@ -150,7 +150,7 @@ namespace hs {
   void   TSTriContent::executeLoad(DataGroup &dataGroup, bool verbose) 
   {
     size_t sizeOfTri = 3*sizeof(vec3f);
-    size_t numTrisTotal = fileSize / sizeof(sizeOfTri);
+    size_t numTrisTotal = fileSize / sizeOfTri;
     size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
     size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
     size_t my_count = my_end - my_begin;
