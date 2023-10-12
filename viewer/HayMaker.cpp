@@ -121,4 +121,50 @@ namespace hs {
                     make_int2(fbSize.x,fbSize.y));
   }
   
+  void HayMaker::buildDataGroup(int dgID)
+  {
+    BNDataGroup barney = bnGetDataGroup(model,dgID);
+    std::vector<BNGeom> geoms;
+
+    auto &myData = rankData.dataGroups[dgID];
+    for (auto &sphereSet : myData.sphereSets) {
+      BNMaterial material = BN_DEFAULT_MATERIAL;
+      BNGeom geom
+        = bnSpheresCreate(barney,
+                          &material,
+                          (float3*)sphereSet->origins.data(),
+                          sphereSet->origins.size(),
+                          sphereSet->radii.data(),
+                          sphereSet->radius);
+      geoms.push_back(geom);
+    }
+    
+    BNGroup group
+      = bnGroupCreate(barney,geoms.data(),geoms.size(),
+                      nullptr,0);
+    BNInstance rootInstance;
+    rootInstance.group = group;
+    (affine3f&)rootInstance.xfm = affine3f();
+    bnModelSetInstances(barney,&rootInstance,1);
+// #if 0
+//     std::vector<OWLGeom> geoms;
+//     auto &dg = dataGroups[dgID];
+
+//     for (auto &sphereSet : dg.spheresSets) {
+//       OWLGeom geom = owlGeomCreate
+//         (dev->owl,dev->spheresDG);
+//       OWLData origins
+//         = owlDeviceBufferCreate(dev->owl,
+//                                 OWL_FLOAT3,
+//                                 sphereSet.origins.size(),
+//                                 sphereSet.origins.data());
+//       owlGeomSetData(geom,"origins",origins);
+//       owlGeomSet1f(geom,"radius",dg.radius);
+//       geoms.push_back(geom);
+//     }
+//     OWLGroup group
+//       = owlUserGeomGroupCreate(dev->owl);
+// #endif
+  }
+  
 }

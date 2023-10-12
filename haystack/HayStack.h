@@ -80,12 +80,12 @@ namespace hs {
     int   numDataGroups = 1;
   };
   
-  struct HayStack {
-    HayStack(BarnConfig *config,
-             const ThisRankData &thisRankData);
+  // struct HayStack {
+  //   HayStack(BarnConfig *config,
+  //            const ThisRankData &thisRankData);
     
-    BarnConfig *config;
-    const ThisRankData thisRankData;
-  };
+  //   BarnConfig *config;
+  //   const ThisRankData thisRankData;
+  // };a
   
 }

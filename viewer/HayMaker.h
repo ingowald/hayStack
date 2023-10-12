@@ -35,6 +35,7 @@ namespace hs {
     void loadData(DynamicDataLoader &loader,
                   int numDataGroups,
                   int dataPerRank);
+    void buildDataGroup(int dgID);
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
 

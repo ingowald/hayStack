@@ -143,8 +143,11 @@ int main(int ac, char **av)
                     verbose());
   int numDataGroups = fromCL.ndg;
   int dataPerRank = fromCL.dpr;
-  if (!isHeadNode)
+  if (!isHeadNode) {
     hayMaker.loadData(loader,numDataGroups,dataPerRank);
+    for (int dgID=0;dgID<numDataGroups;dgID++)
+      hayMaker.buildDataGroup(dgID);
+  }
 
   world.barrier();
   const box3f worldBounds = hayMaker.getWorldBounds();
