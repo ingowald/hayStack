@@ -26,7 +26,6 @@ namespace hs {
       isActiveWorker(isActiveWorker),
       verbose(verbose)
   {
-    createBarney();
   }
 
   void HayMaker::createBarney()
@@ -125,6 +124,7 @@ namespace hs {
   
   void HayMaker::buildDataGroup(int dgID)
   {
+    PING; PRINT((int*)model);
     BNDataGroup barney = bnGetDataGroup(model,dgID);
     std::vector<BNGeom> geoms;
 
@@ -141,13 +141,13 @@ namespace hs {
       geoms.push_back(geom);
     }
     
-    BNGroup group
+    BNGroup rootGroup
       = bnGroupCreate(barney,geoms.data(),geoms.size(),
                       nullptr,0);
-    BNInstance rootInstance;
-    rootInstance.group = group;
-    (affine3f&)rootInstance.xfm = affine3f();
-    bnModelSetInstances(barney,&rootInstance,1);
+    bnGroupBuild(rootGroup);
+    
+    affine3f rootTransform;
+    bnModelSetInstances(barney,&rootGroup,(BNTransform *)&rootTransform,1);
     bnModelBuild(barney);
   }
   

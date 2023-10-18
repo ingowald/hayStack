@@ -145,14 +145,14 @@ int main(int ac, char **av)
   int dataPerRank = fromCL.dpr;
   if (!isHeadNode) {
     hayMaker.loadData(loader,numDataGroups,dataPerRank);
-    for (int dgID=0;dgID<numDataGroups;dgID++)
-      hayMaker.buildDataGroup(dgID);
   }
 
   world.barrier();
   const box3f worldBounds = hayMaker.getWorldBounds();
   if (world.rank == 0)
-    std::cout << "#hs: world bounds is " << worldBounds << std::endl;
+    std::cout << OWL_TERMINAL_CYAN
+              << "#hs: world bounds is " << worldBounds
+              << OWL_TERMINAL_DEFAULT << std::endl;
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
@@ -162,8 +162,19 @@ int main(int ac, char **av)
   }
   
   world.barrier();
+  if (world.rank == 0)
+    std::cout << OWL_TERMINAL_CYAN
+              << "#hs: creating barney context"
+              << OWL_TERMINAL_DEFAULT << std::endl;
   hayMaker.createBarney();
-
+  world.barrier();
+  if (world.rank == 0)
+    std::cout << OWL_TERMINAL_CYAN
+              << "#hs: building barney data groups"
+              << OWL_TERMINAL_DEFAULT << std::endl;
+  if (!isHeadNode)
+    for (int dgID=0;dgID<numDataGroups;dgID++)
+      hayMaker.buildDataGroup(dgID);
   world.barrier();
   
   Renderer *renderer = nullptr;
