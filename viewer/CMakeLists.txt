@@ -37,20 +37,29 @@ set(SOURCES
   HayMaker.h
   HayMaker.cpp
   )  
+
+# ------------------------------------------------------------------
 add_executable(hayThere
   ${SOURCES}
   )
 target_link_libraries(hayThere
+  PUBLIC
   hayStack
   owl_viewer
   )
 target_compile_definitions(hayThere PUBLIC -DHS_VIEWER=1)
+
+# ------------------------------------------------------------------
 add_executable(hayThereOffline
   ${SOURCES}
   )
 target_link_libraries(hayThereOffline
+  PUBLIC
   hayStack
   )
+
+# ------------------------------------------------------------------
+
 
 # add_executable(hsViewerMPI
 #   main.cpp
