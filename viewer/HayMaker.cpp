@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "HayMaker.h"
+#include <map>
 
 namespace hs {
 
@@ -57,8 +58,6 @@ namespace hs {
       }
     }
 
-    PING; PRINT(numDataGroups); PRINT(dataPerRank);
-    
     if (numDataGroups % dataPerRank) {
       std::cout << "warning - num data groups is not a "
                 << "multiple of data groups per rank?!" << std::endl;
@@ -127,30 +126,63 @@ namespace hs {
   
   void HayMaker::buildDataGroup(int dgID)
   {
-    PING; PRINT((int*)model);
     BNDataGroup barney = bnGetDataGroup(model,dgID);
-    std::vector<BNGeom> geoms;
+
+    std::vector<BNGroup> groups;
+    std::vector<affine3f> xfms;
 
     auto &myData = rankData.dataGroups[dgID];
-    for (auto &sphereSet : myData.sphereSets) {
+    if (!myData.sphereSets.empty()) {
+      std::vector<BNGeom>  geoms;
+      for (auto &sphereSet : myData.sphereSets) {
+        BNMaterial material = BN_DEFAULT_MATERIAL;
+        BNGeom geom
+          = bnSpheresCreate(barney,
+                            &material,
+                            (float3*)sphereSet->origins.data(),
+                            sphereSet->origins.size(),
+                            sphereSet->radii.data(),
+                            sphereSet->radius);
+        geoms.push_back(geom);
+      }
+      BNGroup spheresGroup
+        = bnGroupCreate(barney,geoms.data(),geoms.size(),
+                        nullptr,0);
+      bnGroupBuild(spheresGroup);
+      groups.push_back(spheresGroup);
+      xfms.push_back(affine3f());
+    }
+
+    for (auto mini : myData.minis) {
       BNMaterial material = BN_DEFAULT_MATERIAL;
-      BNGeom geom
-        = bnSpheresCreate(barney,
-                          &material,
-                          (float3*)sphereSet->origins.data(),
-                          sphereSet->origins.size(),
-                          sphereSet->radii.data(),
-                          sphereSet->radius);
-      geoms.push_back(geom);
+      std::map<mini::Object::SP, BNGroup> miniGroups;
+      for (auto inst : mini->instances) {
+        if (!miniGroups[inst->object]) {
+          std::vector<BNGeom> geoms;
+          for (auto mesh : inst->object->meshes) {
+            BNGeom geom
+              = bnTriangleMeshCreate
+              (barney,&material,
+               (int3*)mesh->indices.data(),mesh->indices.size(),
+               (float3*)mesh->vertices.data(),mesh->vertices.size(),
+               nullptr,nullptr);
+            geoms.push_back(geom);
+          }
+          BNGroup meshGroup
+            = bnGroupCreate(barney,geoms.data(),geoms.size(),
+                            nullptr,0);
+          bnGroupBuild(meshGroup);
+          miniGroups[inst->object] = meshGroup;
+        }
+        groups.push_back(miniGroups[inst->object]);
+        xfms.push_back((const affine3f&)inst->xfm);
+      }
     }
     
-    BNGroup rootGroup
-      = bnGroupCreate(barney,geoms.data(),geoms.size(),
-                      nullptr,0);
-    bnGroupBuild(rootGroup);
-    
-    affine3f rootTransform;
-    bnModelSetInstances(barney,&rootGroup,(BNTransform *)&rootTransform,1);
+    bnModelSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
+                        groups.size());
+    // affine3f rootTransform;
+    // bnModelSetInstances(barney,&rootGroup,(BNTransform *)&rootTransform,1);
     bnModelBuild(barney);
   }
   
