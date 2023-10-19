@@ -65,6 +65,9 @@ namespace hs {
     
     void resize(int numDataGroups)
     { dataGroups.resize(numDataGroups); }
+
+    /*! returns the number of data groups *on this rank* */
+    int size() const { return dataGroups.size(); }
     
     std::vector<DataGroup> dataGroups;
   };

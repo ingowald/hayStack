@@ -19,6 +19,7 @@
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
+#include "viewer/content/OBJContent.h"
 
 namespace hs {
 
@@ -119,6 +120,8 @@ namespace hs {
       SpheresFromFile::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".obj")) {
+      OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else if (startsWith(contentDescriptor,"ts.tri://")) {

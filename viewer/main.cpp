@@ -165,12 +165,13 @@ int main(int ac, char **av)
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   barney::mpi::Comm workers = world.split(!isHeadNode);
 
-  int numDataGroups = fromCL.ndg;
+  int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   ThisRankData thisRankData;
   if (!isHeadNode) {
-    loader.loadData(workers,thisRankData,numDataGroups,dataPerRank,verbose());
+    loader.loadData(workers,thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
+  int numDataGroupsLocally = thisRankData.size();
 
 
   HayMaker hayMaker(/* the ring that binds them all : */world,
@@ -205,7 +206,7 @@ int main(int ac, char **av)
               << "#hs: building barney data groups"
               << OWL_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
-    for (int dgID=0;dgID<numDataGroups;dgID++)
+    for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
       hayMaker.buildDataGroup(dgID);
   world.barrier();
   
