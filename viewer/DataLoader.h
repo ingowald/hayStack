@@ -59,7 +59,7 @@ namespace hs {
     
 
     /*! list of all (abstract) pieces of content in the scene. */
-    std::vector<std::tuple<size_t /*projected size*/,
+    std::vector<std::tuple<double /*projected size*/,
                            int    /* linear index, to ensure stable sorting */,
                            LoadableContent *>> allContent;
 

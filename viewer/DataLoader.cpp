@@ -202,13 +202,13 @@ namespace hs {
   {
     contentOfGroup.resize(numDifferentDataGroups);
 
-    std::priority_queue<std::pair<size_t,int>> loadedGroups;
+    std::priority_queue<std::pair<double,int>> loadedGroups;
     for (int i=0;i<numDifferentDataGroups;i++)
       loadedGroups.push({0,i});
 
     std::sort(allContent.begin(),allContent.end());
     for (auto addtl : allContent) {
-      size_t addtlWeight = std::get<0>(addtl);
+      double addtlWeight = - std::get<0>(addtl);
       LoadableContent *addtlContent = std::get<2>(addtl);
       auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
       size_t currentWeight = currentlyLeastLoaded.first;

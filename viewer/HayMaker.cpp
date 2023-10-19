@@ -57,6 +57,8 @@ namespace hs {
       }
     }
 
+    PING; PRINT(numDataGroups); PRINT(dataPerRank);
+    
     if (numDataGroups % dataPerRank) {
       std::cout << "warning - num data groups is not a "
                 << "multiple of data groups per rank?!" << std::endl;
@@ -72,7 +74,8 @@ namespace hs {
         for (int r=0;r<workers.rank;r++) 
           workers.barrier();
         std::cout << "#hv: worker #" << workers.rank
-                  << " loading data group " << dataGroupID << " into slot " << workers.rank << "." << i << ":"
+                  << " loading global data group ID " << dataGroupID
+                  << " into slot " << workers.rank << "." << i << ":"
                   << std::endl << std::flush;
         usleep(100);
         fflush(0);
