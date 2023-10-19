@@ -25,6 +25,7 @@ namespace hs {
                      bool verbose)
     : world(world),
       workers(workers),
+      rankData(std::move(thisRankData)),
       isActiveWorker(!thisRankData.empty()),
       verbose(verbose)
   {}

@@ -21,8 +21,8 @@
 # include "samples/common/owlViewer/OWLViewer.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
-# include "stb/stb_image_write.h"
 #endif
+# include "stb/stb_image_write.h"
 
 namespace hs {
 
@@ -65,6 +65,31 @@ namespace hs {
     Viewer(Renderer *const renderer)
       : renderer(renderer)
     {}
+
+    void screenShot()
+    {
+      std::string fileName = "hayMaker.png";
+      std::vector<int> hostFB(fbSize.x*fbSize.y);
+      BARNEY_CUDA_CALL(Memcpy(hostFB.data(),fbPointer,
+                              fbSize.x*fbSize.y*sizeof(int),
+                              cudaMemcpyDefault));
+      BARNEY_CUDA_SYNC_CHECK();
+      std::cout << "#ht: saving screen shot in " << fileName << std::endl;
+      stbi_flip_vertically_on_write(true);
+      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+                     hostFB.data(),fbSize.x*sizeof(uint32_t));
+    }
+    
+    /*! this gets called when the user presses a key on the keyboard ... */
+    void key(char key, const vec2i &where) override
+    {
+      switch(key) {
+      case '!':
+        screenShot();
+        break;
+      default: OWLViewer::key(key,where);
+      };
+    }
     
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
