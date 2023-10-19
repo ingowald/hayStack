@@ -15,6 +15,10 @@
 // ======================================================================== //
 
 #include "viewer/DataLoader.h"
+#include "viewer/content/TSTris.h"
+#include "viewer/content/SpheresFromFile.h"
+#include "viewer/content/MiniContent.h"
+#include "viewer/content/UMeshContent.h"
 
 namespace hs {
 
@@ -45,7 +49,59 @@ namespace hs {
     return size;
   }
 
+    /*! actually loads one rank's data, based on which content got
+        assigned to which rank. must get called on every worker
+        collaboratively - but only on active workers */
+  void DataLoader::loadData(barney::mpi::Comm &workers,
+                            ThisRankData &rankData,
+                            int numDataGroups,
+                            int dataPerRank,
+                            bool verbose)
+  {
+    if (dataPerRank == 0) {
+      if (workers.size < numDataGroups) {
+        dataPerRank = numDataGroups / workers.size;
+      } else {
+        dataPerRank = 1;
+      }
+    }
 
+    if (numDataGroups % dataPerRank) {
+      std::cout << "warning - num data groups is not a "
+                << "multiple of data groups per rank?!" << std::endl;
+      std::cout << "increasing num data groups to " << numDataGroups
+                << " to ensure equal num data groups for each rank" << std::endl;
+    }
+  
+    assignGroups(numDataGroups);
+    rankData.resize(dataPerRank);
+    for (int i=0;i<dataPerRank;i++) {
+      int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
+      if (verbose) {
+        for (int r=0;r<workers.rank;r++) 
+          workers.barrier();
+        std::cout << "#hv: worker #" << workers.rank
+                  << " loading global data group ID " << dataGroupID
+                  << " into slot " << workers.rank << "." << i << ":"
+                  << std::endl << std::flush;
+        usleep(100);
+        fflush(0);
+      }
+      loadDataGroup(rankData.dataGroups[i],
+                    dataGroupID,
+                    verbose);
+      if (verbose) 
+        for (int r=workers.rank;r<workers.size;r++) 
+          workers.barrier();
+    }
+    if (verbose) {
+      workers.barrier();
+      if (workers.rank == 0)
+        std::cout << "#hv: all workers done loading their data..." << std::endl;
+      workers.barrier();
+    }
+  }
+  
 
 
   SpheresFromFile::SpheresFromFile(const std::string &fileName,
@@ -192,6 +248,8 @@ namespace hs {
       SpheresFromFile::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".mini")) {
+      MiniContent::create(this,contentDescriptor);
     } else if (startsWith(contentDescriptor,"ts.tri://")) {
       TSTriContent::create(this,contentDescriptor);
     } else

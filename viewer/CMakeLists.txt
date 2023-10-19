@@ -30,12 +30,6 @@ set(SOURCES
   main.cpp
   DataLoader.h
   DataLoader.cpp
-
-  Renderer.h
-  MPIRenderer.h
-  MPIRenderer.cpp
-  HayMaker.h
-  HayMaker.cpp
   )  
 
 # ------------------------------------------------------------------

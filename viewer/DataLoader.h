@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include "haystack/HayStack.h"
+#include "barney/MPIWrappers.h"
+#include "hayMaker/HayStack.h"
 
 namespace hs {
 
@@ -48,7 +49,7 @@ namespace hs {
     /*! interface for any type of loadablecontent to add one or more
       different pieces of content */
     void addContent(LoadableContent *);
-
+    
     virtual void assignGroups(int numDataGroups) = 0;
     
     /*! interface for the app to load one particular rank's data
@@ -56,8 +57,16 @@ namespace hs {
     virtual void loadDataGroup(DataGroup &dg,
                                int dataGroupID,
                                bool verbose) = 0;
-    
 
+    /*! actually loads one rank's data, based on which content got
+        assigned to which rank. must get called on every worker
+        collaboratively - but only on active workers */
+    void loadData(barney::mpi::Comm &workers,
+                  ThisRankData &rankData,
+                  int numDataGroups,
+                  int dataPerRank,
+                  bool verbose);
+    
     /*! list of all (abstract) pieces of content in the scene. */
     std::vector<std::tuple<double /*projected size*/,
                            int    /* linear index, to ensure stable sorting */,
@@ -89,90 +98,11 @@ namespace hs {
     virtual void   executeLoad(DataGroup &dataGroup, bool verbose) = 0;
   };
 
-  struct UMeshContent : public LoadableContent {
-    UMeshContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
-    {}
-
-    static void create(DataLoader *loader,
-                       const std::string &dataURL)
-    {
-      loader->addContent(new UMeshContent(/* this is a plain filename for umesh:*/dataURL));
-    }
-    
-    std::string toString() override
-    {
-      return "UMesh{fileName="+fileName+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    size_t projectedSize() override
-    { return 2 * fileSize; }
-    
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override
-    {
-      dataGroup.unsts.push_back(umesh::UMesh::loadFrom(fileName));
-    }
-
-    const std::string fileName;
-    const size_t      fileSize;
-  };
-
-  /*! a file of 'raw' spheres */
-  struct SpheresFromFile : public LoadableContent {
-    SpheresFromFile(const std::string &fileName,
-                    size_t fileSize,
-                    int thisPartID,
-                    int numPartsToSplitInto,
-                    float radius);
-    static void create(DataLoader *loader,
-                       const std::string &dataURL);
-    size_t projectedSize() override;
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
-
-    std::string toString() override
-    {
-      return "Spheres{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
-        + std::to_string(numPartsToSplitInto)+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-
-    const float radius;
-    const std::string fileName;
-    const size_t fileSize;
-    const int thisPartID = 0;
-    const int numPartsToSplitInto = 1;
-  };
-  
-  /*! "Tim Sandstrom" type ".tri" files */
-  struct TSTriContent : public LoadableContent {
-    TSTriContent(const std::string &fileName,
-                 size_t fileSize,
-                 int thisPartID,
-                 int numPartsToSplitInto,
-                 float radius);
-    static void create(DataLoader *loader,
-                       const std::string &dataURL);
-    size_t projectedSize() override;
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
-
-    std::string toString() override
-    {
-      return "Tim-Triangles{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
-        + std::to_string(numPartsToSplitInto)+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    const std::string fileName;
-    const size_t fileSize;
-    const int thisPartID = 0;
-    const int numPartsToSplitInto = 1;
-  };
-  
   /*! a data loader that assigns objects dynamically to data groups
     based on their projected weight */
   struct DynamicDataLoader : public DataLoader {
     void assignGroups(int numDataGroups) override;
-    
+
     void loadDataGroup(DataGroup &dg,
                        int dataGroupID,
                        bool verbose) override;

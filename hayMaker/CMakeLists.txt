@@ -17,6 +17,12 @@
 add_library(hayStack
   HayStack.h
   HayStack.cpp
+
+  Renderer.h
+  MPIRenderer.h
+  MPIRenderer.cpp
+  HayMaker.h
+  HayMaker.cpp
   )
 
 target_link_libraries(hayStack

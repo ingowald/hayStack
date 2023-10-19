@@ -16,9 +16,8 @@
 
 #pragma once
 
-#include "haystack/HayStack.h"
+#include "hayMaker/Renderer.h"
 #include "barney/MPIWrappers.h"
-#include "Renderer.h"
 
 /* parallel renderer abstraction */
 namespace hs {

@@ -16,48 +16,43 @@
 
 #pragma once
 
-#include "haystack/HayStack.h"
-#include "barney/MPIWrappers.h"
-#include "viewer/DataLoader.h"
-#include "viewer/MPIRenderer.h"
-#include "barney.h"
+#include "barney/common.h"
+#include <vector>
 
+/* parallel renderer abstraction */
 namespace hs {
+  using namespace owl::common;
+  using range1f = owl::common::interval<float> ;
+  
+  struct Camera {
+    vec3f vp, vi, vu;
+    float fovy;
+  };
 
-  struct HayMaker : public Renderer
-  {
-    HayMaker(Comm &world,
-             bool isActiveWorker,
-             bool verbose);
-    
-    void createBarney();
-    
-    void loadData(DynamicDataLoader &loader,
-                  int numDataGroups,
-                  int dataPerRank);
-    void buildDataGroup(int dgID);
-    
-    void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
+  struct DirLight {
+    vec3f direction;
+    vec3f radiance;
+  };
 
-    void renderFrame() override;
-    box3f getWorldBounds() const;
-    void resetAccumulation() {}
-
-    void setCamera(const Camera &camera);
-
-
-    BNCamera     camera;
-    /*! need this for the camera aspect ratio */
-    vec2i        fbSize;
-    Comm        &world;
-    const bool   isActiveWorker;
-    Comm         workers;
-    ThisRankData rankData;
-    bool         verbose;
-
-    BNContext barney = 0;
-    BNModel   model = 0;
-    BNFrameBuffer fb = 0;
+  struct PointLight {
+    vec3f position;
+    vec3f power;
+  };
+  
+  /*! base abstraction for any renderer - no matter whether its a
+      single node or multiple workers on the back */
+  struct Renderer {
+    virtual void renderFrame() {}
+    virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
+    virtual void resetAccumulation() {}
+    virtual void setCamera(const Camera &camera) {}
+    virtual void setXF(const range1f &domain,
+                       const std::vector<vec4f> &colors) {}
+    virtual void screenShot() {}
+    virtual void terminate() {}
+    virtual void setLights(float ambient,
+                           const std::vector<PointLight> &pointLights,
+                           const std::vector<DirLight> &dirLights) {}
   };
 
 }

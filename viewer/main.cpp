@@ -14,8 +14,8 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "viewer/HayMaker.h"
-
+#include "hayMaker/HayMaker.h"
+#include "viewer/DataLoader.h"
 #if HS_VIEWER
 # include "samples/common/owlViewer/InspectMode.h"
 # include "samples/common/owlViewer/OWLViewer.h"
@@ -107,7 +107,7 @@ int main(int ac, char **av)
   world.barrier();
 
   FromCL fromCL;
-  BarnConfig config;
+  // BarnConfig config;
 
   DynamicDataLoader loader;
   for (int i=1;i<ac;i++) {
@@ -138,14 +138,21 @@ int main(int ac, char **av)
   }
 
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
-  HayMaker hayMaker(/* the ring that binds them all : */world,
-                    /* whether this is a active worker */!isHeadNode,
-                    verbose());
+  barney::mpi::Comm workers = world.split(!isHeadNode);
+
   int numDataGroups = fromCL.ndg;
-  int dataPerRank = fromCL.dpr;
+  int dataPerRank   = fromCL.dpr;
+  ThisRankData thisRankData;
   if (!isHeadNode) {
-    hayMaker.loadData(loader,numDataGroups,dataPerRank);
+    loader.loadData(workers,thisRankData,numDataGroups,dataPerRank,verbose());
   }
+
+
+  HayMaker hayMaker(/* the ring that binds them all : */world,
+                    /* the workers */workers,
+                    thisRankData,
+                    verbose());
+  
 
   world.barrier();
   const box3f worldBounds = hayMaker.getWorldBounds();

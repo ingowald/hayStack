@@ -20,14 +20,14 @@
 namespace hs {
 
   HayMaker::HayMaker(Comm &world,
-                     bool isActiveWorker,
+                     Comm &workers,
+                     ThisRankData &thisRankData,
                      bool verbose)
     : world(world),
-      workers(world.split(isActiveWorker)),
-      isActiveWorker(isActiveWorker),
+      workers(workers),
+      isActiveWorker(!thisRankData.empty()),
       verbose(verbose)
-  {
-  }
+  {}
 
   void HayMaker::createBarney()
   {
@@ -44,55 +44,55 @@ namespace hs {
     model = bnModelCreate(barney);
   }
   
-  void HayMaker::loadData(DynamicDataLoader &loader,
-                          int numDataGroups,
-                          int dataPerRank)
-  {
-    if (!isActiveWorker)
-      return;
-    if (dataPerRank == 0) {
-      if (workers.size < numDataGroups) {
-        dataPerRank = numDataGroups / workers.size;
-      } else {
-        dataPerRank = 1;
-      }
-    }
+  // void HayMaker::loadData(DynamicDataLoader &loader,
+  //                         int numDataGroups,
+  //                         int dataPerRank)
+  // {
+  //   if (!isActiveWorker)
+  //     return;
+  //   if (dataPerRank == 0) {
+  //     if (workers.size < numDataGroups) {
+  //       dataPerRank = numDataGroups / workers.size;
+  //     } else {
+  //       dataPerRank = 1;
+  //     }
+  //   }
 
-    if (numDataGroups % dataPerRank) {
-      std::cout << "warning - num data groups is not a "
-                << "multiple of data groups per rank?!" << std::endl;
-      std::cout << "increasing num data groups to " << numDataGroups
-                << " to ensure equal num data groups for each rank" << std::endl;
-    }
+  //   if (numDataGroups % dataPerRank) {
+  //     std::cout << "warning - num data groups is not a "
+  //               << "multiple of data groups per rank?!" << std::endl;
+  //     std::cout << "increasing num data groups to " << numDataGroups
+  //               << " to ensure equal num data groups for each rank" << std::endl;
+  //   }
   
-    loader.assignGroups(numDataGroups);
-    rankData.resize(dataPerRank);
-    for (int i=0;i<dataPerRank;i++) {
-      int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
-      if (verbose) {
-        for (int r=0;r<workers.rank;r++) 
-          workers.barrier();
-        std::cout << "#hv: worker #" << workers.rank
-                  << " loading global data group ID " << dataGroupID
-                  << " into slot " << workers.rank << "." << i << ":"
-                  << std::endl << std::flush;
-        usleep(100);
-        fflush(0);
-      }
-      loader.loadDataGroup(rankData.dataGroups[i],
-                           dataGroupID,
-                           verbose);
-      if (verbose) 
-        for (int r=workers.rank;r<workers.size;r++) 
-          workers.barrier();
-    }
-    if (verbose) {
-      workers.barrier();
-      if (workers.rank == 0)
-        std::cout << "#hv: all workers done loading their data..." << std::endl;
-      workers.barrier();
-    }
-  }
+  //   loader.assignGroups(numDataGroups);
+  //   rankData.resize(dataPerRank);
+  //   for (int i=0;i<dataPerRank;i++) {
+  //     int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
+  //     if (verbose) {
+  //       for (int r=0;r<workers.rank;r++) 
+  //         workers.barrier();
+  //       std::cout << "#hv: worker #" << workers.rank
+  //                 << " loading global data group ID " << dataGroupID
+  //                 << " into slot " << workers.rank << "." << i << ":"
+  //                 << std::endl << std::flush;
+  //       usleep(100);
+  //       fflush(0);
+  //     }
+  //     loader.loadDataGroup(rankData.dataGroups[i],
+  //                          dataGroupID,
+  //                          verbose);
+  //     if (verbose) 
+  //       for (int r=workers.rank;r<workers.size;r++) 
+  //         workers.barrier();
+  //   }
+  //   if (verbose) {
+  //     workers.barrier();
+  //     if (workers.rank == 0)
+  //       std::cout << "#hv: all workers done loading their data..." << std::endl;
+  //     workers.barrier();
+  //   }
+  // }
   
   box3f HayMaker::getWorldBounds() const
   {
