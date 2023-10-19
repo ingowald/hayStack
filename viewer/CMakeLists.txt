@@ -30,6 +30,13 @@ set(SOURCES
   main.cpp
   DataLoader.h
   DataLoader.cpp
+  content/MiniContent.h
+  content/OBJContent.h
+  content/OBJContent.cpp
+  content/SpheresFromFile.h
+  content/SpheresFromFile.cpp
+  content/TSTris.h
+  content/TSTris.cpp
   )  
 
 # ------------------------------------------------------------------
