@@ -45,56 +45,6 @@ namespace hs {
     model = bnModelCreate(barney);
   }
   
-  // void HayMaker::loadData(DynamicDataLoader &loader,
-  //                         int numDataGroups,
-  //                         int dataPerRank)
-  // {
-  //   if (!isActiveWorker)
-  //     return;
-  //   if (dataPerRank == 0) {
-  //     if (workers.size < numDataGroups) {
-  //       dataPerRank = numDataGroups / workers.size;
-  //     } else {
-  //       dataPerRank = 1;
-  //     }
-  //   }
-
-  //   if (numDataGroups % dataPerRank) {
-  //     std::cout << "warning - num data groups is not a "
-  //               << "multiple of data groups per rank?!" << std::endl;
-  //     std::cout << "increasing num data groups to " << numDataGroups
-  //               << " to ensure equal num data groups for each rank" << std::endl;
-  //   }
-  
-  //   loader.assignGroups(numDataGroups);
-  //   rankData.resize(dataPerRank);
-  //   for (int i=0;i<dataPerRank;i++) {
-  //     int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
-  //     if (verbose) {
-  //       for (int r=0;r<workers.rank;r++) 
-  //         workers.barrier();
-  //       std::cout << "#hv: worker #" << workers.rank
-  //                 << " loading global data group ID " << dataGroupID
-  //                 << " into slot " << workers.rank << "." << i << ":"
-  //                 << std::endl << std::flush;
-  //       usleep(100);
-  //       fflush(0);
-  //     }
-  //     loader.loadDataGroup(rankData.dataGroups[i],
-  //                          dataGroupID,
-  //                          verbose);
-  //     if (verbose) 
-  //       for (int r=workers.rank;r<workers.size;r++) 
-  //         workers.barrier();
-  //   }
-  //   if (verbose) {
-  //     workers.barrier();
-  //     if (workers.rank == 0)
-  //       std::cout << "#hv: all workers done loading their data..." << std::endl;
-  //     workers.barrier();
-  //   }
-  // }
-  
   box3f HayMaker::getWorldBounds() const
   {
     box3f bb = rankData.getBounds();
@@ -129,12 +79,17 @@ namespace hs {
   {
     BNDataGroup barney = bnGetDataGroup(model,dgID);
 
+    std::vector<BNGeom>  rootGroupGeoms;
+    std::vector<BNVolume>  rootGroupVolumes;
     std::vector<BNGroup> groups;
     std::vector<affine3f> xfms;
 
+    // ------------------------------------------------------------------
+    // render all SphereGeoms
+    // ------------------------------------------------------------------
     auto &myData = rankData.dataGroups[dgID];
     if (!myData.sphereSets.empty()) {
-      std::vector<BNGeom>  geoms;
+      std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
@@ -146,14 +101,17 @@ namespace hs {
                             sphereSet->radius);
         geoms.push_back(geom);
       }
-      BNGroup spheresGroup
-        = bnGroupCreate(barney,geoms.data(),geoms.size(),
-                        nullptr,0);
-      bnGroupBuild(spheresGroup);
-      groups.push_back(spheresGroup);
-      xfms.push_back(affine3f());
+      // BNGroup spheresGroup
+      //   = bnGroupCreate(barney,geoms.data(),geoms.size(),
+      //                   nullptr,0);
+      // bnGroupBuild(spheresGroup);
+      // groups.push_back(spheresGroup);
+      // xfms.push_back(affine3f());
     }
 
+    // ------------------------------------------------------------------
+    // render all (possibly instanced) triangle meshes from mini format
+    // ------------------------------------------------------------------
     for (auto mini : myData.minis) {
       BNMaterial material = BN_DEFAULT_MATERIAL;
       std::map<mini::Object::SP, BNGroup> miniGroups;
@@ -180,6 +138,50 @@ namespace hs {
       }
     }
     
+    // ------------------------------------------------------------------
+    // render all UMeshes
+    // ------------------------------------------------------------------
+    for (auto unst : myData.unsts) {
+      BNMaterial material = BN_DEFAULT_MATERIAL;
+      std::vector<vec4f> verts4f;
+      const float *scalars = unst->perVertex->values.data();
+      for (int i=0;i<unst->vertices.size();i++) {
+        verts4f.push_back(vec4f(unst->vertices[i].x,
+                                unst->vertices[i].y,
+                                unst->vertices[i].z,
+                                scalars[i]));
+      }
+      BNScalarField mesh = bnUMeshCreate
+        (barney,
+         // vertices: 4 floats each
+         (const float *)verts4f.data(),verts4f.size(),
+         // tets: 4 ints each
+         (const int *)unst->tets.data(),unst->tets.size(),
+         nullptr,0,
+         nullptr,0,
+                                  nullptr,0);
+      // rootGroupGeoms.push_back(geom);
+    }
+    
+
+    // ------------------------------------------------------------------
+    // create a single instance for all 'root' geometry that isn't
+    // explicitly instantitated itself
+    // ------------------------------------------------------------------
+    if (!rootGroupGeoms.empty() || !rootGroupVolumes.empty()) {
+      BNGroup rootGroup
+        = bnGroupCreate(barney,rootGroupGeoms.data(),rootGroupGeoms.size(),
+                        rootGroupVolumes.data(),rootGroupVolumes.size());
+      bnGroupBuild(rootGroup);
+      groups.push_back(rootGroup);
+      xfms.push_back(affine3f());
+    }
+
+      
+    // ------------------------------------------------------------------
+    // finally - specify top-level instances for all the stuff we
+    // generated
+    // ------------------------------------------------------------------
     bnModelSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
                         groups.size());
     // affine3f rootTransform;

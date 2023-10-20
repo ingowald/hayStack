@@ -72,21 +72,4 @@ namespace hs {
     std::vector<DataGroup> dataGroups;
   };
 
-  // struct BarnConfig {
-  //   typedef enum { WORKER, HEAD_NODE, DISPLAY } Role;
-  //   bool  hasHeadNode   = false;
-  //   Role  role          = WORKER;
-  //   vec2i fbSize        = vec2i{ 800, 600 };
-  //   int   workerRank    = 0;
-  //   int   numWorkers    = 1;
-
-  //   /*! how many (mpi?-)ranks there are. this will be '1' for local
-  //       non-mpi mode, and total number of mpi ranks (workers plus head
-  //       node, if applicable) for mpi mode */
-  //   int   numRanks      = 1;
-    
-  //   /*! how many different data groups there are, across all ranks */
-  //   int   numDataGroups = 1;
-  // };
-  
  }
