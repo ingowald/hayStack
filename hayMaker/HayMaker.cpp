@@ -79,9 +79,22 @@ namespace hs {
   {
     BNDataGroup barney = bnGetDataGroup(model,dgID);
 
-    std::vector<BNGeom>  rootGroupGeoms;
-    std::vector<BNVolume>  rootGroupVolumes;
-    std::vector<BNGroup> groups;
+    std::vector<vec4f> xfValues;
+    for (int i=0;i<100;i++)
+      xfValues.push_back(vec4f(.5f,.5f,0.5f,
+                               clamp(5.f-fabsf(i-30),0.f,1.f)));
+    
+    BNTransferFunction defaultXF
+      = bnTransferFunctionCreate(barney,
+                                 /* no domain: */0.f,0.f,
+                                 (const float4*)xfValues.data(),
+                                 xfValues.size(),
+                                 /*density:*/10.f);
+
+      
+    std::vector<BNGeom>   rootGroupGeoms;
+    std::vector<BNVolume> rootGroupVolumes;
+    std::vector<BNGroup>  groups;
     std::vector<affine3f> xfms;
 
     // ------------------------------------------------------------------
@@ -159,8 +172,10 @@ namespace hs {
          (const int *)unst->tets.data(),unst->tets.size(),
          nullptr,0,
          nullptr,0,
-                                  nullptr,0);
+         nullptr,0);
       // rootGroupGeoms.push_back(geom);
+      BNVolume volume = bnVolumeCreate(barney,mesh,defaultXF);
+      rootGroupVolumes.push_back(volume);
     }
     
 
