@@ -174,7 +174,7 @@ namespace hs {
          nullptr,0,
          nullptr,0);
       // rootGroupGeoms.push_back(geom);
-      BNVolume volume = bnVolumeCreate(barney,mesh,defaultXF);
+      BNVolume volume = bnVolumeCreate(barney,defaultXF,mesh);
       rootGroupVolumes.push_back(volume);
     }
     
