@@ -182,6 +182,7 @@ int main(int ac, char **av)
 
   world.barrier();
   const box3f worldBounds = hayMaker.getWorldBounds();
+  PING; PRINT(worldBounds);
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -192,6 +193,9 @@ int main(int ac, char **av)
       = worldBounds.center()
       + vec3f(-.3f, .7f, +1.f) * worldBounds.span();
     fromCL.camera.vi = worldBounds.center();
+    PING; PRINT(worldBounds);
+    PRINT(fromCL.camera.vi);
+    PRINT(fromCL.camera.vp);
   }
   
   world.barrier();

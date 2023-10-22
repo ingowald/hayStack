@@ -35,10 +35,12 @@ namespace hs {
       if (unst) {
         umesh::box3f bb = unst->getBounds();
         bounds.extend((const box3f&)bb);
+        PING; PRINT(bb);
       }
     for (auto sphereSet : sphereSets)
       if (sphereSet)
         bounds.extend(sphereSet->getBounds());
+    PING; PRINT(bounds);
     return bounds;
   }
 

@@ -36,10 +36,13 @@ namespace hs {
       std::vector<int> dataGroupIDs;
       for (auto dg : rankData.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
-      barney = bnMPIContextCreate(world.comm,/*data*/dataGroupIDs.data(),dataGroupIDs.size(),
-                               /*gpus*/nullptr,-1);
+      barney = bnMPIContextCreate
+        (world.comm,
+         /*data*/dataGroupIDs.data(),dataGroupIDs.size(),
+         /*gpus*/nullptr,-1);
     } else
-      barney = bnMPIContextCreate(world.comm,/*data*/nullptr,0,/*gpus*/nullptr,0);
+      barney = bnMPIContextCreate
+        (world.comm,/*data*/nullptr,0,/*gpus*/nullptr,0);
 
     fb = bnFrameBufferCreate(barney,0);
     model = bnModelCreate(barney);
@@ -169,7 +172,7 @@ namespace hs {
          // vertices: 4 floats each
          (const float *)verts4f.data(),verts4f.size(),
          // tets: 4 ints each
-         (const int *)unst->tets.data(),unst->tets.size(),
+         (const int *)unst->tets.data(),(int)unst->tets.size(),
          nullptr,0,
          nullptr,0,
          nullptr,0);
@@ -196,11 +199,9 @@ namespace hs {
     // ------------------------------------------------------------------
     // finally - specify top-level instances for all the stuff we
     // generated
-    // ------------------------------------------------------------------
+    // -----------------------------------------------------------------
     bnModelSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
                         groups.size());
-    // affine3f rootTransform;
-    // bnModelSetInstances(barney,&rootGroup,(BNTransform *)&rootTransform,1);
     bnModelBuild(barney);
   }
   
