@@ -40,7 +40,7 @@ namespace hs {
 
     void renderFrame() override;
     box3f getWorldBounds() const;
-    void resetAccumulation() {}
+    void resetAccumulation() override;
 
     void setCamera(const Camera &camera);
 

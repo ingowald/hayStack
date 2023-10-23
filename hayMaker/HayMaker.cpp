@@ -68,6 +68,11 @@ namespace hs {
     bnRender(model,&camera,fb,nullptr);
   }
 
+  void HayMaker::resetAccumulation()
+  {
+    bnAccumReset(fb);
+  }
+
   void HayMaker::setCamera(const Camera &camera)
   {
     bnPinholeCamera(&this->camera,
@@ -92,7 +97,7 @@ namespace hs {
                                  /* no domain: */0.f,0.f,
                                  (const float4*)xfValues.data(),
                                  xfValues.size(),
-                                 /*density:*/10.f);
+                                 /*density:*/.6f);
 
       
     std::vector<BNGeom>   rootGroupGeoms;
