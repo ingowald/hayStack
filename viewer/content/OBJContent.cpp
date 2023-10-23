@@ -19,7 +19,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-#define STB_IMAGE_IMPLEMENTATION 1
+// #define STB_IMAGE_IMPLEMENTATION 1
 #include "stb/stb_image.h"
 
 namespace std {
@@ -100,7 +100,7 @@ namespace mini {
       /* iw - actually, it seems that stbi loads the pictures
          mirrored along the y axis - mirror them here */
       
-      STBI_FREE(image);
+      stbi_image_free(image);
     }
 
     return texture;

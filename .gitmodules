@@ -10,3 +10,6 @@
 [submodule "submodules/owl"]
 	path = submodules/owl
 	url = git@github.com:owl-project/owl
+[submodule "submodules/cuteeOWL"]
+	path = submodules/cuteeOWL
+	url = git@github.com:owl-project/cuteeOWL

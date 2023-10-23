@@ -19,10 +19,19 @@
 #if HS_VIEWER
 # include "samples/common/owlViewer/InspectMode.h"
 # include "samples/common/owlViewer/OWLViewer.h"
+#define STB_IMAGE_IMPLEMENTATION 1
+# include "stb/stb_image.h"
+# include "stb/stb_image_write.h"
+#elif HS_CUTEE
+# include "qtOWL/OWLViewer.h"
+# include "qtOWL/XFEditor.h"
+# include "stb/stb_image_write.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
-#endif
+# define STB_IMAGE_IMPLEMENTATION 1
+# include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
+#endif
 
 namespace hs {
 
@@ -58,9 +67,15 @@ namespace hs {
     exit(0);
   }
 
-  
 #if HS_VIEWER
-  struct Viewer : public owl::viewer::OWLViewer
+  using namespace owl::viewer; //owl::viewer::OWLViewer;
+#endif
+#if HS_CUTEE
+  using namespace qtOWL; //qtOWL::OWLViewer
+#endif
+  
+#if HS_VIEWER || HS_CUTEE
+  struct Viewer : public OWLViewer
   {
     Viewer(Renderer *const renderer)
       : renderer(renderer)
@@ -240,6 +255,30 @@ int main(int ac, char **av)
                               /*up-vector*/fromCL.camera.vu,
                               /*fovy(deg)*/fromCL.camera.fovy);
   viewer.showAndRun();
+#elif HS_CUTEE
+  QApplication app(ac,av);
+  Viewer viewer(renderer);
+
+  viewer.show();
+  viewer.enableFlyMode();
+  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds);
+  viewer.setWorldScale(owl::length(worldBounds.span()));
+  viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
+                              /*lookat   */fromCL.camera.vi,
+                              /*up-vector*/fromCL.camera.vu,
+                              /*fovy(deg)*/fromCL.camera.fovy);
+
+  XFEditor    *xfEditor = new XFEditor;
+  QFormLayout *layout   = new QFormLayout;
+  layout->addWidget(xfEditor);
+
+  // Set QWidget as the central layout of the main window
+  QMainWindow secondWindow;
+  secondWindow.setCentralWidget(xfEditor);
+
+  secondWindow.show();
+  
+  app.exec();
 #else
 
   auto &fbSize = fromCL.fbSize;

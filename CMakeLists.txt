@@ -25,7 +25,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
 endif()
 
-option(MO_CUTEE "Use QT Viewer and XFEditor" OFF)
+option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
@@ -38,6 +38,9 @@ if (NOT (TARGET miniScene))
 endif()
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
+endif()
+if (HT_CUTEE)
+  add_subdirectory(submodules/cuteeOWL     EXCLUDE_FROM_ALL)
 endif()
 
 
@@ -52,7 +55,7 @@ add_subdirectory(viewer)
 # set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
 
 # set(CMAKE_AUTOMOC OFF)
-# if (MO_CUTEE)
+# if (HT_CUTEE)
 #   add_subdirectory(submodules/cuteeOWL EXCLUDE_FROM_ALL)
 #   add_executable(moQTViewer
 #     viewer.cpp

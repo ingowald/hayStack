@@ -90,14 +90,14 @@ namespace hs {
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
-                               clamp(5.f-fabsf(i-30),0.f,1.f)));
+                               clamp(5.f-fabsf(i-40),0.f,1.f)));
     
     BNTransferFunction defaultXF
       = bnTransferFunctionCreate(barney,
                                  /* no domain: */0.f,0.f,
                                  (const float4*)xfValues.data(),
                                  xfValues.size(),
-                                 /*density:*/.6f);
+                                 /*density:*/1.f);
 
       
     std::vector<BNGeom>   rootGroupGeoms;

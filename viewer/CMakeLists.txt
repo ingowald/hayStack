@@ -61,6 +61,35 @@ target_link_libraries(hayThereOffline
 
 # ------------------------------------------------------------------
 
+if (HT_CUTEE)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+  set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
+  
+  set(CMAKE_AUTOMOC OFF)
+  add_executable(hayThereQT
+    ${SOURCES}
+    )
+  target_link_libraries(hayThereQT
+    PUBLIC
+    hayStack
+    #  owl_viewer
+    qtOWL
+    )
+  target_compile_definitions(hayThereQT PUBLIC -DHS_CUTEE=1)
+  set_target_properties(hayThereQT
+    PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    CUDA_USE_STATIC_CUDA_RUNTIME ON
+    CUDA_ARCHITECTURES OFF
+    )
+
+  
+endif()
+
+# ------------------------------------------------------------------
+
 
 # add_executable(hsViewerMPI
 #   main.cpp
