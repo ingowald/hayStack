@@ -55,6 +55,12 @@ namespace hs {
     ThisRankData rankData;
     bool         verbose;
 
+    struct PerDG {
+      std::vector<BNVolume> createdVolumes;
+      BNGroup volumeGroup = 0;
+    };
+    std::vector<PerDG> perDG;
+    
     BNContext barney = 0;
     BNModel   model = 0;
     BNFrameBuffer fb = 0;

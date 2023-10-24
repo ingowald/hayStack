@@ -129,7 +129,12 @@ namespace hs {
         renderer->setTransferFunction(xf);
         xfDirty = false;
       }
-      
+
+      if (accumDirty) {
+        renderer->resetAccumulation();
+        accumDirty = false;
+      }
+
       renderer->renderFrame();
     }
     
@@ -138,12 +143,12 @@ namespace hs {
       hs::Camera camera;
       OWLViewer::getCameraOrientation(camera.vp,camera.vi,camera.vu,camera.fovy);
       renderer->setCamera(camera);
-      renderer->resetAccumulation();
+      accumDirty = true;
     }
 
     TransferFunction xf;
     bool xfDirty = true;
-    
+    bool accumDirty = true;
     Renderer *const renderer;
   };
 

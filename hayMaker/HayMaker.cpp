@@ -28,7 +28,9 @@ namespace hs {
       rankData(std::move(thisRankData)),
       isActiveWorker(!thisRankData.empty()),
       verbose(verbose)
-  {}
+  {
+    perDG.resize(rankData.size());
+  }
 
   void HayMaker::createBarney()
   {
@@ -66,11 +68,19 @@ namespace hs {
   void HayMaker::setTransferFunction(const TransferFunction &xf) 
   {
     for (int dgID=0;dgID<rankData.size();dgID++) {
-      bnSetTransferFunction(barney,
-                            xf.domain.lower,xf.domain.upper,
-                            xf.colorMap.data(),
-                            xf.colorMap.size(),
-                            xf.baseDensity);
+      auto &dg = perDG[dgID];
+      if (dg.createdVolumes.empty())
+        continue;
+      
+      BNDataGroup barney = bnGetDataGroup(model,dgID);
+      for (auto volume : dg.createdVolumes)
+        bnVolumeSetXF(volume,
+                      (float2&)xf.domain,
+                      (const float4*)xf.colorMap.data(),
+                      xf.colorMap.size(),
+                      xf.baseDensity);
+      bnGroupBuild(dg.volumeGroup);
+      bnModelBuild(barney);
     }
   }
   
@@ -102,17 +112,10 @@ namespace hs {
     for (int i=0;i<100;i++)
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
                                clamp(5.f-fabsf(i-40),0.f,1.f)));
-    
-    BNTransferFunction defaultXF
-      = bnTransferFunctionCreate(barney,
-                                 /* no domain: */0.f,0.f,
-                                 (const float4*)xfValues.data(),
-                                 xfValues.size(),
-                                 /*density:*/1.f);
 
+    auto &dg = perDG[dgID];
       
     std::vector<BNGeom>   rootGroupGeoms;
-    std::vector<BNVolume> rootGroupVolumes;
     std::vector<BNGroup>  groups;
     std::vector<affine3f> xfms;
 
@@ -193,8 +196,8 @@ namespace hs {
          nullptr,0,
          nullptr,0);
       // rootGroupGeoms.push_back(geom);
-      BNVolume volume = bnVolumeCreate(barney,defaultXF,mesh);
-      rootGroupVolumes.push_back(volume);
+      BNVolume volume = bnVolumeCreate(barney,mesh);
+      dg.createdVolumes.push_back(volume);
     }
     
 
@@ -202,13 +205,26 @@ namespace hs {
     // create a single instance for all 'root' geometry that isn't
     // explicitly instantitated itself
     // ------------------------------------------------------------------
-    if (!rootGroupGeoms.empty() || !rootGroupVolumes.empty()) {
+    if (!rootGroupGeoms.empty()) {
       BNGroup rootGroup
         = bnGroupCreate(barney,rootGroupGeoms.data(),rootGroupGeoms.size(),
-                        rootGroupVolumes.data(),rootGroupVolumes.size());
+                        nullptr,0);
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
       xfms.push_back(affine3f());
+    }
+    // ------------------------------------------------------------------
+    // create a single instance for all 'root' volume(s)
+    // ------------------------------------------------------------------
+    if (!dg.createdVolumes.empty()) {
+      BNGroup rootGroup
+        = bnGroupCreate(barney,nullptr,0,
+                        dg.createdVolumes.data(),
+                        dg.createdVolumes.size());
+      bnGroupBuild(rootGroup);
+      groups.push_back(rootGroup);
+      xfms.push_back(affine3f());
+      dg.volumeGroup = rootGroup;
     }
 
       
