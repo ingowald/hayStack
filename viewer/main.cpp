@@ -128,6 +128,7 @@ namespace hs {
       if (xfDirty) {
         renderer->setTransferFunction(xf);
         xfDirty = false;
+        accumDirty = true;
       }
 
       if (accumDirty) {
@@ -162,13 +163,13 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = r;
+    xf.domain = { 0.f, 0.f };//r;
     xfDirty = true;
   }
   
   void Viewer::opacityScaleChanged(double scale)
   {
-    xf.baseDensity = scale;
+    xf.baseDensity = scale / 100.f;
     xfDirty = true;
   }
   
