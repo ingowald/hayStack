@@ -62,6 +62,17 @@ namespace hs {
     this->fbSize = fbSize;
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,(world.rank==0)?hostRGBA:nullptr);
   }
+
+  void HayMaker::setTransferFunction(const TransferFunction &xf) 
+  {
+    for (int dgID=0;dgID<rankData.size();dgID++) {
+      bnSetTransferFunction(barney,
+                            xf.domain.lower,xf.domain.upper,
+                            xf.colorMap.data(),
+                            xf.colorMap.size(),
+                            xf.baseDensity);
+    }
+  }
   
   void HayMaker::renderFrame()
   {

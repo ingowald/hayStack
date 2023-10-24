@@ -24,6 +24,12 @@ namespace hs {
   using namespace owl::common;
   using range1f = owl::common::interval<float> ;
   
+  struct TransferFunction {
+    std::vector<vec4f> colorMap = { vec4f(0.f), vec4f(1.f) };
+    range1f domain = { 0.f, 0.f };
+    float   baseDensity = 1.f;
+  };
+  
   struct Camera {
     vec3f vp, vi, vu;
     float fovy;
@@ -42,12 +48,14 @@ namespace hs {
   /*! base abstraction for any renderer - no matter whether its a
       single node or multiple workers on the back */
   struct Renderer {
+
+    virtual void setTransferFunction(const TransferFunction &xf) {}
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
     virtual void resetAccumulation() {}
     virtual void setCamera(const Camera &camera) {}
-    virtual void setXF(const range1f &domain,
-                       const std::vector<vec4f> &colors) {}
+    // virtual void setXF(const range1f &domain,
+    //                    const std::vector<vec4f> &colors) {}
     virtual void screenShot() {}
     virtual void terminate() {}
     virtual void setLights(float ambient,

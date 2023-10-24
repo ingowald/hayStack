@@ -34,8 +34,9 @@ namespace hs {
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
-    void setXF(const range1f &domain,
-               const std::vector<vec4f> &colors) override;
+    // void setXF(const range1f &domain,
+    //            const std::vector<vec4f> &colors) override;
+    void setTransferFunction(const TransferFunction &xf) override;
     void screenShot() override;
     void terminate() override;
     void setLights(float ambient,

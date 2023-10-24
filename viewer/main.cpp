@@ -81,6 +81,13 @@ namespace hs {
       : renderer(renderer)
     {}
 
+#if HS_CUTEE
+  public slots:
+    void colorMapChanged(qtOWL::XFEditor *xf);
+    void rangeChanged(range1f r);
+    void opacityScaleChanged(double scale);
+#endif
+  public:
     void screenShot()
     {
       std::string fileName = "hayMaker.png";
@@ -118,6 +125,11 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
+      if (xfDirty) {
+        renderer->setTransferFunction(xf);
+        xfDirty = false;
+      }
+      
       renderer->renderFrame();
     }
     
@@ -129,8 +141,34 @@ namespace hs {
       renderer->resetAccumulation();
     }
 
+    TransferFunction xf;
+    bool xfDirty = true;
+    
     Renderer *const renderer;
   };
+
+
+#if HS_CUTEE
+  void Viewer::colorMapChanged(qtOWL::XFEditor *xfEditor)
+  {
+    xf.colorMap = xfEditor->getColorMap();
+    xfDirty = true;
+  }
+  
+  void Viewer::rangeChanged(range1f r)
+  {
+    xf.domain = r;
+    xfDirty = true;
+  }
+  
+  void Viewer::opacityScaleChanged(double scale)
+  {
+    xf.baseDensity = scale;
+    xfDirty = true;
+  }
+  
+#endif
+
 #endif  
 }
 
@@ -272,6 +310,16 @@ int main(int ac, char **av)
   QFormLayout *layout   = new QFormLayout;
   layout->addWidget(xfEditor);
 
+  QObject::connect(xfEditor,&qtOWL::XFEditor::colorMapChanged,
+                   &viewer, &Viewer::colorMapChanged);
+  QObject::connect(xfEditor,&qtOWL::XFEditor::rangeChanged,
+                   &viewer, &Viewer::rangeChanged);
+  QObject::connect(xfEditor,&qtOWL::XFEditor::opacityScaleChanged,
+                   &viewer, &Viewer::opacityScaleChanged);
+    // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
+    //                  &viewer, &Viewer::lightPosChanged);
+
+  
   // Set QWidget as the central layout of the main window
   QMainWindow secondWindow;
   secondWindow.setCentralWidget(xfEditor);

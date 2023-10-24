@@ -41,6 +41,7 @@ namespace hs {
     void renderFrame() override;
     box3f getWorldBounds() const;
     void resetAccumulation() override;
+    void setTransferFunction(const TransferFunction &xf) override;
 
     void setCamera(const Camera &camera);
 

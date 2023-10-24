@@ -98,7 +98,7 @@ namespace hs {
     void cmd_resize();
     void cmd_resetAccumulation();
     void cmd_setCamera();
-    void cmd_setXF();
+    void cmd_setTransferFunction();
     void cmd_setISO();
     void cmd_setShadeMode();
     void cmd_setNodeSelection();
@@ -374,38 +374,39 @@ namespace hs {
 
   // ==================================================================
 
-  void MPIRenderer::setXF(const range1f &domain,
-                          const std::vector<vec4f> &cm)
+  void MPIRenderer::setTransferFunction(const TransferFunction &xf)
   {
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
     int cmd = SET_XF;
     sendToWorkers(cmd);
-    sendToWorkers(domain);
-    sendToWorkers(cm);
+    sendToWorkers(xf.domain);
+    sendToWorkers(xf.baseDensity);
+    sendToWorkers(xf.colorMap);
     sendEndOfMessage();
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->setXF(domain,cm);
+    if (passThrough)
+      passThrough->setTransferFunction(xf);
   }
 
-  void WorkerLoop::cmd_setXF()
+  void WorkerLoop::cmd_setTransferFunction()
   {
     // ------------------------------------------------------------------
     // get args....
     // ------------------------------------------------------------------
-    std::vector<vec4f> cm;
-    range1f range;
-    fromMaster(range);
-    fromMaster(cm);
+    TransferFunction xf;
+    fromMaster(xf.domain);
+    fromMaster(xf.baseDensity);
+    fromMaster(xf.colorMap);
     checkEndOfMessage();
 
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    renderer->setXF(range,cm);
+    renderer->setTransferFunction(xf);
   }
   
   // ==================================================================
@@ -536,7 +537,7 @@ namespace hs {
         cmd_screenShot();
         break;
       case SET_XF:
-        cmd_setXF();
+        cmd_setTransferFunction();
         break;
       // case SET_ISO:
       //   cmd_setISO();
