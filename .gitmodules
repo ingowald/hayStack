@@ -4,12 +4,6 @@
 [submodule "submodules/miniScene"]
 	path = submodules/miniScene
 	url = https://github.com/ingowald/miniScene
-[submodule "submodules/mpiRenderInf"]
-	path = submodules/mpiRenderInf
-	url = git@gitlab.com:ingowald/mpiRenderInf
-[submodule "submodules/owl"]
-	path = submodules/owl
-	url = git@github.com:owl-project/owl
 [submodule "submodules/cuteeOWL"]
 	path = submodules/cuteeOWL
 	url = git@github.com:owl-project/cuteeOWL
