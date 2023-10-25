@@ -23,11 +23,24 @@
 
 namespace hs {
   using namespace mini;
+  using range1f = interval<float>;
+  
+  struct BoundsData {
+    void extend(const BoundsData &other)
+    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
+    
+    box3f   spatial;
+    range1f scalars;
+  };
+
+  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
+  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
   
   struct SphereSet {
     typedef std::shared_ptr<SphereSet> SP;
 
     static SP create() { return std::make_shared<SphereSet>(); }
+    
     box3f getBounds() const;
     
     std::vector<vec3f> origins;
@@ -45,7 +58,7 @@ namespace hs {
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
   struct DataGroup {
-    box3f getBounds() const;
+    BoundsData getBounds() const;
     
     std::vector<mini::Scene::SP>  minis;
     std::vector<umesh::UMesh::SP> unsts;
@@ -57,7 +70,7 @@ namespace hs {
       data groups (for local multi-gpu data parallel rendering, for
       example - so it has multiple data groups */
   struct ThisRankData {
-    box3f getBounds() const;
+    BoundsData getBounds() const;
 
     /*! returns whether this rank does *not* have any data; in this
         case it's a passive (head?-)node */

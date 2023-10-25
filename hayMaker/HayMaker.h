@@ -39,7 +39,7 @@ namespace hs {
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
 
     void renderFrame() override;
-    box3f getWorldBounds() const;
+    BoundsData getWorldBounds() const;
     void resetAccumulation() override;
     void setTransferFunction(const TransferFunction &xf) override;
 

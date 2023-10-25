@@ -109,6 +109,15 @@ namespace hs {
       case '!':
         screenShot();
         break;
+      case 'T':
+        std::cout << "(T) : dumping transfer function" << std::endl;
+#if HS_CUTEE
+        if (xfEditor)
+          xfEditor->saveTo("hayThere.xf");
+#else
+        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
+#endif
+        break;
       default: OWLViewer::key(key,where);
       };
     }
@@ -150,6 +159,9 @@ namespace hs {
     bool xfDirty = true;
     bool accumDirty = true;
     Renderer *const renderer;
+#if HS_CUTEE
+    XFEditor *xfEditor = 0;
+#endif
   };
 
 
@@ -239,7 +251,7 @@ int main(int ac, char **av)
   
 
   world.barrier();
-  const box3f worldBounds = hayMaker.getWorldBounds();
+  const BoundsData worldBounds = hayMaker.getWorldBounds();
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -247,9 +259,9 @@ int main(int ac, char **av)
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
-      = worldBounds.center()
-      + vec3f(-.3f, .7f, +1.f) * worldBounds.span();
-    fromCL.camera.vi = worldBounds.center();
+      = worldBounds.spatial.center()
+      + vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
+    fromCL.camera.vi = worldBounds.spatial.center();
   }
   
   world.barrier();
@@ -287,8 +299,8 @@ int main(int ac, char **av)
   Viewer viewer(renderer);
   
   viewer.enableFlyMode();
-  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds);
-  viewer.setWorldScale(owl::length(worldBounds.span()));
+  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
+  viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
   viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
                               /*lookat   */fromCL.camera.vi,
                               /*up-vector*/fromCL.camera.vu,
@@ -300,14 +312,15 @@ int main(int ac, char **av)
 
   viewer.show();
   viewer.enableFlyMode();
-  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds);
-  viewer.setWorldScale(owl::length(worldBounds.span()));
+  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
+  viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
   viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
                               /*lookat   */fromCL.camera.vi,
                               /*up-vector*/fromCL.camera.vu,
                               /*fovy(deg)*/fromCL.camera.fovy);
 
-  XFEditor    *xfEditor = new XFEditor;
+  XFEditor    *xfEditor = new XFEditor(worldBounds.scalars);
+  viewer.xfEditor      = xfEditor;
   QFormLayout *layout   = new QFormLayout;
   layout->addWidget(xfEditor);
 
@@ -317,9 +330,9 @@ int main(int ac, char **av)
                    &viewer, &Viewer::rangeChanged);
   QObject::connect(xfEditor,&qtOWL::XFEditor::opacityScaleChanged,
                    &viewer, &Viewer::opacityScaleChanged);
-    // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
-    //                  &viewer, &Viewer::lightPosChanged);
-
+  // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
+  //                  &viewer, &Viewer::lightPosChanged);
+  
   
   // Set QWidget as the central layout of the main window
   QMainWindow secondWindow;

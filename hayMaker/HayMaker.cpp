@@ -50,11 +50,13 @@ namespace hs {
     model = bnModelCreate(barney);
   }
   
-  box3f HayMaker::getWorldBounds() const
+  BoundsData HayMaker::getWorldBounds() const
   {
-    box3f bb = rankData.getBounds();
-    bb.lower = world.allReduceMin(bb.lower);
-    bb.upper = world.allReduceMax(bb.upper);
+    BoundsData bb = rankData.getBounds();
+    bb.spatial.lower = world.allReduceMin(bb.spatial.lower);
+    bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
+    bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
+    bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
     return bb;
   }
   

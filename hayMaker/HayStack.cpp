@@ -18,29 +18,30 @@
 
 namespace hs {
 
-  box3f ThisRankData::getBounds() const
+  BoundsData ThisRankData::getBounds() const
   {
-    box3f bounds;
-    for (auto &dg : dataGroups) bounds.extend(dg.getBounds());
+    BoundsData bounds;
+    for (auto &dg : dataGroups)
+      bounds.extend(dg.getBounds());
     return bounds;
   }
 
-  box3f DataGroup::getBounds() const
+  BoundsData DataGroup::getBounds() const
   {
-    box3f bounds;
+    BoundsData bounds;
     for (auto mini : minis)
       if (mini)
-        bounds.extend(mini->getBounds());
+        bounds.spatial.extend(mini->getBounds());
     for (auto unst : unsts)
       if (unst) {
         umesh::box3f bb = unst->getBounds();
-        bounds.extend((const box3f&)bb);
-        PING; PRINT(bb);
+        bounds.spatial.extend((const box3f&)bb);
+        umesh::range1f sr = unst->getValueRange();
+        bounds.scalars.extend((const range1f&)sr);
       }
     for (auto sphereSet : sphereSets)
       if (sphereSet)
-        bounds.extend(sphereSet->getBounds());
-    PING; PRINT(bounds);
+        bounds.spatial.extend(sphereSet->getBounds());
     return bounds;
   }
 
