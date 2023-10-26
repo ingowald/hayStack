@@ -175,13 +175,13 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = { 0.f, 0.f };//r;
+    xf.domain = r; //{ 0.f, 0.f };//r;
     xfDirty = true;
   }
   
   void Viewer::opacityScaleChanged(double scale)
   {
-    xf.baseDensity = scale / 100.f;
+    xf.baseDensity = powf(1.1f,scale - 100.f);
     xfDirty = true;
   }
   
