@@ -146,7 +146,17 @@ namespace hs {
         accumDirty = false;
       }
 
+      double t0 = getCurrentTime();
       renderer->renderFrame();
+      double t1 = getCurrentTime();
+      static double sum_t = 0.f;
+      static double sum_w = 0.f;
+      sum_t = 0.8f*sum_t + (t1-t0);
+      sum_w = 0.8f*sum_w + 1.f;
+      float timePerFrame = sum_t / sum_w;
+      float fps = 1.f/timePerFrame;
+      std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
+      setTitle(title.c_str());
     }
     
     void cameraChanged()
@@ -215,6 +225,18 @@ int main(int ac, char **av)
       loader.defaultRadius = std::stoi(av[++i]);
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "--camera") {
+      fromCL.camera.vp.x = std::stof(av[++i]);
+      fromCL.camera.vp.y = std::stof(av[++i]);
+      fromCL.camera.vp.z = std::stof(av[++i]);
+      fromCL.camera.vi.x = std::stof(av[++i]);
+      fromCL.camera.vi.y = std::stof(av[++i]);
+      fromCL.camera.vi.z = std::stof(av[++i]);
+      fromCL.camera.vu.x = std::stof(av[++i]);
+      fromCL.camera.vu.y = std::stof(av[++i]);
+      fromCL.camera.vu.z = std::stof(av[++i]);
+    } else if (arg == "-fovy") {
+      fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
       fromCL.xfFileName = av[++i];
     } else if (arg == "-res") {
