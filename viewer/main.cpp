@@ -42,6 +42,7 @@ namespace hs {
     /*! num data groups */
     int ndg = 1;
 
+    std::string xfFileName = "";
     std::string outFileName = "hay.png";
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
@@ -214,6 +215,8 @@ int main(int ac, char **av)
       loader.defaultRadius = std::stoi(av[++i]);
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "-xf") {
+      fromCL.xfFileName = av[++i];
     } else if (arg == "-res") {
       fromCL.fbSize.x = std::stoi(av[++i]);
       fromCL.fbSize.y = std::stoi(av[++i]);
@@ -334,6 +337,9 @@ int main(int ac, char **av)
   // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
   //                  &viewer, &Viewer::lightPosChanged);
   
+
+  if (!fromCL.xfFileName.empty())
+    xfEditor->loadFrom(fromCL.xfFileName);
   
   // Set QWidget as the central layout of the main window
   QMainWindow secondWindow;

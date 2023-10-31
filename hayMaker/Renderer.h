@@ -25,7 +25,7 @@ namespace hs {
   using range1f = owl::common::interval<float> ;
   
   struct TransferFunction {
-    std::vector<vec4f> colorMap = { vec4f(0.f), vec4f(1.f) };
+    std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };
     range1f domain = { 0.f, 0.f };
     float   baseDensity = 1.f;
   };
