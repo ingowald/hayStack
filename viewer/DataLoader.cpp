@@ -20,6 +20,7 @@
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
+#include "viewer/content/DistData.h"
 
 namespace hs {
 
@@ -50,9 +51,9 @@ namespace hs {
     return size;
   }
 
-    /*! actually loads one rank's data, based on which content got
-        assigned to which rank. must get called on every worker
-        collaboratively - but only on active workers */
+  /*! actually loads one rank's data, based on which content got
+    assigned to which rank. must get called on every worker
+    collaboratively - but only on active workers */
   void DataLoader::loadData(barney::mpi::Comm &workers,
                             ThisRankData &rankData,
                             int numDataGroups,
@@ -124,6 +125,8 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
+    } else if (startsWith(contentDescriptor,"en-dump://")) {
+      ENDumpContent::create(this,contentDescriptor);
     } else if (startsWith(contentDescriptor,"ts.tri://")) {
       TSTriContent::create(this,contentDescriptor);
     } else
