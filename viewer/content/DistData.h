@@ -81,22 +81,19 @@ namespace hs {
       v.z = d;
       vertices.push_back(v);
     }
-    std::vector<vec3f> extractedVertices;
-    std::vector<vec3i> indices;
+
+    Mesh::SP mesh = Mesh::create();//std::make_shared<Mesh>();
+
     for (int64_t i=0;i<numIndices;i++) {
       size_t idx;
       in.read((char *)&idx,sizeof(idx));
-      extractedVertices.push_back(vertices[idx-1]);
+      mesh->vertices.push_back(vertices[idx-1]);
       in.read((char *)&idx,sizeof(idx));
-      extractedVertices.push_back(vertices[idx-1]);
+      mesh->vertices.push_back(vertices[idx-1]);
       in.read((char *)&idx,sizeof(idx));
-      extractedVertices.push_back(vertices[idx-1]);
-      indices.push_back(vec3i(3*i)+vec3i(0,1,2));
+      mesh->vertices.push_back(vertices[idx-1]);
+      mesh->indices.push_back(vec3i(3*i)+vec3i(0,1,2));
     }
-
-    Mesh::SP mesh = Mesh::create();//std::make_shared<Mesh>();
-    mesh->vertices = extractedVertices;
-    mesh->indices = indices;
 
     Scene::SP scene = std::make_shared<Scene>();
     Object::SP model = Object::create({mesh});//std::make_shared<Object>();
