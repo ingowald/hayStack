@@ -181,13 +181,26 @@ namespace hs {
     for (auto unst : myData.unsts) {
       BNMaterial material = BN_DEFAULT_MATERIAL;
       std::vector<vec4f> verts4f;
+      std::vector<int> gridOffsets;
+      std::vector<vec3i> gridDims;
+      std::vector<box4f> gridDomains;
+      const std::vector<float> &gridScalars = unst->gridScalars;
       const float *scalars = unst->perVertex->values.data();
+
+      for (int i=0;i<unst->grids.size();i++) {
+        const umesh::Grid &grid = unst->grids[i];
+        gridDims.push_back((vec3i &)grid.numCells);
+        gridDomains.push_back((box4f &)grid.domain);
+        gridOffsets.push_back(grid.scalarsOffset);
+      }
+
       for (int i=0;i<unst->vertices.size();i++) {
         verts4f.push_back(vec4f(unst->vertices[i].x,
                                 unst->vertices[i].y,
                                 unst->vertices[i].z,
                                 scalars[i]));
       }
+
       BNScalarField mesh = bnUMeshCreate
         (barney,
          // vertices: 4 floats each
@@ -196,7 +209,12 @@ namespace hs {
          (const int *)unst->tets.data(),(int)unst->tets.size(),
          nullptr,0,
          nullptr,0,
-         nullptr,0);
+         nullptr,0,
+         (int)unst->grids.size(),
+         gridOffsets.data(),
+         (const int *)gridDims.data(),
+         (const float *)gridDomains.data(),
+         gridScalars.data(), (int)gridScalars.size());
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
       dg.createdVolumes.push_back(volume);
