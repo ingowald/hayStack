@@ -88,7 +88,7 @@ namespace hs {
   
   void HayMaker::renderFrame()
   {
-    bnRender(model,&camera,fb,nullptr);
+    bnRender(model,&camera,fb);
   }
 
   void HayMaker::resetAccumulation()
