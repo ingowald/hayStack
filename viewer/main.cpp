@@ -338,7 +338,7 @@ int main(int ac, char **av)
 
   viewer.show();
   viewer.enableFlyMode();
-  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
+  viewer.enableInspectMode();///*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
   viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
   viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
                               /*lookat   */fromCL.camera.vi,
