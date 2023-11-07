@@ -103,7 +103,7 @@ namespace hs {
                     (const float3&)camera.vi,
                     (const float3&)camera.vu,
                     camera.fovy,
-                    make_int2(fbSize.x,fbSize.y));
+                    fbSize.x / float(fbSize.y));
   }
   
   void HayMaker::buildDataGroup(int dgID)
