@@ -207,9 +207,9 @@ namespace hs {
          (const float *)verts4f.data(),verts4f.size(),
          // tets: 4 ints each
          (const int *)unst->tets.data(),(int)unst->tets.size(),
-         nullptr,0,
-         nullptr,0,
-         nullptr,0,
+         (const int *)unst->pyrs.data(),(int)unst->pyrs.size(),
+         (const int *)unst->wedges.data(),(int)unst->wedges.size(),
+         (const int *)unst->hexes.data(),(int)unst->hexes.size(),
          (int)unst->grids.size(),
          gridOffsets.data(),
          (const int *)gridDims.data(),
