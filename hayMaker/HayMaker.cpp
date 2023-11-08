@@ -82,7 +82,7 @@ namespace hs {
                       xf.colorMap.size(),
                       xf.baseDensity);
       bnGroupBuild(dg.volumeGroup);
-      bnModelBuild(barney);
+      bnBuild(barney);
     }
   }
   
@@ -252,9 +252,9 @@ namespace hs {
     // finally - specify top-level instances for all the stuff we
     // generated
     // -----------------------------------------------------------------
-    bnModelSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
+    bnSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
                         groups.size());
-    bnModelBuild(barney);
+    bnBuild(barney);
   }
   
 }
