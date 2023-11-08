@@ -42,6 +42,9 @@ namespace hs {
     for (auto sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());
+    for (auto cylinderSet : cylinderSets)
+      if (cylinderSet)
+        bounds.spatial.extend(cylinderSet->getBounds());
     return bounds;
   }
 
@@ -52,6 +55,21 @@ namespace hs {
       float r = (i<radii.size())?radii[i]:radius;
       vec3f o = origins[i];
       bounds.extend({o-r,o+r});
+    }
+    return bounds;
+  }
+
+  box3f Cylinders::getBounds() const
+  {
+    box3f bounds;
+    int   numCylinders = indices.empty() ? (points.size()/2) : indices.size();
+    for (int i=0;i<numCylinders;i++) {
+      vec2i idx = indices.empty() ? (vec2i(2*i)+vec2i(0,1)) : indices[i];
+      float r = radii.empty()?radius:radii[i];
+      vec3f a = points[idx.x];
+      vec3f b = points[idx.y];
+      bounds.extend(min(a,b)-r);
+      bounds.extend(max(a,b)+r);
     }
     return bounds;
   }

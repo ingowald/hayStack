@@ -16,6 +16,7 @@
 
 #include "viewer/DataLoader.h"
 #include "viewer/content/TSTris.h"
+#include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
@@ -119,6 +120,8 @@ namespace hs {
   {
     if (startsWith(contentDescriptor,"spheres://")) {
       SpheresFromFile::create(this,contentDescriptor);
+    } else if (startsWith(contentDescriptor,"cylinders://")) {
+      CylindersFromFile::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {

@@ -35,6 +35,8 @@ set(SOURCES
   content/OBJContent.cpp
   content/SpheresFromFile.h
   content/SpheresFromFile.cpp
+  content/CylindersFromFile.h
+  content/CylindersFromFile.cpp
   content/TSTris.h
   content/TSTris.cpp
   )  

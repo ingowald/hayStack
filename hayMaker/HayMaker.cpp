@@ -120,11 +120,11 @@ namespace hs {
     std::vector<BNGeom>   rootGroupGeoms;
     std::vector<BNGroup>  groups;
     std::vector<affine3f> xfms;
+    auto &myData = rankData.dataGroups[dgID];
 
     // ------------------------------------------------------------------
     // render all SphereGeoms
     // ------------------------------------------------------------------
-    auto &myData = rankData.dataGroups[dgID];
     if (!myData.sphereSets.empty()) {
       std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
@@ -138,12 +138,26 @@ namespace hs {
                             sphereSet->radius);
         geoms.push_back(geom);
       }
-      // BNGroup spheresGroup
-      //   = bnGroupCreate(barney,geoms.data(),geoms.size(),
-      //                   nullptr,0);
-      // bnGroupBuild(spheresGroup);
-      // groups.push_back(spheresGroup);
-      // xfms.push_back(affine3f());
+    }
+
+    // ------------------------------------------------------------------
+    // render all CylinderGeoms
+    // ------------------------------------------------------------------
+    if (!myData.cylinderSets.empty()) {
+      std::vector<BNGeom>  &geoms = rootGroupGeoms;
+      for (auto &cylinderSet : myData.cylinderSets) {
+        BNMaterial material = BN_DEFAULT_MATERIAL;
+        BNGeom geom
+          = bnCylindersCreate(barney,
+                              &material,
+                              (float3*)cylinderSet->points.data(),
+                              cylinderSet->points.size(),
+                              (int2*)cylinderSet->indices.data(),
+                              cylinderSet->indices.size(),
+                              cylinderSet->radii.data(),
+                              cylinderSet->radius);
+        geoms.push_back(geom);
+      }
     }
 
     // ------------------------------------------------------------------
