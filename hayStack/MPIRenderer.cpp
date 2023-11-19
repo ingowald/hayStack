@@ -249,7 +249,7 @@ namespace hs {
     // and do our own....
     // ------------------------------------------------------------------
     // MPI_Finalize();
-    barney::mpi::finalize();//comm.finalize();
+    hs::mpi::finalize();//comm.finalize();
     exit(0);
   }
     

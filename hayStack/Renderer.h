@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "barney/common.h"
+#include "hayStack/common.h"
 #include <vector>
 
 /* parallel renderer abstraction */

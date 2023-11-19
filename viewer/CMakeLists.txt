@@ -42,21 +42,21 @@ set(SOURCES
   )  
 
 # ------------------------------------------------------------------
-add_executable(hayThere
+add_executable(hsViewer
   ${SOURCES}
   )
-target_link_libraries(hayThere
+target_link_libraries(hsViewer
   PUBLIC
   hayStack
   owl_viewer
   )
-target_compile_definitions(hayThere PUBLIC -DHS_VIEWER=1)
+target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
 
 # ------------------------------------------------------------------
-add_executable(hayThereOffline
+add_executable(hsOffline
   ${SOURCES}
   )
-target_link_libraries(hayThereOffline
+target_link_libraries(hsOffline
   PUBLIC
   hayStack
   )
@@ -68,17 +68,16 @@ if (HT_CUTEE)
   set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
   
   set(CMAKE_AUTOMOC OFF)
-  add_executable(hayThereQT
+  add_executable(hsViewerQT
     ${SOURCES}
     )
-  target_link_libraries(hayThereQT
+  target_link_libraries(hsViewerQT
     PUBLIC
     hayStack
-    #  owl_viewer
     qtOWL
     )
-  target_compile_definitions(hayThereQT PUBLIC -DHS_CUTEE=1)
-  set_target_properties(hayThereQT
+  target_compile_definitions(hsViewerQT PUBLIC -DHS_CUTEE=1)
+  set_target_properties(hsViewerQT
     PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
@@ -86,20 +85,6 @@ if (HT_CUTEE)
     CUDA_USE_STATIC_CUDA_RUNTIME ON
     CUDA_ARCHITECTURES OFF
     )
-
   
 endif()
-
-# ------------------------------------------------------------------
-
-
-# add_executable(hsViewerMPI
-#   main.cpp
-#   DataLoader.h
-#   DataLoader.cpp
-#   )
-# target_compile_definitions(hsViewerMPI PUBLIC -DHS_MPI=1)
-# target_link_libraries(hsViewerMPI
-#   hayStack
-#   )
 

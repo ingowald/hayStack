@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include "hayMaker/Renderer.h"
-#include "barney/MPIWrappers.h"
+#include "hayStack/Renderer.h"
+#include "hayStack/MPIWrappers.h"
 
 /* parallel renderer abstraction */
 namespace hs {
 
-  using barney::mpi::Comm;
+  using hs::mpi::Comm;
   
   /*! base abstraction for any renderer - no matter whether its a
     single node or multiple workers on the back */

@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "hayMaker/HayStack.h"
-#include "hayMaker/MPIRenderer.h"
+#include "hayStack/HayStack.h"
+#include "hayStack/MPIRenderer.h"
 #include "barney.h"
 
 namespace hs {

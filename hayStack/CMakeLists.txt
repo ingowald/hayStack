@@ -15,6 +15,9 @@
 # ======================================================================== #
 
 add_library(hayStack
+  MPIWrappers.h
+  MPIWrappers.cpp
+  
   HayStack.h
   HayStack.cpp
 

@@ -14,7 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "hayMaker/HayMaker.h"
+#include "hayStack/HayMaker.h"
 #include "viewer/DataLoader.h"
 #if HS_VIEWER
 # include "samples/common/owlViewer/InspectMode.h"
@@ -32,6 +32,7 @@
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
 #endif
+#include <cuda_runtime.h>
 
 namespace hs {
 
@@ -93,10 +94,10 @@ namespace hs {
     {
       std::string fileName = "hayMaker.png";
       std::vector<int> hostFB(fbSize.x*fbSize.y);
-      BARNEY_CUDA_CALL(Memcpy(hostFB.data(),fbPointer,
-                              fbSize.x*fbSize.y*sizeof(int),
-                              cudaMemcpyDefault));
-      BARNEY_CUDA_SYNC_CHECK();
+      cudaMemcpy(hostFB.data(),fbPointer,
+                 fbSize.x*fbSize.y*sizeof(int),
+                 cudaMemcpyDefault);
+      cudaDeviceSynchronize();
       std::cout << "#ht: saving screen shot in " << fileName << std::endl;
       stbi_flip_vertically_on_write(true);
       stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
@@ -205,8 +206,8 @@ using namespace hs;
 
 int main(int ac, char **av)
 {
-  barney::mpi::init(ac,av);
-  barney::mpi::Comm world(MPI_COMM_WORLD);
+  hs::mpi::init(ac,av);
+  hs::mpi::Comm world(MPI_COMM_WORLD);
 
   world.barrier();
   if (world.rank == 0)
@@ -259,7 +260,7 @@ int main(int ac, char **av)
   }
 
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
-  barney::mpi::Comm workers = world.split(!isHeadNode);
+  hs::mpi::Comm workers = world.split(!isHeadNode);
 
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
@@ -317,7 +318,7 @@ int main(int ac, char **av)
     // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
     MPIRenderer::runWorker(world,&hayMaker);
     world.barrier();
-    barney::mpi::finalize();
+    hs::mpi::finalize();
     exit(0);
   }
 
@@ -381,6 +382,6 @@ int main(int ac, char **av)
 #endif
   
   world.barrier();
-  barney::mpi::finalize();
+  hs::mpi::finalize();
   return 0;
 }

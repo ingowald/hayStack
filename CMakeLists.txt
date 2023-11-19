@@ -31,8 +31,6 @@ option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
 add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
-#add_subdirectory(submodules/owl          EXCLUDE_FROM_ALL)
-#add_subdirectory(submodules/mpiRenderInf EXCLUDE_FROM_ALL)
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
 endif()
@@ -44,27 +42,6 @@ if (HT_CUTEE)
 endif()
 
 
-add_subdirectory(hayMaker)
+add_subdirectory(hayStack)
 add_subdirectory(viewer)
-
-
-# # ------------------------------------------------------------------
-# # QT-viewer w/ transfer function editor 
-# # ------------------------------------------------------------------
-# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-# set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
-
-# set(CMAKE_AUTOMOC OFF)
-# if (HT_CUTEE)
-#   add_subdirectory(submodules/cuteeOWL EXCLUDE_FROM_ALL)
-#   add_executable(moQTViewer
-#     viewer.cpp
-#     )
-#   target_compile_definitions(moQTViewer PUBLIC -DCUTEE=1)
-#   target_link_libraries(moQTViewer
-#     PRIVATE 
-#     miniOWL
-#     qtOWL
-#     )
-# endif()
 
