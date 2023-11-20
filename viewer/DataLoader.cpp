@@ -149,7 +149,7 @@ namespace hs {
       double addtlWeight = - std::get<0>(addtl);
       LoadableContent *addtlContent = std::get<2>(addtl);
       auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
-      size_t currentWeight = currentlyLeastLoaded.first;
+      double currentWeight = currentlyLeastLoaded.first;
       int groupID = currentlyLeastLoaded.second;
       contentOfGroup[groupID].push_back(addtlContent);
       loadedGroups.push({currentWeight+addtlWeight,groupID});
