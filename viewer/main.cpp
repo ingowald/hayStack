@@ -376,11 +376,22 @@ int main(int ac, char **av)
   auto &fbSize = fromCL.fbSize;
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
   renderer->resize(fbSize,pixels.data());
+
+  hs::Camera camera;
+  camera.vp = fromCL.camera.vp;
+  camera.vu = fromCL.camera.vu;
+  camera.vi = fromCL.camera.vi;
+  camera.fovy = fromCL.camera.fovy;
+  renderer->setCamera(camera);
+  
+  renderer->renderFrame();
+
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
-  
+
+  renderer->terminate();
 #endif
-  
+
   world.barrier();
   hs::mpi::finalize();
   return 0;

@@ -249,8 +249,8 @@ namespace hs {
     // and do our own....
     // ------------------------------------------------------------------
     // MPI_Finalize();
-    hs::mpi::finalize();//comm.finalize();
-    exit(0);
+    // hs::mpi::finalize();//comm.finalize();
+    // exit(0);
   }
     
   void WorkerLoop::cmd_terminate()
