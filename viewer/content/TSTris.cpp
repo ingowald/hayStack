@@ -22,8 +22,7 @@ namespace hs {
   TSTriContent::TSTriContent(const std::string &fileName,
                                    size_t fileSize,
                                    int thisPartID,
-                                   int numPartsToSplitInto,
-                                   float radius)
+                                   int numPartsToSplitInto)
     : fileName(fileName),
       fileSize(fileSize),
       thisPartID(thisPartID),
@@ -31,21 +30,12 @@ namespace hs {
   {}
     
   void TSTriContent::create(DataLoader *loader,
-                            const std::string &dataURL)
+                            const ResourceSpecifier &data)
   {
-    assert(dataURL.substr(0,strlen("ts.tri://")) == "ts.tri://");
-    const char *s = dataURL.c_str() + strlen("ts.tri://");
-    const char *atSign = strstr(s,"@");
-    int numPartsToSplitInto = 1;
-    if (atSign) {
-      numPartsToSplitInto = atoi(s);
-      s = atSign + 1;
-    }
-    const std::string fileName = s;
-    size_t fileSize = getFileSize(fileName);
-    for (int i=0;i<numPartsToSplitInto;i++)
-      loader->addContent(new TSTriContent(fileName,fileSize,i,numPartsToSplitInto,
-                                          loader->defaultRadius));
+    for (int i=0;i<data.numParts;i++)
+      loader->addContent
+        (new TSTriContent(data.where,getFileSize(data.where),i,
+                          data.numParts));
   }
     
   size_t TSTriContent::projectedSize() 

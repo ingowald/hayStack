@@ -22,28 +22,20 @@ namespace hs {
   
   /*! a file of 'raw' spheres */
   struct SpheresFromFile : public LoadableContent {
-    SpheresFromFile(const std::string &fileName,
-                    size_t fileSize,
+    SpheresFromFile(const ResourceSpecifier &data,
                     int thisPartID,
-                    int numPartsToSplitInto,
-                    float radius);
+                    float defaultRadius);
     static void create(DataLoader *loader,
-                       const std::string &dataURL);
+                       const ResourceSpecifier &dataURL);
     size_t projectedSize() override;
     void   executeLoad(DataGroup &dataGroup, bool verbose) override;
 
-    std::string toString() override
-    {
-      return "Spheres{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
-        + std::to_string(numPartsToSplitInto)+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
+    std::string toString() override;
 
     const float radius;
-    const std::string fileName;
+    const ResourceSpecifier data;
     const size_t fileSize;
     const int thisPartID = 0;
-    const int numPartsToSplitInto = 1;
   };
   
 }

@@ -25,10 +25,9 @@ namespace hs {
     TSTriContent(const std::string &fileName,
                  size_t fileSize,
                  int thisPartID,
-                 int numPartsToSplitInto,
-                 float radius);
+                 int numPartsToSplitInto);
     static void create(DataLoader *loader,
-                       const std::string &dataURL);
+                       const ResourceSpecifier &dataURL);
     size_t projectedSize() override;
     void   executeLoad(DataGroup &dataGroup, bool verbose) override;
 

@@ -21,6 +21,20 @@
 
 namespace hs {
 
+  struct ResourceSpecifier {
+    ResourceSpecifier(std::string s);
+    bool has(const std::string &key) const;
+    std::string get(const std::string &key, const std::string &defaultValue="") const;
+    vec3f  get_vec3f(const std::string &key, vec3f defaultValue) const;
+    size_t get_size(const std::string &key, size_t defaultValue) const;
+    int    get_int(const std::string &key, int defaultValue) const;
+    float  get_float(const std::string &key, float defaultValue) const;
+    std::string where;
+    std::string type;
+    int numParts = 1;
+    std::map<std::string,std::string> keyValuePairs;
+  };
+  
   /*! helper function that checks if a given string has another as prefix */
   bool startsWith(const std::string &haystack,
                   const std::string &needle);

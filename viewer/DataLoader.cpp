@@ -28,8 +28,125 @@ namespace hs {
   /*! default radius to use for spheres that do not have a radius specified */
   float DataLoader::defaultRadius = .1f;
 
+  ResourceSpecifier::ResourceSpecifier(std::string resource)
+  {
+    int pos = resource.find("://");
+    if (pos == resource.npos)
+      throw std::runtime_error
+        ("could not parse resource specifier '"+resource
+         +"' - coulnd't find '://' in there!?");
+    type = resource.substr(0,pos);
+    resource = resource.substr(pos+3);
+
+    int colon = resource.find(":");
+    if (colon == resource.npos) {
+      where = resource;
+    } else {
+      where = resource.substr(0,colon);
+      std::string args = resource.substr(colon+1);
+      std::vector<std::string> betweenColons;
+      while (true) {
+        colon = args.find(":");
+        if (colon == args.npos) {
+          betweenColons.push_back(args);
+          break;
+        } else {
+          betweenColons.push_back(args.substr(0,colon));
+          args = args.substr(colon+1);
+        }
+      }
+      for (auto arg : betweenColons) {
+        std::string key=args, value="";
+        int equals = arg.find("=");
+        if (equals != key.npos) {
+          key   = arg.substr(0,equals);
+          value = arg.substr(equals+1);
+        }
+        keyValuePairs[key] = value;
+      }
+    }
+
+    pos = where.find("@");
+    if (pos != where.npos) {
+      numParts = stoi(where.substr(0,pos));
+      where = where.substr(pos+1);
+    }
+  }
+  
+  bool ResourceSpecifier::has(const std::string &key) const
+  {
+    return keyValuePairs.find(key) != keyValuePairs.end();
+  }
+  
+  std::string ResourceSpecifier::get(const std::string &key,
+                                     const std::string &defaultValue)
+    const
+  {
+    if (!has(key)) return defaultValue;
+    return keyValuePairs.find(key)->second;
+  }
+  
+  vec3f ResourceSpecifier::get_vec3f(const std::string &key,
+                                     vec3f defaultValue) const
+  {
+    if (!has(key)) return defaultValue;
+    vec3f v;
+    std::string value = keyValuePairs.find(key)->second;
+    int n = 0;
+    if (strstr(value.c_str(),","))
+      sscanf(value.c_str(),"%f,%f,%f",&v.x,&v.y,&v.z);
+    else
+      sscanf(value.c_str(),"%f %f %f",&v.x,&v.y,&v.z);
+    if (n != 3)
+      throw std::runtime_error
+        ("could not parse '"+value+"' for key '"+key+"'");
+    return v;
+  }
+  
+  int   ResourceSpecifier::get_int(const std::string &key,
+                                   int defaultValue) const
+  {
+    if (!has(key)) return defaultValue;
+    std::string value = keyValuePairs.find(key)->second;
+    return std::stoi(value);
+  }
+  
+  size_t ResourceSpecifier::get_size(const std::string &key,
+                                     size_t defaultValue) const
+  {
+    if (!has(key)) return defaultValue;
+
+    std::string value = keyValuePairs.find(key)->second;
+    
+    char magnitude = ' ';
+    size_t result;
+    sscanf(value.c_str(),"%li%c",&result,&magnitude);
+    if (magnitude == ' ')
+      ;
+    else if (magnitude == 'M')
+      result *= 1000000ull;
+    else if (magnitude == 'K')
+      result *= 1000ull;
+    else if (magnitude == 'G')
+      result *= 1000000000ull;
+    else
+      throw std::runtime_error
+        ("invalid magnitude specifier '"+std::to_string(magnitude)
+         +"' (was expecting 'K', 'M', etc)");
+    
+    return result;
+  }
+  
+  float ResourceSpecifier::get_float(const std::string &key,
+                                     float defaultValue) const
+  {
+    if (!has(key)) return defaultValue;
+    std::string value = keyValuePairs.find(key)->second;
+    return std::stof(value);
+  }
+  
   bool startsWith(const std::string &haystack,
-                         const std::string &needle)
+                  const std::string &needle)
   {
     return haystack.substr(0,needle.size()) == needle;
   }
@@ -118,22 +235,39 @@ namespace hs {
     
   void DataLoader::addContent(const std::string &contentDescriptor)
   {
-    if (startsWith(contentDescriptor,"spheres://")) {
-      SpheresFromFile::create(this,contentDescriptor);
-    } else if (startsWith(contentDescriptor,"cylinders://")) {
-      CylindersFromFile::create(this,contentDescriptor);
-    } else if (endsWith(contentDescriptor,".umesh")) {
+    // if (startsWith(contentDescriptor,"spheres://")) {
+    //   SpheresFromFile::create(this,contentDescriptor);
+    // } else if (startsWith(contentDescriptor,"cylinders://")) {
+    //   CylindersFromFile::create(this,contentDescriptor);
+    // } else
+
+    // first, parse all the files we recognise from file name
+    // extension:
+    if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
-    } else if (startsWith(contentDescriptor,"en-dump://")) {
-      ENDumpContent::create(this,contentDescriptor);
-    } else if (startsWith(contentDescriptor,"ts.tri://")) {
+    }
+
+    ResourceSpecifier url(contentDescriptor);
+    if (url.type == "spheres")
+      SpheresFromFile::create(this,url);
+    else if (url.type == "ts.tri") 
       TSTriContent::create(this,contentDescriptor);
-    } else
-      throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
+    // else if (url.type == "en-dump")
+    //   ENDumpContent::create(this,contentDescriptor);
+    else
+      throw std::runtime_error
+        ("could not recognize content type '"+url.type+"'");
+    
+    // else if (startsWith(contentDescriptor,"en-dump://")) {
+    //   ENDumpContent::create(this,contentDescriptor);
+    // } else if (startsWith(contentDescriptor,"ts.tri://")) {
+    //   TSTriContent::create(this,contentDescriptor);
+    // } else
+    //   throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }
     
   void DynamicDataLoader::assignGroups(int numDifferentDataGroups)
