@@ -223,7 +223,7 @@ int main(int ac, char **av)
     if (arg[0] != '-') {
       loader.addContent(arg);
     } else if (arg == "--default-radius") {
-      loader.defaultRadius = std::stoi(av[++i]);
+      loader.defaultRadius = std::stof(av[++i]);
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
     } else if (arg == "--camera") {
