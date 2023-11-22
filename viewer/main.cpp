@@ -57,8 +57,10 @@ namespace hs {
       vec3f vu   = vec3f(0.f,1.f,0.f);
       float fovy = 60.f;
     } camera;
+    static bool measure;
   };
   
+  bool FromCL::measure = 0;
   bool FromCL::verbose = true;
 
   inline bool verbose() { return FromCL::verbose; }
@@ -149,9 +151,35 @@ namespace hs {
         accumDirty = false;
       }
 
+      static int numFramesRendered = 0;
+      const int measure_warmup_frames = 2;
+      const int measure_max_frames = 100;
+      const float measure_max_seconds = 10.f;
+      
+      static double measure_t0 = 0.;
+      if (numFramesRendered == measure_warmup_frames)
+        measure_t0 = getCurrentTime();
+      
       double t0 = getCurrentTime();
       renderer->renderFrame();
+      ++numFramesRendered;
       double t1 = getCurrentTime();
+
+      if (FromCL::measure) {
+      int numFramesMeasured = numFramesRendered - measure_warmup_frames;
+      float numSecondsMeasured
+        = (numFramesMeasured < 1)
+        ? 0.f
+        : (t1 - measure_t0);
+
+      if (numFramesMeasured >= measure_max_frames ||
+          numSecondsMeasured >= measure_max_seconds) {
+        std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
+        std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
+        exit(0);
+      }
+      }
+      
       static double sum_t = 0.f;
       static double sum_w = 0.f;
       sum_t = 0.8f*sum_t + (t1-t0);
@@ -228,6 +256,8 @@ int main(int ac, char **av)
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--default-radius") {
       loader.defaultRadius = std::stof(av[++i]);
+    } else if (arg == "--measure") {
+      fromCL.measure = true;
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
     } else if (arg == "--camera") {
