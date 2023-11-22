@@ -176,6 +176,7 @@ namespace hs {
           numSecondsMeasured >= measure_max_seconds) {
         std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
         std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
+        screenShot();
         exit(0);
       }
       }

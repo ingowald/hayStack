@@ -29,11 +29,14 @@ namespace hs {
       // dont have any unstructured meshes - done.
       return;
     
-    umesh::UMesh::SP mergedMesh = unsts[0];
-    for (int i=1;i<unsts.size();i++)
-      mergedMesh->append(unsts[i]);
+    // umesh::UMesh::SP mergedMesh = unsts[0];
+    // for (int i=1;i<unsts.size();i++)
+    //   mergedMesh->append(unsts[i]);
+    // unsts.clear();
+    // unsts.push_back(mergedMesh);
+    umesh::UMesh::SP merged = umesh::mergeMeshes(unsts);
     unsts.clear();
-    unsts.push_back(mergedMesh);
+    unsts.push_back(merged);
   }
       
   BoundsData ThisRankData::getBounds() const

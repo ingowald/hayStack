@@ -81,9 +81,19 @@ namespace hs {
                       (const float4*)xf.colorMap.data(),
                       xf.colorMap.size(),
                       xf.baseDensity);
-      bnGroupBuild(dg.volumeGroup);
-      bnBuild(barney);
     }
+    parallel_for
+      ((int)rankData.size(),
+       [&](int dgID)
+       {
+         auto &dg = perDG[dgID];
+         if (dg.createdVolumes.empty())
+           return;
+         bnGroupBuild(dg.volumeGroup);
+
+         BNDataGroup barney = bnGetDataGroup(model,dgID);
+         bnBuild(barney);
+       });
   }
   
   void HayMaker::renderFrame()
