@@ -249,8 +249,7 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
-    }
-
+    } else {
     ResourceSpecifier url(contentDescriptor);
     if (url.type == "spheres")
       SpheresFromFile::create(this,url);
@@ -261,7 +260,7 @@ namespace hs {
     else
       throw std::runtime_error
         ("could not recognize content type '"+url.type+"'");
-    
+    }    
     // else if (startsWith(contentDescriptor,"en-dump://")) {
     //   ENDumpContent::create(this,contentDescriptor);
     // } else if (startsWith(contentDescriptor,"ts.tri://")) {

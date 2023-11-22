@@ -43,6 +43,8 @@ namespace hs {
     /*! num data groups */
     int ndg = 1;
 
+    bool mergeUnstructuredMeshes = false;
+    
     std::string xfFileName = "";
     std::string outFileName = "hay.png";
     vec2i fbSize = { 800,600 };
@@ -222,6 +224,8 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
+    } else if (arg == "-mum" || arg == "--merge-unstructured-meshes") {
+      fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--default-radius") {
       loader.defaultRadius = std::stof(av[++i]);
     } else if (arg == "-o") {
@@ -268,7 +272,11 @@ int main(int ac, char **av)
   if (!isHeadNode) {
     loader.loadData(workers,thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
+  if (fromCL.mergeUnstructuredMeshes)
+    thisRankData.mergeUnstructuredMeshes();
+  
   int numDataGroupsLocally = thisRankData.size();
+  
 
 
   HayMaker hayMaker(/* the ring that binds them all : */world,

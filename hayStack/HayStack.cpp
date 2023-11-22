@@ -18,6 +18,24 @@
 
 namespace hs {
 
+  /*! this is an optimization in particular for models (like lander)
+    where one rank might get multiple "smaller" unstructured
+    meshes -- if each of these become their own volumes, with
+    their own acceleration strcutre, etc, then that may have some
+    negative side effects on performance */
+  void DataGroup::mergeUnstructuredMeshes()
+  {
+    if (unsts.empty())
+      // dont have any unstructured meshes - done.
+      return;
+    
+    umesh::UMesh::SP mergedMesh = unsts[0];
+    for (int i=1;i<unsts.size();i++)
+      mergedMesh->append(unsts[i]);
+    unsts.clear();
+    unsts.push_back(mergedMesh);
+  }
+      
   BoundsData ThisRankData::getBounds() const
   {
     BoundsData bounds;

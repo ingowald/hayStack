@@ -84,6 +84,13 @@ namespace hs {
   struct DataGroup {
     BoundsData getBounds() const;
     
+    /*! this is an optimization in particular for models (like lander)
+        where one rank might get multiple "smaller" unstructured
+        meshes -- if each of these become their own volumes, with
+        their own acceleration strcutre, etc, then that may have some
+        negative side effects on performance */
+    void mergeUnstructuredMeshes();
+    
     std::vector<mini::Scene::SP>  minis;
     std::vector<umesh::UMesh::SP> unsts;
     std::vector<SphereSet::SP>    sphereSets;
@@ -106,7 +113,15 @@ namespace hs {
 
     /*! returns the number of data groups *on this rank* */
     int size() const { return dataGroups.size(); }
-    
+
+    /*! this is an optimization in particular for models (like lander)
+        where one rank might get multiple "smaller" unstructured
+        meshes -- if each of these become their own volumes, with
+        their own acceleration strcutre, etc, then that may have some
+        negative side effects on performance */
+    void mergeUnstructuredMeshes()
+    { for (auto &dg : dataGroups) dg.mergeUnstructuredMeshes(); }
+      
     std::vector<DataGroup> dataGroups;
   };
 
