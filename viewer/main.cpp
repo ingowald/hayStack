@@ -422,8 +422,30 @@ int main(int ac, char **av)
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
-  
+
+#if 1
+  double t = getCurrentTime();
+  double t2 = getCurrentTime();
+  while(getCurrentTime() - t < 20.0) {
+      double t0 = getCurrentTime();
+      renderer->renderFrame();
+      double t1 = getCurrentTime();
+      static double sum_t = 0.f;
+      static double sum_w = 0.f;
+      sum_t = 0.8f*sum_t + (t1-t0);
+      sum_w = 0.8f*sum_w + 1.f;
+      float timePerFrame = sum_t / sum_w;
+      float fps = 1.f/timePerFrame;
+      std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
+
+      if(getCurrentTime() - t2 > 2.0) {
+        std::cout << title << std::endl;
+        t2 = getCurrentTime();
+      }
+  }
+#else    
   renderer->renderFrame();
+#endif 
 
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
