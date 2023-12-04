@@ -46,7 +46,7 @@ namespace hs {
     bool mergeUnstructuredMeshes = false;
     
     std::string xfFileName = "";
-    std::string outFileName = "hay.png";
+    static std::string outFileName;
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
@@ -60,6 +60,7 @@ namespace hs {
     static bool measure;
   };
   
+  std::string FromCL::outFileName = "hayStack.png";
   bool FromCL::measure = 0;
   bool FromCL::verbose = true;
 
@@ -67,7 +68,9 @@ namespace hs {
   
   void usage(const std::string &error="")
   {
-    std::cout << "./haystack ... <args>" << std::endl;
+    std::cout << "./hs{Offline,Viewer,ViewerQT} ... <args>" << std::endl;
+    std::cout << "w/ args:" << std::endl;
+    std::cout << "-xf file.xf   ; specify transfer function" << std::endl;
     if (!error.empty())
       throw std::runtime_error("fatal error: " +error);
     exit(0);
@@ -96,7 +99,7 @@ namespace hs {
   public:
     void screenShot()
     {
-      std::string fileName = "hayMaker.png";
+      std::string fileName = FromCL::outFileName;
       std::vector<int> hostFB(fbSize.x*fbSize.y);
       cudaMemcpy(hostFB.data(),fbPointer,
                  fbSize.x*fbSize.y*sizeof(int),
@@ -154,7 +157,7 @@ namespace hs {
       static int numFramesRendered = 0;
       const int measure_warmup_frames = 2;
       const int measure_max_frames = 100;
-      const float measure_max_seconds = 10.f;
+      const float measure_max_seconds = 60.f;
       
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
@@ -166,19 +169,19 @@ namespace hs {
       double t1 = getCurrentTime();
 
       if (FromCL::measure) {
-      int numFramesMeasured = numFramesRendered - measure_warmup_frames;
-      float numSecondsMeasured
-        = (numFramesMeasured < 1)
-        ? 0.f
-        : (t1 - measure_t0);
+        int numFramesMeasured = numFramesRendered - measure_warmup_frames;
+        float numSecondsMeasured
+          = (numFramesMeasured < 1)
+          ? 0.f
+          : (t1 - measure_t0);
 
-      if (numFramesMeasured >= measure_max_frames ||
-          numSecondsMeasured >= measure_max_seconds) {
-        std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
-        std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
-        screenShot();
-        exit(0);
-      }
+        if (numFramesMeasured >= measure_max_frames ||
+            numSecondsMeasured >= measure_max_seconds) {
+          std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
+          std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
+          screenShot();
+          exit(0);
+        }
       }
       
       static double sum_t = 0.f;
@@ -255,6 +258,8 @@ int main(int ac, char **av)
       loader.addContent(arg);
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes") {
       fromCL.mergeUnstructuredMeshes = true;
+    } else if (arg == "--no-mum") {
+      fromCL.mergeUnstructuredMeshes = false;
     } else if (arg == "--default-radius") {
       loader.defaultRadius = std::stof(av[++i]);
     } else if (arg == "--measure") {
