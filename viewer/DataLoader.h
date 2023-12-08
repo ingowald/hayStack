@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "hayStack/HayStack.h"
+#include "hayStack/DataGroup.h"
 #include "hayStack/MPIWrappers.h"
 
 namespace hs {

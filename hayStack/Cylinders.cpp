@@ -14,26 +14,23 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
-#pragma once
-
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "hayStack/Cylinders.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
   
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
-    
-    box3f   spatial;
-    range1f scalars;
-  };
-
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
+  box3f Cylinders::getBounds() const
+  {
+    box3f bounds;
+    int   numCylinders = indices.empty() ? (points.size()/2) : indices.size();
+    for (int i=0;i<numCylinders;i++) {
+      vec2i idx = indices.empty() ? (vec2i(2*i)+vec2i(0,1)) : indices[i];
+      float r = radii.empty()?radius:radii[i];
+      vec3f a = points[idx.x];
+      vec3f b = points[idx.y];
+      bounds.extend(min(a,b)-r);
+      bounds.extend(max(a,b)+r);
+    }
+    return bounds;
+  }
   
 } // ::hs

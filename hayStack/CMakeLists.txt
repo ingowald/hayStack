@@ -20,6 +20,14 @@ add_library(hayStack
   
   HayStack.h
   HayStack.cpp
+  DataGroup.h
+  DataGroup.cpp
+  Cylinders.h
+  Cylinders.cpp
+  Spheres.h
+  Spheres.cpp
+  StructuredVolume.h
+  StructuredVolume.cpp
 
   Renderer.h
   MPIRenderer.h

@@ -20,6 +20,7 @@
 #pragma once
 
 #include "hayStack/HayStack.h"
+#include "hayStack/DataGroup.h"
 #include "hayStack/MPIRenderer.h"
 #include "barney.h"
 

@@ -16,6 +16,7 @@
 
 #include "viewer/DataLoader.h"
 #include "viewer/content/TSTris.h"
+#include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/MiniContent.h"
@@ -257,6 +258,8 @@ namespace hs {
       TSTriContent::create(this,contentDescriptor);
     // else if (url.type == "en-dump")
     //   ENDumpContent::create(this,contentDescriptor);
+    else if (url.type == "raw") 
+      RAWVolumeContent::create(this,contentDescriptor);
     else
       throw std::runtime_error
         ("could not recognize content type '"+url.type+"'");

@@ -16,24 +16,9 @@
 
 /*! a hay-*stack* is a description of data-parallel data */
 
-#pragma once
-
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "hayStack/StructuredVolume.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
-  
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
-    
-    box3f   spatial;
-    range1f scalars;
-  };
 
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
   
-} // ::hs
+}

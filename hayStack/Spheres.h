@@ -18,22 +18,25 @@
 
 #pragma once
 
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "hayStack/HayStack.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
   
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
+  struct SphereSet {
+    typedef std::shared_ptr<SphereSet> SP;
+
+    static SP create() { return std::make_shared<SphereSet>(); }
     
-    box3f   spatial;
-    range1f scalars;
+    box3f getBounds() const;
+    
+    std::vector<vec3f> origins;
+    
+    /*! array of radii - can be empty (in which case `radius` applies
+        for all spheres equally), but if non-empty it has to be the
+        same size as `origins` */
+    std::vector<float> radii;
+    
+    float radius = .1f;
   };
 
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
-  
 } // ::hs

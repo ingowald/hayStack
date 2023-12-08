@@ -18,22 +18,40 @@
 
 #pragma once
 
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "hayStack/HayStack.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
-  
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
+
+  /*! like all other things in haystack, this is designed to be able
+      to store *ONE RANK'S PART* of what may - across all ranks - be a
+      logically much larger volume */
+  struct StructuredVolume {
+    typedef std::shared_ptr<StructuredVolume> SP;
     
-    box3f   spatial;
-    range1f scalars;
+    typedef enum { FLOAT, UINT8 } ScalarType;
+    std::vector<uint8_t> rawData;
+    ScalarType scalarType;
+    int numChannels = 1;
+
+    /*! dimensions of *full* volume, across all ranks; repeat this is
+        usually NOT the number of cells or voxels stored in rawData */
+    vec3i fullVolumeDims;
+    
+    /*! range of *cells* of full volume that this rank contains */
+    struct {
+      vec3i begin;
+      vec3i count;
+    } myCells;
+    affine3f unitCellToWorldTransform;
   };
 
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
+  inline size_t sizeOf(StructuredVolume::ScalarType type)
+  {
+    switch(type) {
+    case StructuredVolume::FLOAT: return sizeof(float); 
+    case StructuredVolume::UINT8: return sizeof(uint8_t);
+    default: throw std::runtime_error("un-handled scalar type");
+    };
+  }
   
-} // ::hs
+}
