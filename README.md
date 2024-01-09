@@ -4,6 +4,9 @@
 # Building and Running
 
 ..
+dependencies
+
+    sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev
 
 
 # Example Data Sets and How to Run Them

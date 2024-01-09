@@ -14,26 +14,38 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
 #pragma once
 
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "viewer/DataLoader.h"
+#include "hayStack/StructuredVolume.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
   
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
+  /*! a file of 'raw' spheres */
+  struct RAWVolumeContent : public LoadableContent {
+    using ScalarType = StructuredVolume::ScalarType;
     
-    box3f   spatial;
-    range1f scalars;
-  };
+    RAWVolumeContent(const std::string &fileName,
+                     int thisPartID,
+                     const box3i &cellRange,
+                     vec3i fullVolumeDims,
+                     ScalarType type,
+                     int numChannels);
+    
+    static void create(DataLoader *loader,
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
 
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
+    std::string toString() override;
+
+    const std::string fileName;
+    const int         thisPartID;
+    const vec3i       fullVolumeDims;
+    const box3i       cellRange;
+    const int         numChannels;
+    const ScalarType  scalarType;
+    const box3i       myCells;
+  };
   
-} // ::hs
+}

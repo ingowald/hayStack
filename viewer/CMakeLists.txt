@@ -39,6 +39,8 @@ set(SOURCES
   content/CylindersFromFile.cpp
   content/TSTris.h
   content/TSTris.cpp
+  content/RAWVolumeContent.h
+  content/RAWVolumeContent.cpp
   )  
 
 # ------------------------------------------------------------------

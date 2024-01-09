@@ -14,26 +14,34 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
 #pragma once
 
-#include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+#include "hayStack/HayStack.h"
 
 namespace hs {
-  using namespace mini;
-  using range1f = interval<float>;
   
-  struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
+  struct Cylinders {
+    typedef std::shared_ptr<Cylinders> SP;
+
+    static SP create() { return std::make_shared<Cylinders>(); }
     
-    box3f   spatial;
-    range1f scalars;
+    box3f getBounds() const;
+    
+    std::vector<vec3f> points;
+    
+    /*! array of index pair; each such pair refers to two points in
+        the points[] array; those are the begin/end of that
+        cylinder. If this array is empty, it is to be treated as if it
+        contained {(0,1)(2,3),...,(numPoints-2,numPoints-1)} */
+    std::vector<vec2i>  indices;
+    
+    /*! array of radii - can be empty (in which case `radius` applies
+        for all spheres equally), but if non-empty it has to be the
+        same size as `indices` */
+    std::vector<float> radii;
+
+    /*! fall-back radius for all cylinders if radii array is empty */
+    float radius = .1f;
   };
 
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
-  
 } // ::hs
