@@ -29,20 +29,26 @@ namespace hs {
     typedef std::shared_ptr<StructuredVolume> SP;
     
     typedef enum { FLOAT, UINT8 } ScalarType;
+
+    StructuredVolume(vec3i dims,
+                     ScalarType scalarType,
+                     std::vector<uint8_t> &rawData,
+                     const vec3f &gridOrigin,
+                     const vec3f &gridSpacing)
+      : dims(dims),
+        scalarType(scalarType),
+        rawData(std::move(rawData)),
+        gridOrigin(gridOrigin),
+        gridSpacing(gridSpacing)
+    {}
+
+    box3f getBounds() const;
+
+    /*! dimensions of grid of scalars in rawData */
+    vec3i      dims;
     std::vector<uint8_t> rawData;
     ScalarType scalarType;
-    int numChannels = 1;
-
-    /*! dimensions of *full* volume, across all ranks; repeat this is
-        usually NOT the number of cells or voxels stored in rawData */
-    vec3i fullVolumeDims;
-    
-    /*! range of *cells* of full volume that this rank contains */
-    struct {
-      vec3i begin;
-      vec3i count;
-    } myCells;
-    affine3f unitCellToWorldTransform;
+    vec3f gridOrigin, gridSpacing;
   };
 
   inline size_t sizeOf(StructuredVolume::ScalarType type)

@@ -19,7 +19,6 @@
 #pragma once
 
 #include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
 
 namespace hs {
   using namespace mini;

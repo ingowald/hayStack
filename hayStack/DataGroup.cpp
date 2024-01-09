@@ -66,6 +66,8 @@ namespace hs {
     for (auto cylinderSet : cylinderSets)
       if (cylinderSet)
         bounds.spatial.extend(cylinderSet->getBounds());
+    for (auto volume : structuredVolumes)
+      bounds.spatial.extend(volume->getBounds());
     return bounds;
   }
 

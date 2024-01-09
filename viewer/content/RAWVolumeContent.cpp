@@ -107,7 +107,7 @@ namespace hs {
     return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(scalarType);
   }
   
-  void   RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
+  void RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
   {
     vec3i numVoxels = (cellRange.size()+1);
     size_t numScalars = numChannels*size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
@@ -129,6 +129,12 @@ namespace hs {
           dataPtr += numVoxels.x*sizeOf(scalarType);
         }
     }
+    vec3f gridOrigin(cellRange.lower);
+    vec3f gridSpacing(1.f);
+    
+    dataGroup.structuredVolumes.push_back
+      (std::make_shared<StructuredVolume>(cellRange.size(),scalarType,rawData,
+                                          gridOrigin,gridSpacing));
   }
   
   std::string RAWVolumeContent::toString() 
