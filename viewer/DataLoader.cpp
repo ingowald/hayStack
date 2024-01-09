@@ -23,6 +23,10 @@
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DistData.h"
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 namespace hs {
 
   /*! default radius to use for spheres that do not have a radius specified */

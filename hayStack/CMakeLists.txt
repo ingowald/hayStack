@@ -28,6 +28,11 @@ add_library(hayStack
   HayMaker.cpp
   )
 
+if(USE_NCCL)
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+  find_package(NCCL REQUIRED)
+endif()      
+
 target_link_libraries(hayStack
   PUBLIC
   owl
@@ -37,3 +42,9 @@ target_link_libraries(hayStack
   barney_mpi
   )
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
+
+if(NCCL_FOUND)
+  target_compile_definitions(hayStack PUBLIC -DUSE_NCCL=1)
+  target_include_directories(hayStack PUBLIC ${NCCL_INCLUDE_DIRS})
+  target_link_libraries(hayStack PUBLIC ${NCCL_LIBRARIES})
+endif()

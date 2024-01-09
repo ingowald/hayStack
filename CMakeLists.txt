@@ -26,6 +26,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
 endif()
 
 option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
+option(USE_NCCL "Use NCCL" OFF)
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
