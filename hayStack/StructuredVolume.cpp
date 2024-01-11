@@ -20,5 +20,12 @@
 
 namespace hs {
 
+  box3f StructuredVolume::getBounds() const
+  {
+    box3f bb;
+    bb.lower = gridOrigin;
+    bb.upper = gridSpacing * vec3f(dims);
+    return bb;
+  }
   
 }
