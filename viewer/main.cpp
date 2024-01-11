@@ -441,7 +441,7 @@ int main(int ac, char **av)
       sum_w = 0.8f*sum_w + 1.f;
       float timePerFrame = sum_t / sum_w;
       float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
+      std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
 
       if(getCurrentTime() - t2 > 2.0) {
         std::cout << title << std::endl;
