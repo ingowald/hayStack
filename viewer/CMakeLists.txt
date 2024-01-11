@@ -43,15 +43,32 @@ set(SOURCES
   content/RAWVolumeContent.cpp
   )  
 
+set(TFE_SOURCES
+  external/imgui/imgui.cpp
+  external/imgui/imgui_draw.cpp
+  external/imgui/imgui_tables.cpp
+  external/imgui/imgui_widgets.cpp
+  imgui_tfe/imgui_impl_glfw_gl3.h
+  imgui_tfe/imgui_impl_glfw_gl3.cpp
+  imgui_tfe/ColorMaps.h
+  imgui_tfe/ColorMaps.cpp
+  imgui_tfe/RGBAEditor.h
+  imgui_tfe/RGBAEditor.cpp
+  imgui_tfe/TFEditor.h
+  imgui_tfe/TFEditor.cpp
+)
+
 # ------------------------------------------------------------------
 add_executable(hsViewer
   ${SOURCES}
+  ${TFE_SOURCES}
   )
 target_link_libraries(hsViewer
   PUBLIC
   hayStack
   owl_viewer
   )
+target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
 target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
 
 # ------------------------------------------------------------------
