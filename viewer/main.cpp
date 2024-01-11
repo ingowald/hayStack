@@ -22,6 +22,9 @@
 #define STB_IMAGE_IMPLEMENTATION 1
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
+# include "imgui_tfe/imgui_impl_glfw_gl3.h"
+# include "imgui_tfe/TFEditor.h"
+# include <imgui.h>
 #elif HS_CUTEE
 # include "qtOWL/OWLViewer.h"
 # include "qtOWL/XFEditor.h"
@@ -88,13 +91,21 @@ namespace hs {
   {
     Viewer(Renderer *const renderer)
       : renderer(renderer)
-    {}
+    {
+#if HS_VIEWER
+      ImGui_ImplGlfwGL3_Init(handle, true);
+#endif
+    }
 
 #if HS_CUTEE
   public slots:
     void colorMapChanged(qtOWL::XFEditor *xf);
     void rangeChanged(range1f r);
     void opacityScaleChanged(double scale);
+#endif
+
+#if HS_VIEWER
+    void updateXFImGui();
 #endif
   public:
     void screenShot()
@@ -123,6 +134,9 @@ namespace hs {
 #if HS_CUTEE
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
+#elif HS_VIEWER
+        if (xfEditor)
+          xfEditor->saveToFile("hayThere.xf");
 #else
         std::cout << "dumping transfer function only works in QT viewer" << std::endl;
 #endif
@@ -130,6 +144,16 @@ namespace hs {
       default: OWLViewer::key(key,where);
       };
     }
+
+#if HS_VIEWER
+    void mouseMotion(const vec2i &newMousePosition) override
+    {
+      ImGuiIO &io = ImGui::GetIO();
+      if (!io.WantCaptureMouse) {
+        OWLViewer::mouseMotion(newMousePosition);
+      }
+    }
+#endif
     
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
@@ -143,6 +167,10 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
+#if HS_VIEWER
+      ImGui_ImplGlfwGL3_NewFrame();
+#endif
+
       if (xfDirty) {
         renderer->setTransferFunction(xf);
         xfDirty = false;
@@ -183,7 +211,7 @@ namespace hs {
           exit(0);
         }
       }
-      
+
       static double sum_t = 0.f;
       static double sum_w = 0.f;
       sum_t = 0.8f*sum_t + (t1-t0);
@@ -194,6 +222,26 @@ namespace hs {
       setTitle(title.c_str());
     }
     
+#if HS_VIEWER
+    void draw() override
+    {
+      OWLViewer::draw();
+
+      if (xfEditor) {
+        ImGui::Begin("TFE");
+    
+        xfEditor->drawImmediate();
+
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplGlfwGL3_Render();
+
+        updateXFImGui();
+      }
+    }
+#endif
+
     void cameraChanged()
     {
       hs::Camera camera;
@@ -208,6 +256,8 @@ namespace hs {
     Renderer *const renderer;
 #if HS_CUTEE
     XFEditor *xfEditor = 0;
+#elif HS_VIEWER
+    TFEditor *xfEditor = 0;
 #endif
   };
 
@@ -231,6 +281,27 @@ namespace hs {
     xfDirty = true;
   }
   
+#elif HS_VIEWER
+  void Viewer::updateXFImGui()
+  {
+    if (xfEditor->cmapUpdated()) {
+      xf.colorMap = xfEditor->getColorMap();
+      xfDirty = true;
+    }
+
+    if (xfEditor->rangeUpdated()) {
+      xf.domain = xfEditor->getRange();
+      xfDirty = true;
+    }
+
+    if (xfEditor->opacityUpdated()) {
+      float scale = xfEditor->getOpacityScale();
+      xf.baseDensity = powf(1.1f,scale - 100.f);
+      xfDirty = true;
+    }
+
+    xfEditor->downdate(); // TODO: is this necessary?
+  }
 #endif
 
 #endif  
@@ -376,6 +447,14 @@ int main(int ac, char **av)
                               /*lookat   */fromCL.camera.vi,
                               /*up-vector*/fromCL.camera.vu,
                               /*fovy(deg)*/fromCL.camera.fovy);
+
+  TFEditor    *xfEditor = new TFEditor;
+  xfEditor->setRange(worldBounds.scalars);
+  viewer.xfEditor       = xfEditor;
+
+  if (!fromCL.xfFileName.empty())
+    xfEditor->loadFromFile(fromCL.xfFileName.c_str());
+  
   viewer.showAndRun();
 #elif HS_CUTEE
   QApplication app(ac,av);
