@@ -246,6 +246,32 @@ namespace hs {
     
 
     // ------------------------------------------------------------------
+    // render all UMeshes
+    // ------------------------------------------------------------------
+    for (auto vol : myData.structuredVolumes) {
+      BNScalarType scalarType;
+      switch(vol->scalarType) {
+      case StructuredVolume::UINT8:
+        scalarType = BN_UINT8;
+        break;
+      case StructuredVolume::FLOAT:
+        scalarType = BN_FLOAT;
+        break;
+      default: throw std::runtime_error("Unknown scalar type");
+      }
+      BNMaterial material = BN_DEFAULT_MATERIAL;
+      BNScalarField bnVol = bnStructuredDataCreate
+        (barney,
+         scalarType,
+         (const int3&)vol->dims,
+         vol->rawData.data(),
+         (const float3&)vol->gridOrigin,
+         (const float3&)vol->gridSpacing);
+      dg.createdVolumes.push_back(bnVolumeCreate(barney,bnVol));
+    }
+    
+
+    // ------------------------------------------------------------------
     // create a single instance for all 'root' geometry that isn't
     // explicitly instantitated itself
     // ------------------------------------------------------------------
