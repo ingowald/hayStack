@@ -262,8 +262,8 @@ namespace hs {
       BNMaterial material = BN_DEFAULT_MATERIAL;
       BNScalarField bnVol = bnStructuredDataCreate
         (barney,
-         scalarType,
          (const int3&)vol->dims,
+         scalarType,
          vol->rawData.data(),
          (const float3&)vol->gridOrigin,
          (const float3&)vol->gridSpacing);
