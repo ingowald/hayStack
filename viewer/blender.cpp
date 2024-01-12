@@ -275,8 +275,17 @@ int main(int ac, char **av)
 	//float fix_fov = 1.0f;
 	std::vector<char> pixels_buf_empty;
 
-	std::vector<vec4f> volume_color_ramp(128);
+	//std::vector<vec4f> volume_color_ramp(128);
 	std::vector<vec4f> volume_color_ramp_rcv(128);
+
+//  27   struct TransferFunction {                                                               
+//  28     std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };                             
+//  29     range1f domain = { 0.f, 0.f };                                                        
+//  30     float   baseDensity = 1.f;                                                            
+//  31   };
+  TransferFunction xf;
+  xf.colorMap.resize(128);
+  xf.domain = range1f(0.f, 1.0f); 
 
 	while (true) {		
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
@@ -349,10 +358,11 @@ int main(int ac, char **av)
 			// 	continue;
 			// }
 
-			if (memcmp(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size())) {
-				memcpy(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size());
+			if (memcmp(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size())) {
+				memcpy(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size());
 
 				//renderer->setColorMap(volume_color_ramp);
+        renderer->setTransferFunction(xf);
 				renderer->resetAccumulation();
 			}
 
