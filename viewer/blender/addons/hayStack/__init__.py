@@ -305,8 +305,8 @@ class HayStackContext:
             node_color_ramp = None
             node_float_curve = None
 
-            if 'ColorRamp' in mat.node_tree.nodes:
-                node_color_ramp = mat.node_tree.nodes['ColorRamp']
+            if 'Color Ramp' in mat.node_tree.nodes:
+                node_color_ramp = mat.node_tree.nodes['Color Ramp']
 
             if 'Float Curve' in mat.node_tree.nodes:
                 node_float_curve = mat.node_tree.nodes['Float Curve']
