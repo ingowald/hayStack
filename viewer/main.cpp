@@ -144,6 +144,9 @@ namespace hs {
     void render() override
     {
       if (xfDirty) {
+        std::cout << "------ render dirty, set xf -------------------------------------------------" << std::endl;
+        PRINT(xf.domain);
+        
         renderer->setTransferFunction(xf);
         xfDirty = false;
         accumDirty = true;
@@ -221,6 +224,7 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
+    PING; PRINT(r);
     xf.domain = r; //{ 0.f, 0.f };//r;
     xfDirty = true;
   }

@@ -43,6 +43,7 @@ namespace hs {
     {}
 
     box3f getBounds() const;
+    range1f getValueRange() const;
 
     /*! dimensions of grid of scalars in rawData */
     vec3i      dims;

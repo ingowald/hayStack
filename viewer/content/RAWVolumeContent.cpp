@@ -117,11 +117,12 @@ namespace hs {
     for (int c=0;c<numChannels;c++) {
       for (int iz=cellRange.lower.z;iz<=cellRange.upper.z;iz++)
         for (int iy=cellRange.lower.y;iy<=cellRange.upper.y;iy++) {
+          int ix = cellRange.lower.x;
           size_t ofsInScalars
-            = cellRange.lower.x
-            + cellRange.lower.y*size_t(fullVolumeDims.x)
-            + cellRange.lower.z*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
-            + c*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
+            = ix
+            + iy*size_t(fullVolumeDims.x)
+            + iz*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
+            + c *size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
           in.seekg(ofsInScalars*sizeOf(scalarType));
           in.read(dataPtr,numVoxels.x*sizeOf(scalarType));
           if (!in.good())
@@ -133,7 +134,7 @@ namespace hs {
     vec3f gridSpacing(1.f);
     
     dataGroup.structuredVolumes.push_back
-      (std::make_shared<StructuredVolume>(cellRange.size(),scalarType,rawData,
+      (std::make_shared<StructuredVolume>(numVoxels,scalarType,rawData,
                                           gridOrigin,gridSpacing));
   }
   

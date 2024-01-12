@@ -73,7 +73,8 @@ namespace hs {
       auto &dg = perDG[dgID];
       if (dg.createdVolumes.empty())
         continue;
-      
+
+      PING; PRINT(xf.domain);
       BNDataGroup barney = bnGetDataGroup(model,dgID);
       for (auto volume : dg.createdVolumes)
         bnVolumeSetXF(volume,
@@ -260,6 +261,7 @@ namespace hs {
       default: throw std::runtime_error("Unknown scalar type");
       }
       BNMaterial material = BN_DEFAULT_MATERIAL;
+      PING; PRINT(vol->dims);
       BNScalarField bnVol = bnStructuredDataCreate
         (barney,
          (const int3&)vol->dims,
