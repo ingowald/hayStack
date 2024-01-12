@@ -47,7 +47,7 @@ set(SRC_HEADERS
 
 include_directories(${INC})
 add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS})
-target_link_libraries(hayStack-renderengine stb_image)
+#target_link_libraries(hayStack-renderengine stb_image)
   
 install (TARGETS hayStack-renderengine DESTINATION addons/hayStack)
 install (FILES addons/hayStack/__init__.py DESTINATION addons/hayStack)
