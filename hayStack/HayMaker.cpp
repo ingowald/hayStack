@@ -74,7 +74,6 @@ namespace hs {
       if (dg.createdVolumes.empty())
         continue;
 
-      PING; PRINT(xf.domain);
       BNDataGroup barney = bnGetDataGroup(model,dgID);
       for (auto volume : dg.createdVolumes)
         bnVolumeSetXF(volume,

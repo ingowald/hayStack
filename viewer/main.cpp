@@ -224,7 +224,6 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    PING; PRINT(r);
     xf.domain = r; //{ 0.f, 0.f };//r;
     xfDirty = true;
   }
