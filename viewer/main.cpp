@@ -259,7 +259,7 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
-    } else if (arg == "-mum" || arg == "--merge-unstructured-meshes") {
+    } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--no-mum") {
       fromCL.mergeUnstructuredMeshes = false;
@@ -311,8 +311,11 @@ int main(int ac, char **av)
   if (!isHeadNode) {
     loader.loadData(workers,thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
-  if (fromCL.mergeUnstructuredMeshes)
+  if (fromCL.mergeUnstructuredMeshes) {
+    std::cout << "merging potentially separate unstructured meshes into single mesh" << std::endl;
     thisRankData.mergeUnstructuredMeshes();
+    std::cout << "done mergine umeshes..." << std::endl;
+  }
   
   int numDataGroupsLocally = thisRankData.size();
   
