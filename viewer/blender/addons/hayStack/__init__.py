@@ -297,7 +297,7 @@ class HayStackContext:
         _renderengine_dll.send_cam_data()
 
         # volume
-        volume_colormap = np.zeros((128 * 4), dtype=np.float32)
+        volume_colormap = np.zeros((129 * 4), dtype=np.float32)
 
         mat = bpy.context.scene.haystack.server_settings.mat_volume
 
@@ -327,6 +327,21 @@ class HayStackContext:
                 volume_colormap[1 + v * 4] = color_rgba[1]
                 volume_colormap[2 + v * 4] = color_rgba[2]
                 volume_colormap[3 + v * 4] = density
+
+            domain = [float(0.0), float(1.0)]
+            if 'DomainX' in mat.node_tree.nodes:
+                domain[0] = mat.node_tree.nodes['DomainX'].outputs[0].default_value
+            if 'DomainY' in mat.node_tree.nodes:
+                domain[1] = mat.node_tree.nodes['DomainY'].outputs[0].default_value                
+            
+            volume_colormap[0 + 128 * 4] = domain[0]
+            volume_colormap[1 + 128 * 4] = domain[1]
+
+            baseDensity = float(1.0)
+            if 'Base Density' in mat.node_tree.nodes:
+                baseDensity = mat.node_tree.nodes['Base Density'].outputs[0].default_value
+
+            volume_colormap[2 + 128 * 4] = baseDensity
         
         _renderengine_dll.set_volume_colormap(volume_colormap.ctypes.data)
 
@@ -1045,7 +1060,8 @@ class HayStackRenderEngine(bpy.types.RenderEngine):
     # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "HAYSTACK"
     bl_label = "HayStack"
-    bl_use_preview = True
+    bl_use_preview = False
+    bl_use_shading_nodes_custom=False
 
     engine: Engine = None
 
@@ -1129,11 +1145,11 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         col.prop(server_settings, "server_name", text="Server")
         col.prop(server_settings, "port_cam", text="Port Cam")
         col.prop(server_settings, "port_data", text="Port Data")
-        col.prop(server_settings, "filename", text="Filename")
+        #col.prop(server_settings, "filename", text="Filename")
 
-        box = layout.box()
-        col = box.column()
-        col.prop(server_settings, "cam_rotation_X", text="Cam Rotation X")        
+        # box = layout.box()
+        # col = box.column()
+        # col.prop(server_settings, "cam_rotation_X", text="Cam Rotation X")        
 
         box = layout.box()
         col = box.column()
@@ -1155,12 +1171,41 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
 
 
 def get_panels():
+    exclude_panels = {
+        'VIEWLAYER_PT_filter',
+        'VIEWLAYER_PT_layer_passes',
+        'RENDER_PT_eevee_ambient_occlusion',
+        'RENDER_PT_eevee_motion_blur',
+        'RENDER_PT_eevee_next_motion_blur',
+        'RENDER_PT_motion_blur_curve',
+        'RENDER_PT_eevee_depth_of_field',
+        'RENDER_PT_eevee_next_depth_of_field',
+        'RENDER_PT_eevee_bloom',
+        'RENDER_PT_eevee_volumetric',
+        'RENDER_PT_eevee_volumetric_lighting',
+        'RENDER_PT_eevee_volumetric_shadows',
+        'RENDER_PT_eevee_subsurface_scattering',
+        'RENDER_PT_eevee_screen_space_reflections',
+        'RENDER_PT_eevee_shadows',
+        'RENDER_PT_eevee_next_shadows',
+        'RENDER_PT_eevee_sampling',
+        'RENDER_PT_eevee_indirect_lighting',
+        'RENDER_PT_eevee_indirect_lighting_display',
+        'RENDER_PT_eevee_film',
+        'RENDER_PT_eevee_hair',
+        'RENDER_PT_eevee_performance',
+
+        'RENDER_PT_gpencil',
+        'RENDER_PT_freestyle',
+        'RENDER_PT_simplify',
+    }    
     panels = []
     panels.append(RENDER_PT_haystack_server)
 
     for panel in bpy.types.Panel.__subclasses__():
-        if hasattr(panel, 'COMPAT_ENGINES') and 'BLENDER_RENDER' in panel.COMPAT_ENGINES:
-            panels.append(panel)
+        if hasattr(panel, 'COMPAT_ENGINES') and ('BLENDER_RENDER' in panel.COMPAT_ENGINES or 'BLENDER_EEVEE' in panel.COMPAT_ENGINES):
+            if panel.__name__ not in exclude_panels:
+                panels.append(panel)
 
     return panels
 

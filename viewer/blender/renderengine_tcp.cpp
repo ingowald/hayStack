@@ -45,6 +45,12 @@
 
 //#include <omp.h>
 
+#ifdef WITH_CLIENT_GPUJPEG
+#  include <libgpujpeg/gpujpeg_common.h>
+#  include <libgpujpeg/gpujpeg_decoder.h>
+#  include <libgpujpeg/gpujpeg_encoder.h>
+#endif
+
 // RGB
 #  define TCP_WIN_SIZE_SEND (32L * 1024L * 1024L)
 #  define TCP_WIN_SIZE_RECV (32L * 1024L * 1024L)
@@ -1152,13 +1158,13 @@ int gpujpeg_decode(int width,
 void send_gpujpeg(char* dmem, char* pixels, int width, int height)
 {
 #ifdef WITH_CLIENT_GPUJPEG
-	double t0 = omp_get_wtime();
+	//double t0 = omp_get_wtime();
 	int frame_size = 0;
 	gpujpeg_encode(width, height, (uint8_t*)dmem, (uint8_t*)pixels, frame_size);
-	double t1 = omp_get_wtime();
+	//double t1 = omp_get_wtime();
 	send_data_data((char*)&frame_size, sizeof(int), false);
 	send_data_data((char*)g_image_compressed, frame_size);
-	double t2 = omp_get_wtime();
+	//double t2 = omp_get_wtime();
 	// printf("send_gpujpeg: %f, %f\n", t1 - t0, t2 - t1);
 #endif
 }
@@ -1167,12 +1173,12 @@ void recv_gpujpeg(char* dmem, char* pixels, int width, int height)
 {
 #ifdef WITH_CLIENT_GPUJPEG
 	int frame_size = 0;
-	double t0 = omp_get_wtime();
+	//double t0 = omp_get_wtime();
 	recv_data_data((char*)&frame_size, sizeof(int), false);
 	recv_data_data((char*)pixels, frame_size);
-	double t1 = omp_get_wtime();
+	//double t1 = omp_get_wtime();
 	gpujpeg_decode(width, height, (uint8_t*)dmem, (uint8_t*)pixels, frame_size);
-	double t2 = omp_get_wtime();
+	//double t2 = omp_get_wtime();
 	// printf("recv_gpujpeg: %f, %f\n", t1 - t0, t2 - t1);
 #endif
 }

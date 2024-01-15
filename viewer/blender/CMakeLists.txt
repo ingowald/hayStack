@@ -24,13 +24,23 @@ if(NOT BLENDER_SUBDIRECTORY)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+    option(WITH_CLIENT_GPUJPEG "Enable GPUJPEG" OFF)
+
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
         cmake_policy(SET CMP0104 NEW)
     endif()
 endif()
 
+if(WITH_CLIENT_GPUJPEG)
+	set(GPUJPEG_INCLUDE_DIR "" CACHE PATH "")
+    set(GPUJPEG_LIBRARIES "" CACHE FILEPATH "")
+
+	add_definitions(-DWITH_CLIENT_GPUJPEG)
+endif()
+
 set(INC
 	 .
+     ${GPUJPEG_INCLUDE_DIR}
 )
 
 set(SRC
@@ -48,6 +58,10 @@ set(SRC_HEADERS
 include_directories(${INC})
 add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS})
 #target_link_libraries(hayStack-renderengine stb_image)
+
+if(WITH_CLIENT_GPUJPEG)
+    target_link_libraries(hayStack-renderengine ${GPUJPEG_LIBRARIES})
+endif()
   
 install (TARGETS hayStack-renderengine DESTINATION addons/hayStack)
 install (FILES addons/hayStack/__init__.py DESTINATION addons/hayStack)
