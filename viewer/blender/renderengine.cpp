@@ -134,7 +134,7 @@ void reset()
 
 void set_volume_colormap(void* values)
 {
-	send_data_cam((char*)values, sizeof(float) * 4 * 128);
+	send_data_cam((char*)values, sizeof(float) * 4 * 129);
 }
 
 void client_init(const char *server,
