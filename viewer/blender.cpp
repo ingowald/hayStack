@@ -251,17 +251,17 @@ int main(int ac, char **av)
 	// Config config;
 	// config.args(ac, av);
 
-	// config.camera.vp.x = 0;
-	// config.camera.vp.y = 0;
-	// config.camera.vp.z = 0;
+	fromCL.camera.vp.x = 0;
+	fromCL.camera.vp.y = 0;
+	fromCL.camera.vp.z = 0;
 
-	// config.camera.vi.x = 0;
-	// config.camera.vi.y = 0;
-	// config.camera.vi.z = -1;
+	fromCL.camera.vi.x = 0;
+	fromCL.camera.vi.y = 0;
+	fromCL.camera.vi.z = -1;
 
-	// config.camera.vu.x = 0;
-	// config.camera.vu.y = 1;
-	// config.camera.vu.z = 0;
+	fromCL.camera.vu.x = 0;
+	fromCL.camera.vu.y = 1;
+	fromCL.camera.vu.z = 0;
 
 	// //MaxiOWL renderer(config);
 	// MaxiOWL* renderer = NULL; // new MaxiOWL(config);
@@ -275,8 +275,8 @@ int main(int ac, char **av)
 	//float fix_fov = 1.0f;
 	std::vector<char> pixels_buf_empty;
 
-	//std::vector<vec4f> volume_color_ramp(128);
-	std::vector<vec4f> volume_color_ramp_rcv(128);
+	std::vector<vec4f> volume_color_ramp(128+1);
+	std::vector<vec4f> volume_color_ramp_rcv(128+1);
 
 //  27   struct TransferFunction {                                                               
 //  28     std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };                             
@@ -338,7 +338,11 @@ int main(int ac, char **av)
 					if (fbPointer)
 						cudaFree(fbPointer);
 
-					cudaMallocManaged(&fbPointer, fromCL.fbSize.x * fromCL.fbSize.y * sizeof(uint32_t));
+#ifdef WITH_CLIENT_GPUJPEG
+					cudaMalloc(&fbPointer, fromCL.fbSize.x * fromCL.fbSize.y * sizeof(uint32_t));
+#else
+          cudaMallocManaged(&fbPointer, fromCL.fbSize.x * fromCL.fbSize.y * sizeof(uint32_t));
+#endif          
 					renderer->resize(fromCL.fbSize, (uint32_t*)fbPointer);
 				}
 
@@ -358,8 +362,16 @@ int main(int ac, char **av)
 			// 	continue;
 			// }
 
-			if (memcmp(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size())) {
-				memcpy(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size());
+			if (memcmp(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp.size())) {
+				memcpy(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * xf.colorMap.size());
+        memcpy(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp.size());
+
+//  29     range1f domain = { 0.f, 0.f };                                                        
+//  30     float   baseDensity = 1.f;                                                            
+//  31   };
+
+        xf.domain = range1f(volume_color_ramp[128].x, volume_color_ramp[128].y);
+        xf.baseDensity = volume_color_ramp[128].z;     
 
 				//renderer->setColorMap(volume_color_ramp);
         renderer->setTransferFunction(xf);
@@ -378,12 +390,17 @@ int main(int ac, char **av)
 			//((int*)pixels_buf)[0] = renderer->getTotalSamples();
 
 			//vec2i resolutuon = renderer->getResolution();
-			send_data_data((char*)fbPointer, pixels_buf_empty.size());
+#ifdef WITH_CLIENT_GPUJPEG     
+      send_gpujpeg((char*)fbPointer, pixels_buf_empty.data(), fromCL.fbSize.x, fromCL.fbSize.y);
+#else
+      send_data_data((char*)fbPointer, pixels_buf_empty.size());
+#endif
 		}
 		catch (const std::exception &ex)
 		{
 			std::cerr << ex.what();
-			send_data_data(pixels_buf_empty.data(), pixels_buf_empty.size());
+			//send_data_data(pixels_buf_empty.data(), pixels_buf_empty.size());
+      exit(-1);
 		}
 
 		// if (renderer != NULL)

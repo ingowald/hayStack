@@ -143,3 +143,10 @@ target_link_libraries(hsBlender
   PUBLIC
   hayStack
   )
+
+if(WITH_CLIENT_GPUJPEG)
+  target_include_directories(hsBlender PUBLIC ${GPUJPEG_INCLUDE_DIR})
+  target_compile_definitions(hsBlender PUBLIC -DWITH_CLIENT_GPUJPEG)
+  target_link_libraries(hsBlender PUBLIC ${GPUJPEG_LIBRARIES})
+endif()
+
