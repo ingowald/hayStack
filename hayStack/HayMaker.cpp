@@ -214,12 +214,17 @@ namespace hs {
         std::vector<float> opacities;
 
         std::cout << "should set real xf here ..." << std::endl;
-        colors.emplace_back(0.f, 0.f, 1.f);
-        colors.emplace_back(0.f, 1.f, 0.f);
-        colors.emplace_back(1.f, 0.f, 0.f);
+        // colors.emplace_back(0.f, 0.f, 1.f);
+        // colors.emplace_back(0.f, 1.f, 0.f);
+        // colors.emplace_back(1.f, 0.f, 0.f);
 
-        opacities.emplace_back(0.f);
-        opacities.emplace_back(1.f);
+        // opacities.emplace_back(0.f);
+        // opacities.emplace_back(1.f);
+        for (int i=0;i<xf.colorMap.size();i++) {
+          auto c = xf.colorMap[i];
+          colors.emplace_back(c.x,c.y,c.z);
+          opacities.emplace_back(c.w);
+        }
 
         anari::setAndReleaseParameter
           (device,
@@ -522,6 +527,20 @@ namespace hs {
     // ------------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
 #if HANARI
+      anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
+      auto field = anari::newObject<anari::SpatialField>(device, "structuredRegular");
+      anari::setParameter(device, field, "origin",
+                          (const anari::math::float3&)vol->gridOrigin);
+      anari::setParameter(device, field, "spacing",
+                          (const anari::math::float3&)vol->gridSpacing);
+      anari::setParameterArray3D
+        (device, field, "data", (const float *)vol->rawData.data(),
+         volumeDims.x, volumeDims.y, volumeDims.z);
+      anari::commitParameters(device, field);
+
+      auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
+      anari::setAndReleaseParameter(device, volume, "field", field);
+      dg.createdVolumes.push_back(volume);
 #else
       BNScalarType scalarType;
       switch(vol->scalarType) {
@@ -569,6 +588,11 @@ namespace hs {
     // ------------------------------------------------------------------
     if (!dg.createdVolumes.empty()) {
 #if HANARI
+      anari::Group rootGroup
+        = anariNewGroup(device);
+      anari::setParameterArray1D(device, rootGroup, "volume",
+                                 dg.createdVolumes.data(),
+                                 dg.createdVolumes.size());
 #else
       BNGroup rootGroup
         = bnGroupCreate(barney,nullptr,0,
@@ -576,9 +600,9 @@ namespace hs {
                         dg.createdVolumes.size());
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
+#endif
       xfms.push_back(affine3f());
       dg.volumeGroup = rootGroup;
-#endif
     }
 
       
