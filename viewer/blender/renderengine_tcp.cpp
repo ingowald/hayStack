@@ -669,7 +669,7 @@ void send_data_cam(char* data, size_t size, bool ack_enabled)
 			size_to_send = TCP_MAX_SIZE;
 		}
 
-		int temp = KERNEL_SOCKET_SEND(g_client_id_cam[0], (char*)data + sended_size, size_to_send);
+		int temp = KERNEL_SOCKET_SEND(g_client_id_cam[g_port_offset], (char*)data + sended_size, size_to_send);
 
 		if (temp < 1) {
 			g_connection_error = 1;
@@ -681,7 +681,7 @@ void send_data_cam(char* data, size_t size, bool ack_enabled)
 
 	if (ack_enabled) {
 		char ack = 0;
-		KERNEL_SOCKET_RECV_IGNORE_RC(g_client_id_cam[0], &ack, 1);
+		KERNEL_SOCKET_RECV_IGNORE_RC(g_client_id_cam[g_port_offset], &ack, 1);
 		if (ack != 0) {
 			printf("error in send_data_cam\n");
 			g_connection_error = 1;
@@ -706,7 +706,7 @@ void send_data_data(char* data, size_t size, bool ack_enabled)
 			size_to_send = TCP_MAX_SIZE;
 		}
 
-		int temp = KERNEL_SOCKET_SEND(g_client_id_data[0], (char*)data + sended_size, size_to_send);
+		int temp = KERNEL_SOCKET_SEND(g_client_id_data[g_port_offset], (char*)data + sended_size, size_to_send);
 
 		if (temp < 1) {
 			g_connection_error = 1;
@@ -718,7 +718,7 @@ void send_data_data(char* data, size_t size, bool ack_enabled)
 
 	if (ack_enabled) {
 		char ack = 0;
-		KERNEL_SOCKET_RECV_IGNORE_RC(g_client_id_data[0], &ack, 1);
+		KERNEL_SOCKET_RECV_IGNORE_RC(g_client_id_data[g_port_offset], &ack, 1);
 		if (ack != 0) {
 			printf("error in g_client_id_data\n");
 			g_connection_error = 1;
@@ -743,7 +743,7 @@ void recv_data_cam(char* data, size_t size, bool ack_enabled)
 			size_to_send = TCP_MAX_SIZE;
 		}
 
-		int temp = KERNEL_SOCKET_RECV(g_client_id_cam[0], (char*)data + sended_size, size_to_send);
+		int temp = KERNEL_SOCKET_RECV(g_client_id_cam[g_port_offset], (char*)data + sended_size, size_to_send);
 
 		if (temp < 1) {
 			g_connection_error = 1;
@@ -755,7 +755,7 @@ void recv_data_cam(char* data, size_t size, bool ack_enabled)
 
 	if (ack_enabled) {
 		char ack = 0;
-		KERNEL_SOCKET_SEND_IGNORE_RC(g_client_id_cam[0], &ack, 1);
+		KERNEL_SOCKET_SEND_IGNORE_RC(g_client_id_cam[g_port_offset], &ack, 1);
 		if (ack != 0) {
 			printf("error in g_client_id_cam\n");
 			g_connection_error = 1;
@@ -780,7 +780,7 @@ void recv_data_data(char* data, size_t size, bool ack_enabled)
 			size_to_send = TCP_MAX_SIZE;
 		}
 
-		int temp = KERNEL_SOCKET_RECV(g_client_id_data[0], (char*)data + sended_size, size_to_send);
+		int temp = KERNEL_SOCKET_RECV(g_client_id_data[g_port_offset], (char*)data + sended_size, size_to_send);
 
 		if (temp < 1) {
 			g_connection_error = 1;
@@ -792,7 +792,7 @@ void recv_data_data(char* data, size_t size, bool ack_enabled)
 
 	if (ack_enabled) {
 		char ack = 0;
-		KERNEL_SOCKET_SEND_IGNORE_RC(g_client_id_data[0], &ack, 1);
+		KERNEL_SOCKET_SEND_IGNORE_RC(g_client_id_data[g_port_offset], &ack, 1);
 		if (ack != 0) {
 			printf("error in g_client_id_data\n");
 			g_connection_error = 1;
@@ -1219,5 +1219,6 @@ void recv_decode(char* dmem, char* pixels, int width, int height, int frame_size
 
 void set_port_offset(int offset)
 {
+	init_port();
 	g_port_offset = offset;
 }

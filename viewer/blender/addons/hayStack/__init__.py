@@ -884,7 +884,7 @@ class ViewportEngine(Engine):
             self.is_finished = True
 
             # notifying viewport about error
-            notify_status(f"{e}.\nPlease see logs for more details.", "ERROR")
+            #notify_status(f"{e}.\nPlease see logs for more details.", "ERROR")
 
         print('Finish _do_sync_render')
 
