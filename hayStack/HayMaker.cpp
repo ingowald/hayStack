@@ -73,7 +73,7 @@ namespace hs {
       auto &dg = perDG[dgID];
       if (dg.createdVolumes.empty())
         continue;
-      
+
       BNDataGroup barney = bnGetDataGroup(model,dgID);
       for (auto volume : dg.createdVolumes)
         bnVolumeSetXF(volume,
@@ -242,6 +242,33 @@ namespace hs {
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
       dg.createdVolumes.push_back(volume);
+    }
+    
+
+    // ------------------------------------------------------------------
+    // render all UMeshes
+    // ------------------------------------------------------------------
+    for (auto vol : myData.structuredVolumes) {
+      BNScalarType scalarType;
+      switch(vol->scalarType) {
+      case StructuredVolume::UINT8:
+        scalarType = BN_UINT8;
+        break;
+      case StructuredVolume::FLOAT:
+        scalarType = BN_FLOAT;
+        break;
+      default: throw std::runtime_error("Unknown scalar type");
+      }
+      BNMaterial material = BN_DEFAULT_MATERIAL;
+      PING; PRINT(vol->dims);
+      BNScalarField bnVol = bnStructuredDataCreate
+        (barney,
+         (const int3&)vol->dims,
+         scalarType,
+         vol->rawData.data(),
+         (const float3&)vol->gridOrigin,
+         (const float3&)vol->gridSpacing);
+      dg.createdVolumes.push_back(bnVolumeCreate(barney,bnVol));
     }
     
 

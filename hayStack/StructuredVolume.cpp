@@ -27,5 +27,19 @@ namespace hs {
     bb.upper = gridSpacing * vec3f(dims);
     return bb;
   }
+
+  range1f StructuredVolume::getValueRange() const
+  {
+    int numScalars = dims.x*dims.y*dims.z;
+    range1f range;
+    switch (scalarType) {
+    case FLOAT:
+      for (int i=0;i<numScalars;i++) range.extend(((const float *)rawData.data())[i]);
+      break;
+    default:
+      HAYSTACK_NYI();
+    }
+    return range;
+  }
   
 }
