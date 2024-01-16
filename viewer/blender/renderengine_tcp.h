@@ -20,8 +20,6 @@
 
 #include <stdlib.h>
 
-#define SOCKET_CONNECTIONS 1
-
 #define TCP_OPTIMIZATION
 
 #ifdef __cplusplus
@@ -64,6 +62,8 @@ extern "C" {
 
 	void rgb_to_half(
 		unsigned short* destination, unsigned char* source, int tile_h, int tile_w);
+
+	void set_port_offset(int offset);
 
 #ifdef __cplusplus
 }

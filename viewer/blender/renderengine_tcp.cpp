@@ -71,21 +71,23 @@
 #  define KERNEL_SOCKET_RECV_IGNORE_RC(s, buf, len) { auto rc = read(s, buf, len); assert(rc == len); }
 #endif
 
+#define MAX_CONNECTIONS 100
+int g_port_offset = -1;
 
-static int g_server_id_cam[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-static int g_client_id_cam[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+int g_server_id_cam[MAX_CONNECTIONS];
+int g_client_id_cam[MAX_CONNECTIONS];
 
-static int g_server_id_data[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-static int g_client_id_data[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+int g_server_id_data[MAX_CONNECTIONS];
+int g_client_id_data[MAX_CONNECTIONS];
 
-static int g_timeval_sec = 60;
-static int g_connection_error = 0;
+int g_timeval_sec = 60;
+int g_connection_error = 0;
 
-static sockaddr_in g_client_sockaddr_cam[SOCKET_CONNECTIONS];
-static sockaddr_in g_server_sockaddr_cam[SOCKET_CONNECTIONS];
+sockaddr_in g_client_sockaddr_cam[MAX_CONNECTIONS];
+sockaddr_in g_server_sockaddr_cam[MAX_CONNECTIONS];
 
-static sockaddr_in g_client_sockaddr_data[SOCKET_CONNECTIONS];
-static sockaddr_in g_server_sockaddr_data[SOCKET_CONNECTIONS];
+sockaddr_in g_client_sockaddr_data[MAX_CONNECTIONS];
+sockaddr_in g_server_sockaddr_data[MAX_CONNECTIONS];
 
 int setsock_tcp_windowsize(int inSock, int inTCPWin, int inSend)
 {
@@ -158,13 +160,13 @@ int setsock_tcp_windowsize(int inSock, int inTCPWin, int inSend)
 
 bool client_check()
 {
-	return (g_client_id_cam[0] != -1 && g_client_id_data[0] != -1);
+	return (g_client_id_cam[g_port_offset] != -1 && g_client_id_data[g_port_offset] != -1);
 	// check_socket(g_client_id_cam) || check_socket(g_client_id_data);
 }
 
 bool server_check()
 {
-	return (g_server_id_cam[0] != -1 && g_server_id_data[0] != -1);
+	return (g_server_id_cam[g_port_offset] != -1 && g_server_id_data[g_port_offset] != -1);
 	// check_socket(g_server_id_cam) || check_socket(g_server_id_data);
 }
 
@@ -186,6 +188,22 @@ bool init_wsa()
 
 #  endif
 	return true;
+}
+
+void init_port();
+void init_port()
+{
+	if (g_port_offset == -1) {
+		for (int tid = 0; tid < MAX_CONNECTIONS; tid++) {
+			g_server_id_cam[tid] = -1;
+			g_client_id_cam[tid] = -1;
+			g_server_id_data[tid] = -1;
+			g_client_id_data[tid] = -1;
+		}
+
+		g_connection_error = 0;
+		g_port_offset = 0;
+	}
 }
 
 void close_wsa();
@@ -210,7 +228,9 @@ bool server_create(int port,
 	sockaddr_in& client_sock,
 	bool only_accept)
 {
-	if (!only_accept) {
+	init_port();
+
+	if (!only_accept) {	
 		if (!init_wsa()) {
 			return false;
 		}
@@ -218,10 +238,10 @@ bool server_create(int port,
 		int type = SOCK_STREAM;
 		int protocol = IPPROTO_TCP;
 
-#  ifdef WITH_SOCKET_UDP
-		type = SOCK_DGRAM;
-		protocol = IPPROTO_UDP;
-#  endif
+//#  ifdef WITH_SOCKET_UDP
+//		type = SOCK_DGRAM;
+//		protocol = IPPROTO_UDP;
+//#  endif
 
 		server_id = socket(AF_INET, type, protocol);
 
@@ -259,9 +279,9 @@ bool server_create(int port,
 			return false;
 		}
 
-#  ifdef WITH_SOCKET_UDP
-		client_id = server_id;
-#  else
+//#  ifdef WITH_SOCKET_UDP
+//		client_id = server_id;
+//#  else
 
 		int err_listen = listen(server_id, 1);
 		if (err_listen == -1) {
@@ -269,9 +289,9 @@ bool server_create(int port,
 			fflush(0);
 			return false;
 		}
-#    if defined(WITH_SOCKET_ONLY_DATA)
-		return true;
-#    endif
+//#    if defined(WITH_SOCKET_ONLY_DATA)
+//		return true;
+//#    endif
 	}
 
 	sockaddr_in client_info;
@@ -285,7 +305,7 @@ bool server_create(int port,
 		fflush(0);
 		return false;
 	}
-#  endif
+//#  endif
 
 	// printf("accept\n");
 	printf("accept on %d <-> %d\n", port, client_info.sin_port);
@@ -300,6 +320,7 @@ bool server_create(int port,
 bool client_create(const char* server_name, int port, int& client_id, sockaddr_in& client_sock)
 {
 	// printf("connect to %s:%d\n", server_name, port);
+	init_port();
 
 	if (!init_wsa()) {
 		return false;
@@ -315,10 +336,10 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 	int type = SOCK_STREAM;
 	int protocol = IPPROTO_TCP;
 
-#  ifdef WITH_SOCKET_UDP
-	type = SOCK_DGRAM;
-	protocol = IPPROTO_UDP;
-#  endif
+//#  ifdef WITH_SOCKET_UDP
+//	type = SOCK_DGRAM;
+//	protocol = IPPROTO_UDP;
+//#  endif
 
 	client_id = socket(AF_INET, type, protocol);
 	if (client_id == -1) {
@@ -365,7 +386,7 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 	client_sock.sin_port = htons(port);
 	memcpy(&(client_sock.sin_addr), host->h_addr, host->h_length);
 
-#  ifndef WITH_SOCKET_UDP
+//#  ifndef WITH_SOCKET_UDP
 
 	while (true) {
 #    ifdef _WIN32
@@ -392,7 +413,7 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 		}
 		break;
 	}
-#  endif
+//#  endif
 
 	// printf("connect\n");
 	printf("connect to %s:%d\n", server_name, port);
@@ -415,10 +436,10 @@ void close_tcp(int id)
 
 void client_close()
 {
-#  if 0  // ndef _WIN32
-#    pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#  endif
-	for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#  if 0  // ndef _WIN32
+//#    pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#  endif
+	for (int tid = 0; tid < MAX_CONNECTIONS; tid++) {
 		// int tid = omp_get_thread_num();
 		close_tcp(g_client_id_cam[tid]);
 		close_tcp(g_client_id_data[tid]);
@@ -431,14 +452,15 @@ void client_close()
 	}
 
 	g_connection_error = 0;
+	g_port_offset = -1;
 }
 
 void server_close()
 {
-#  if 0  // ndef _WIN32
-#    pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#  endif
-	for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#  if 0  // ndef _WIN32
+//#    pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#  endif
+	for (int tid = 0; tid < MAX_CONNECTIONS; tid++) {
 		// int tid = omp_get_thread_num();
 		close_tcp(g_server_id_cam[tid]);
 		close_tcp(g_server_id_data[tid]);
@@ -448,13 +470,16 @@ void server_close()
 	}
 
 	g_connection_error = 0;
+	g_port_offset = -1;
 
 	//close_wsa();
 }
 
 void init_sockets_cam(const char* server, int port_cam, int port_data)
 {
-	if (g_client_id_cam[0] == -1) {
+	init_port();
+
+	if (g_client_id_cam[g_port_offset] == -1) {
 		init_wsa();
 #  if defined(BLENDER_CLIENT)
 
@@ -463,22 +488,22 @@ void init_sockets_cam(const char* server, int port_cam, int port_data)
 			port_cam = (env_p_port_cam) ? atoi(env_p_port_cam) : 7000;
 		}
 
-#    if 0  // ndef _WIN32
-#      pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#    endif
-		for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#    if 0  // ndef _WIN32
+//#      pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#    endif
+		//for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
 			// int tid = omp_get_thread_num();
-			server_create(port_cam + tid,
-				g_server_id_cam[tid],
-				g_client_id_cam[tid],
-				g_server_sockaddr_cam[tid],
-				g_client_sockaddr_cam[tid]);
-		}
+			server_create(port_cam + g_port_offset,
+				g_server_id_cam[g_port_offset],
+				g_client_id_cam[g_port_offset],
+				g_server_sockaddr_cam[g_port_offset],
+				g_client_sockaddr_cam[g_port_offset]);
+		//}
 
-#    ifdef WITH_SOCKET_UDP
-		char ack = -1;
-		recv_data_cam(&ack, sizeof(ack), false);
-#    endif
+//#    ifdef WITH_SOCKET_UDP
+//		char ack = -1;
+//		recv_data_cam(&ack, sizeof(ack), false);
+//#    endif
 
 		init_sockets_data(server, port_data);
 
@@ -502,22 +527,22 @@ void init_sockets_cam(const char* server, int port_cam, int port_data)
 			strcpy(server_temp, server);
 		}
 
-#    if 0  // ndef _WIN32
-#      pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#    endif
-		for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#    if 0  // ndef _WIN32
+//#      pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#    endif
+		//for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
 			// int tid = omp_get_thread_num();
-			client_create(server_temp, port_cam + tid, g_client_id_cam[tid], g_client_sockaddr_cam[tid]);
-		}
+			client_create(server_temp, port_cam + g_port_offset, g_client_id_cam[g_port_offset], g_client_sockaddr_cam[g_port_offset]);
+		//}
 
 #    ifndef WITH_CLIENT_RENDERENGINE_SENDER
 		init_sockets_data(server, port_data);
 #    endif
 
-#    ifdef WITH_SOCKET_UDP
-		char ack = -1;
-		send_data_cam(&ack, sizeof(ack), false);
-#    endif
+//#    ifdef WITH_SOCKET_UDP
+//		char ack = -1;
+//		send_data_cam(&ack, sizeof(ack), false);
+//#    endif
 
 #  endif
 	}
@@ -525,7 +550,9 @@ void init_sockets_cam(const char* server, int port_cam, int port_data)
 
 void init_sockets_data(const char* server, int port)
 {
-	if (g_client_id_data[0] == -1) {
+	init_port();
+
+	if (g_client_id_data[g_port_offset] == -1) {
 		init_wsa();
 
 #  if (!defined(WITH_SOCKET_ONLY_DATA) && !defined(BLENDER_CLIENT) && \
@@ -550,24 +577,24 @@ void init_sockets_data(const char* server, int port)
 			strcpy(server_temp, server);
 		}
 
-#    ifdef WITH_SOCKET_ONLY_DATA
-		//#ifndef _WIN32
-		//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-		//#endif
-		for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
-			// int tid = i;//omp_get_thread_num();
-			//#        pragma omp critical
-			client_create(server_temp, port, g_client_id_data[tid], g_client_sockaddr_data[tid]);
-		}
-#    else
-#      if 0  // ndef _WIN32
-#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#      endif
-		for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#    ifdef WITH_SOCKET_ONLY_DATA
+//		//#ifndef _WIN32
+//		//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//		//#endif
+//		//for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//			// int tid = i;//omp_get_thread_num();
+//			//#        pragma omp critical
+//			client_create(server_temp, port + g_port_offset, g_client_id_data[g_port_offset], g_client_sockaddr_data[g_port_offset]);
+//		//}
+//#    else
+//#      if 0  // ndef _WIN32
+//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#      endif
+		//for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
 			// int tid = omp_get_thread_num();
-			client_create(server_temp, port + tid, g_client_id_data[tid], g_client_sockaddr_data[tid]);
-		}
-#    endif
+			client_create(server_temp, port + g_port_offset, g_client_id_data[g_port_offset], g_client_sockaddr_data[g_port_offset]);
+		//}
+//#    endif
 		// char ack = -1;
 		// send_data_data(&ack, sizeof(ack));
 
@@ -579,46 +606,46 @@ void init_sockets_data(const char* server, int port)
 			port = (env_p_port_data) ? atoi(env_p_port_data) : 7001;
 		}
 
-#    if defined(WITH_SOCKET_ONLY_DATA)
-		server_create(port,
-			g_server_id_data[0],
-			g_client_id_data[0],
-			g_server_sockaddr_data[0],
-			g_client_sockaddr_data[0],
-			false);
-
-		for (int tid = 1; tid < SOCKET_CONNECTIONS; tid++) {
-			g_server_id_data[tid] = g_server_id_data[0];
-			g_server_sockaddr_data[tid] = g_server_sockaddr_data[0];
-		}
-
-		//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-		for (int i = 0; i < SOCKET_CONNECTIONS; i++) {
-			int tid = i;  // omp_get_thread_num();
-			//#pragma omp critical
-			server_create(port,
-				g_server_id_data[tid],
-				g_client_id_data[tid],
-				g_server_sockaddr_data[tid],
-				g_client_sockaddr_data[tid],
-				true);
-		}
-
-#    else
-#      if 0  // ndef _WIN32
-#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
-#      endif
-		for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
+//#    if 0// defined(WITH_SOCKET_ONLY_DATA)
+//		server_create(port,
+//			g_server_id_data[0],
+//			g_client_id_data[0],
+//			g_server_sockaddr_data[0],
+//			g_client_sockaddr_data[0],
+//			false);
+//
+//		for (int tid = 1; tid < SOCKET_CONNECTIONS; tid++) {
+//			g_server_id_data[tid] = g_server_id_data[0];
+//			g_server_sockaddr_data[tid] = g_server_sockaddr_data[0];
+//		}
+//
+//		//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//		for (int i = 0; i < SOCKET_CONNECTIONS; i++) {
+//			int tid = i;  // omp_get_thread_num();
+//			//#pragma omp critical
+//			server_create(port,
+//				g_server_id_data[tid],
+//				g_client_id_data[tid],
+//				g_server_sockaddr_data[tid],
+//				g_client_sockaddr_data[tid],
+//				true);
+//		}
+//
+//#    else
+//#      if 0  // ndef _WIN32
+//#        pragma omp parallel for num_threads(SOCKET_CONNECTIONS)
+//#      endif
+		//for (int tid = 0; tid < SOCKET_CONNECTIONS; tid++) {
 			// int tid = omp_get_thread_num();
-			server_create(port + tid,
-				g_server_id_data[tid],
-				g_client_id_data[tid],
-				g_server_sockaddr_data[tid],
-				g_client_sockaddr_data[tid]);
-		}
+			server_create(port + g_port_offset,
+				g_server_id_data[g_port_offset],
+				g_client_id_data[g_port_offset],
+				g_server_sockaddr_data[g_port_offset],
+				g_client_sockaddr_data[g_port_offset]);
+		//}
 		// char ack = -1;
 		// recv_data_data(&ack, sizeof(ack));
-#    endif
+//#    endif
 #  endif
 	}
 }
@@ -627,9 +654,9 @@ void init_sockets_data(const char* server, int port)
 
 void send_data_cam(char* data, size_t size, bool ack_enabled)
 {
-	DEBUG_PRINT(size)
+	DEBUG_PRINT(size);
 
-		init_sockets_cam();
+	init_sockets_cam();
 
 	if (is_error())
 		return;
@@ -664,9 +691,9 @@ void send_data_cam(char* data, size_t size, bool ack_enabled)
 
 void send_data_data(char* data, size_t size, bool ack_enabled)
 {
-	DEBUG_PRINT(size)
+	DEBUG_PRINT(size);
 
-		init_sockets_data();
+	init_sockets_data();
 
 	if (is_error())
 		return;
@@ -701,9 +728,9 @@ void send_data_data(char* data, size_t size, bool ack_enabled)
 
 void recv_data_cam(char* data, size_t size, bool ack_enabled)
 {
-	DEBUG_PRINT(size)
+	DEBUG_PRINT(size);
 
-		init_sockets_cam();
+	init_sockets_cam();
 
 	if (is_error())
 		return;
@@ -738,9 +765,9 @@ void recv_data_cam(char* data, size_t size, bool ack_enabled)
 
 void recv_data_data(char* data, size_t size, bool ack_enabled)
 {
-	DEBUG_PRINT(size)
+	DEBUG_PRINT(size);
 
-		init_sockets_data();
+	init_sockets_data();
 
 	if (is_error())
 		return;
@@ -1188,4 +1215,9 @@ void recv_decode(char* dmem, char* pixels, int width, int height, int frame_size
 #ifdef WITH_CLIENT_GPUJPEG
 	gpujpeg_decode(width, height, (uint8_t*)dmem, (uint8_t*)pixels, frame_size);
 #endif
+}
+
+void set_port_offset(int offset)
+{
+	g_port_offset = offset;
 }

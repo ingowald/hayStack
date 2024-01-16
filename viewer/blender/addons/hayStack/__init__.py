@@ -94,6 +94,9 @@ _renderengine_dll.resize.argtypes = [c_int32, c_int32]
 _renderengine_dll.recv_pixels_data.restype = c_int32
 _renderengine_dll.send_cam_data.restype = c_int32
 
+#HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_timestep(int timestep);
+_renderengine_dll.set_timestep.argtypes = [c_int32]
+
 # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char* server, int port_cam, int port_data, int w, int h, int step_samples, const char* filename);
 _renderengine_dll.client_init.argtypes = [
     c_char_p, c_int32, c_int32, c_int32, c_int32, c_int32, c_char_p]
@@ -186,6 +189,13 @@ class HayStackServerSettings(bpy.types.PropertyGroup):
         default=0.0,
         subtype="ANGLE"
     )
+
+    timesteps: bpy.props.IntProperty(
+        name="Time Steps",
+        min=1,
+        max=100,
+        default=1
+    )    
 
     mat_volume: bpy.props.PointerProperty(
         type=bpy.types.Material
@@ -294,6 +304,9 @@ class HayStackContext:
 
     def render(self, restart=False, tile=None):
         # cam
+        if bpy.context.scene.haystack.server_settings.timesteps > 1:
+            _renderengine_dll.set_timestep(bpy.context.scene.frame_current % bpy.context.scene.haystack.server_settings.timesteps)
+
         _renderengine_dll.send_cam_data()
 
         # volume
@@ -1149,7 +1162,11 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
 
         # box = layout.box()
         # col = box.column()
-        # col.prop(server_settings, "cam_rotation_X", text="Cam Rotation X")        
+        # col.prop(server_settings, "cam_rotation_X", text="Cam Rotation X")
+
+        box = layout.box()
+        col = box.column()
+        col.prop(server_settings, "timesteps", text="Time Steps")                
 
         box = layout.box()
         col = box.column()

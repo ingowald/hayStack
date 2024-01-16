@@ -64,6 +64,7 @@ extern "C"
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
 
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_volume_colormap(void* values);
+	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_timestep(int timestep);
 
 #ifdef __cplusplus
 }

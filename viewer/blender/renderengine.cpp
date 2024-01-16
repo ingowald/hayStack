@@ -30,6 +30,20 @@
 
 //////////////////////////
 
+#ifdef _WIN32
+int setenv(const char* name, const char* value, int overwrite)
+{
+	int errcode = 0;
+	if (!overwrite) {
+		size_t envsize = 0;
+		errcode = getenv_s(&envsize, NULL, 0, name);
+		if (errcode || envsize)
+			return errcode;
+	}
+	return _putenv_s(name, value);
+}
+#endif
+
 unsigned int g_width = 2;
 unsigned int g_height = 1;
 
@@ -137,6 +151,11 @@ void set_volume_colormap(void* values)
 	send_data_cam((char*)values, sizeof(float) * 4 * 129);
 }
 
+void set_timestep(int timestep)
+{
+	set_port_offset(timestep);
+}
+
 void client_init(const char *server,
 				 int port_cam,
 				 int port_data,
@@ -145,7 +164,15 @@ void client_init(const char *server,
 				 int step_samples,
 				 const char *filename)
 {
-	init_sockets_cam(server, port_cam, port_data);
+	//init_sockets_cam(server, port_cam, port_data);
+	setenv("SOCKET_SERVER_NAME_CAM", server, 1);
+	setenv("SOCKET_SERVER_NAME_DATA", server, 1);
+
+	char stemp[128];
+	sprintf(stemp, "%d", port_cam);
+	setenv("SOCKET_SERVER_PORT_CAM", stemp, 1);
+	sprintf(stemp, "%d", port_data);
+	setenv("SOCKET_SERVER_PORT_DATA", stemp, 1);
 
 	g_renderengine_data.step_samples = step_samples;
 	strcpy(g_renderengine_data.filename, filename);
