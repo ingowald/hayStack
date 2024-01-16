@@ -287,6 +287,8 @@ int main(int ac, char **av)
   xf.colorMap.resize(128);
   xf.domain = range1f(0.f, 1.0f); 
 
+  int total_samples = 0;
+
 	while (true) {		
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
 
@@ -327,6 +329,7 @@ int main(int ac, char **av)
 
 				//Camera cam = renderer->getCamera();
 				renderer->resetAccumulation();
+        total_samples = 0;
 				render_time = 0;
 				render_time_accu = 0;
 				//renderer->config.camera.dirty = true;
@@ -376,18 +379,20 @@ int main(int ac, char **av)
 				//renderer->setColorMap(volume_color_ramp);
         renderer->setTransferFunction(xf);
 				renderer->resetAccumulation();
+        total_samples = 0;
 			}
 
 			// spp_one_step = renderer->getTotalSamples();
 			// double start_render_time = getCurrentTime();				
-			renderer->renderFrame();				
+			renderer->renderFrame();
+      total_samples++;				
 			// render_time = getCurrentTime() - start_render_time;
 			// render_time_accu += render_time;
 			// spp_one_step = renderer->getTotalSamples() - spp_one_step;
 
 			cudaDeviceSynchronize();
-			//char* pixels_buf = (char*)fbPointer; //renderer->getBuffer();
-			//((int*)pixels_buf)[0] = renderer->getTotalSamples();
+			char* pixels_buf = (char*)fbPointer; //renderer->getBuffer();
+			((int*)pixels_buf)[0] = total_samples; //renderer->getTotalSamples();
 
 			//vec2i resolutuon = renderer->getResolution();
 #ifdef WITH_CLIENT_GPUJPEG     
@@ -395,6 +400,11 @@ int main(int ac, char **av)
 #else
       send_data_data((char*)fbPointer, pixels_buf_empty.size());
 #endif
+
+      if(is_error()) {
+        std::cerr << "TCP Error!";
+        exit(-1);
+      }
 		}
 		catch (const std::exception &ex)
 		{
