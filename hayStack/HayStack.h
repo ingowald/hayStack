@@ -19,7 +19,8 @@
 #pragma once
 
 #include <miniScene/Scene.h>
-#include <umesh/UMesh.h>
+
+#define HAYSTACK_NYI() throw std::runtime_error(std::string(__PRETTY_FUNCTION__)+" not yet implemented")
 
 namespace hs {
   using namespace mini;

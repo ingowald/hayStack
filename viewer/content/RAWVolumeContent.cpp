@@ -107,7 +107,7 @@ namespace hs {
     return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(scalarType);
   }
   
-  void   RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
+  void RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
   {
     vec3i numVoxels = (cellRange.size()+1);
     size_t numScalars = numChannels*size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
@@ -117,11 +117,12 @@ namespace hs {
     for (int c=0;c<numChannels;c++) {
       for (int iz=cellRange.lower.z;iz<=cellRange.upper.z;iz++)
         for (int iy=cellRange.lower.y;iy<=cellRange.upper.y;iy++) {
+          int ix = cellRange.lower.x;
           size_t ofsInScalars
-            = cellRange.lower.x
-            + cellRange.lower.y*size_t(fullVolumeDims.x)
-            + cellRange.lower.z*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
-            + c*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
+            = ix
+            + iy*size_t(fullVolumeDims.x)
+            + iz*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
+            + c *size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
           in.seekg(ofsInScalars*sizeOf(scalarType));
           in.read(dataPtr,numVoxels.x*sizeOf(scalarType));
           if (!in.good())
@@ -129,6 +130,12 @@ namespace hs {
           dataPtr += numVoxels.x*sizeOf(scalarType);
         }
     }
+    vec3f gridOrigin(cellRange.lower);
+    vec3f gridSpacing(1.f);
+    
+    dataGroup.structuredVolumes.push_back
+      (std::make_shared<StructuredVolume>(numVoxels,scalarType,rawData,
+                                          gridOrigin,gridSpacing));
   }
   
   std::string RAWVolumeContent::toString() 
