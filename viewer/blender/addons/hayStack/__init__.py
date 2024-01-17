@@ -129,8 +129,8 @@ _renderengine_dll.get_samples.restype = c_int32
 _renderengine_dll.get_current_samples.restype = c_int32
 
 # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
-# HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_volume_colormap(void* values);
-_renderengine_dll.set_volume_colormap.argtypes = [c_void_p]
+# HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_haystack_data(void* values, int size);
+_renderengine_dll.set_haystack_data.argtypes = [c_void_p, c_int32]
 
 #####################################################################################################################
 
@@ -195,7 +195,12 @@ class HayStackServerSettings(bpy.types.PropertyGroup):
         min=1,
         max=100,
         default=1
-    )    
+    )
+
+    save_to_file: bpy.props.BoolProperty(
+        name="Save To File",
+        default=False
+    )      
 
     mat_volume: bpy.props.PointerProperty(
         type=bpy.types.Material
@@ -310,7 +315,8 @@ class HayStackContext:
         _renderengine_dll.send_cam_data()
 
         # volume
-        volume_colormap = np.zeros((129 * 4), dtype=np.float32)
+        haystack_data = np.zeros((129 * 4), dtype=np.float32)
+        haystack_data_size = int(129 * 4 * 4)
 
         mat = bpy.context.scene.haystack.server_settings.mat_volume
 
@@ -336,10 +342,10 @@ class HayStackContext:
                 if node_float_curve:
                     density = node_float_curve.mapping.evaluate(curve_map, float(v) / 128.0)
 
-                volume_colormap[0 + v * 4] = color_rgba[0]
-                volume_colormap[1 + v * 4] = color_rgba[1]
-                volume_colormap[2 + v * 4] = color_rgba[2]
-                volume_colormap[3 + v * 4] = density
+                haystack_data[0 + v * 4] = color_rgba[0]
+                haystack_data[1 + v * 4] = color_rgba[1]
+                haystack_data[2 + v * 4] = color_rgba[2]
+                haystack_data[3 + v * 4] = density
 
             domain = [float(0.0), float(1.0)]
             if 'DomainX' in mat.node_tree.nodes:
@@ -347,16 +353,21 @@ class HayStackContext:
             if 'DomainY' in mat.node_tree.nodes:
                 domain[1] = mat.node_tree.nodes['DomainY'].outputs[0].default_value                
             
-            volume_colormap[0 + 128 * 4] = domain[0]
-            volume_colormap[1 + 128 * 4] = domain[1]
+            haystack_data[0 + 128 * 4] = domain[0]
+            haystack_data[1 + 128 * 4] = domain[1]
 
             baseDensity = float(1.0)
             if 'Base Density' in mat.node_tree.nodes:
                 baseDensity = mat.node_tree.nodes['Base Density'].outputs[0].default_value
 
-            volume_colormap[2 + 128 * 4] = baseDensity
+            haystack_data[2 + 128 * 4] = baseDensity
+
+            if bpy.context.scene.haystack.server_settings.save_to_file == True:
+                haystack_data[3 + 128 * 4] = 1
+            else:
+                haystack_data[3 + 128 * 4] = 0
         
-        _renderengine_dll.set_volume_colormap(volume_colormap.ctypes.data)
+        _renderengine_dll.set_haystack_data(haystack_data.ctypes.data, haystack_data_size)
 
         # image
         _renderengine_dll.recv_pixels_data()
@@ -1166,7 +1177,8 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
 
         box = layout.box()
         col = box.column()
-        col.prop(server_settings, "timesteps", text="Time Steps")                
+        col.prop(server_settings, "timesteps", text="Time Steps")
+        col.prop(server_settings, "save_to_file", text="Save To File")                        
 
         box = layout.box()
         col = box.column()

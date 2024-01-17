@@ -146,9 +146,9 @@ void reset()
 	send_data_cam((char *)&rd, sizeof(renderengine_data));
 }
 
-void set_volume_colormap(void* values)
+void set_haystack_data(void* values, int size)
 {
-	send_data_cam((char*)values, sizeof(float) * 4 * 129);
+	send_data_cam((char*)values, /*sizeof(float) * 4 * 129*/ size);
 }
 
 void set_timestep(int timestep)
