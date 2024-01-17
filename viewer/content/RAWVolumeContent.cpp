@@ -85,8 +85,25 @@ namespace hs {
     if (n != 3) throw std::runtime_error("RAWVolumeContent:: could not parse dims from '"+dimsString+"'");
 
     PRINT(dims);
+
+    box3i initRegion = { vec3i(0), dims-1 };
+    std::string extractString = dataURL.get("extract");
+    if (!extractString.empty()) {
+      vec3i lower, size;
+      int n = sscanf(extractString.c_str(),"%i,%i,%i,%i,%i,%i",
+                     &lower.x,&lower.y,&lower.z,
+                     &size.x,&size.y,&size.z);
+      if (n != 6)
+        throw std::runtime_error("RAWVolumeContent:: could not parse 'extract' value from '"
+                                 +extractString
+                                 +"' (should be 'f,f,f,f,f,f' format)");
+      initRegion.lower = lower;
+      initRegion.upper = lower+size-1;
+    }
+
     std::vector<box3i> regions;
-    splitKDTree(regions,box3i(vec3i(0),dims-1),dataURL.numParts);
+    splitKDTree(regions,initRegion,dataURL.numParts);
+    // splitKDTree(regions,box3i(vec3i(0),dims-1),dataURL.numParts);
     if (regions.size() < dataURL.numParts)
       throw std::runtime_error("input data too small to split into indicated number of parts");
 
