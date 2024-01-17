@@ -27,6 +27,9 @@
 #include "stb/stb_image_write.h"
 #include <cuda_runtime.h>
 
+#include <iostream>
+#include <fstream>
+
 namespace hs {
 
   struct FromCL {
@@ -275,8 +278,8 @@ int main(int ac, char **av)
 	//float fix_fov = 1.0f;
 	std::vector<char> pixels_buf_empty;
 
-	std::vector<vec4f> volume_color_ramp(128+1);
-	std::vector<vec4f> volume_color_ramp_rcv(128+1);
+	std::vector<vec4f> haystack_data(128+1);
+	std::vector<vec4f> haystack_data_rcv(128+1);
 
 //  27   struct TransferFunction {                                                               
 //  28     std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };                             
@@ -288,9 +291,14 @@ int main(int ac, char **av)
   xf.domain = range1f(0.f, 1.0f); 
 
   int total_samples = 0;
+  hs::Camera camera;
 
 	while (true) {		
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
+    if(is_error()) {
+      std::cerr << "TCP Error!";
+      exit(-1);
+    }    
 
 		if (g_renderengine_data_rcv.reset) {
 			// if (renderer != NULL) {
@@ -304,7 +312,11 @@ int main(int ac, char **av)
 			continue;
 		}
 
-		recv_data_cam((char*)volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp_rcv.size());
+		recv_data_cam((char*)haystack_data_rcv.data(), sizeof(vec4f) * haystack_data_rcv.size());
+    if(is_error()) {
+      std::cerr << "TCP Error!";
+      exit(-1);
+    }    
 
 		if (pixels_buf_empty.size() != sizeof(uint32_t) * g_renderengine_data_rcv.width * g_renderengine_data_rcv.height) {
 			pixels_buf_empty.resize(sizeof(uint32_t) * g_renderengine_data_rcv.width * g_renderengine_data_rcv.height);
@@ -349,9 +361,7 @@ int main(int ac, char **av)
 					renderer->resize(fromCL.fbSize, (uint32_t*)fbPointer);
 				}
 
-				//renderer->setNumPPP(g_renderengine_data_rcv.step_samples);
-
-				hs::Camera camera;
+				//renderer->setNumPPP(g_renderengine_data_rcv.step_samples);				
 				camera.fovy = g_renderengine_data_rcv.cam.lens;				
 
 				mul_point(camera.vp, g_renderengine_data_rcv.cam.transform_inverse_view_matrix, fromCL.camera.vp);
@@ -365,21 +375,82 @@ int main(int ac, char **av)
 			// 	continue;
 			// }
 
-			if (memcmp(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp.size())) {
-				memcpy(xf.colorMap.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * xf.colorMap.size());
-        memcpy(volume_color_ramp.data(), volume_color_ramp_rcv.data(), sizeof(vec4f) * volume_color_ramp.size());
+			if (memcmp(haystack_data.data(), haystack_data_rcv.data(), sizeof(vec4f) * haystack_data.size())) {
+				memcpy(xf.colorMap.data(), haystack_data_rcv.data(), sizeof(vec4f) * xf.colorMap.size());
+        memcpy(haystack_data.data(), haystack_data_rcv.data(), sizeof(vec4f) * haystack_data.size());
 
 //  29     range1f domain = { 0.f, 0.f };                                                        
 //  30     float   baseDensity = 1.f;                                                            
 //  31   };
 
-        xf.domain = range1f(volume_color_ramp[128].x, volume_color_ramp[128].y);
-        xf.baseDensity = volume_color_ramp[128].z;     
+        xf.domain = range1f(haystack_data[128].x, haystack_data[128].y);
+        xf.baseDensity = haystack_data[128].z;     
 
-				//renderer->setColorMap(volume_color_ramp);
+				//renderer->setColorMap(haystack_data);
         renderer->setTransferFunction(xf);
 				renderer->resetAccumulation();
         total_samples = 0;
+
+        /////////////////////////////////////////////////////////////////////////
+        int save_to_file = haystack_data[128].w;
+        if (save_to_file == 1) {
+          /////XF
+          if (fromCL.xfFileName.length() > 0) {
+            const char *fname = fromCL.xfFileName.c_str();
+            std::ofstream ofs(fname, std::ios::binary);
+
+            if (!ofs.good())
+              std::cerr << "Cannot save tf at " << fname << "\n";
+
+            static const size_t xfFileFormatMagic = 0x1235abc000;
+            ofs.write((char*)&xfFileFormatMagic, sizeof(xfFileFormatMagic));
+
+            float opacityScale = log(xf.baseDensity) / log(1.1f) + 100.f;
+            ofs.write((char*)&opacityScale,sizeof(opacityScale));
+
+            const auto range = xf.domain;
+            ofs.write((char*)&range.lower,sizeof(range.lower));
+            ofs.write((char*)&range.upper,sizeof(range.upper));
+            
+            owl::interval<float> relDomain = {0.f, 100.f};
+            ofs.write((char*)&relDomain,sizeof(relDomain));
+
+            const auto cmap = xf.colorMap;
+            const int numColorMapValues = cmap.size();
+
+            ofs.write((char*)&numColorMapValues, sizeof(numColorMapValues));
+            ofs.write((char*)&cmap[0], numColorMapValues * sizeof(vec4f));
+
+            ofs.close();
+
+            std::cout << "TFE saved to " << fname << "\n"; 
+
+            ////Camera
+            std::string fname_cam = fromCL.xfFileName + ".cam";
+            std::ofstream ofs_cam(fname_cam.c_str());
+            if (!ofs_cam.good())
+              std::cerr << "Cannot save tf at " << fname_cam << "\n";            
+
+            ofs_cam << "--camera" << " ";
+
+            ofs_cam << camera.vp.x << " ";
+            ofs_cam << camera.vp.y << " ";
+            ofs_cam << camera.vp.z << " ";
+            ofs_cam << camera.vi.x << " ";
+            ofs_cam << camera.vi.y << " ";
+            ofs_cam << camera.vi.z << " ";
+            ofs_cam << camera.vu.x << " ";
+            ofs_cam << camera.vu.y << " ";
+            ofs_cam << camera.vu.z << " ";
+
+            ofs_cam << "-fovy" << " ";
+            ofs_cam << camera.fovy << " ";
+            ofs_cam.close(); 
+
+            std::cout << "Camera saved to " << fname_cam << "\n";
+          }
+        }
+        /////////////////////////////////////////////////////////////////////////
 			}
 
 			// spp_one_step = renderer->getTotalSamples();
