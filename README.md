@@ -112,3 +112,21 @@ To run data parallel (in this case, 2):
     /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT raw://2@/home/wald/models/structured/llnl_0250.raw:format=uint8:dims=2048,2048,1920:extract=512,512,512,1024,1024,1024 --camera 2066.13 1846.6 242.936 1061.26 1013.85 971.708 0 0 -1 -fovy 60 -xf /home/wald/models/structured/llnl.xf -ndg 2
 
 
+
+
+## Data-Parallel Iso-Surface from Structured Data: LLNL (subset, so it also runs on laptop)
+
+![](png/llnl-iso.jpg)
+
+same as previous example with LLNL data-parallel volume rendeirng,
+just add "iso=0.5" to content loader. This will perform data parallel
+loading (using `-ndg ...` and `raw://<ndg>@...`), then extract
+iso-surface (meaning each rank has iso-surface for its part of
+volume), then perform surface rendering on that.
+
+    /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT raw://2@/home/wald/models/structured/llnl_0250.raw:format=uint8:dims=2048,2048,1920:extract=512,512,512,1024,1024,1024 --camera 2066.13 1846.6 242.936 1061.26 1013.85 971.708 0 0 -1 -fovy 60 -xf /home/wald/models/structured/llnl.xf -ndg 2
+
+
+
+
+

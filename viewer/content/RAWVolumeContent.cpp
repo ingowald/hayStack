@@ -16,7 +16,18 @@
 
 #include "RAWVolumeContent.h"
 #include <fstream>
+#include <umesh/UMesh.h>
+// #include <umesh/tetrahedralize.h>
+#include <umesh/extractIsoSurface.h>
+#include <miniScene/Scene.h>
 
+namespace umesh {
+  UMesh::SP tetrahedralize(UMesh::SP in,
+                           int ownedTets,
+                           int ownedPyrs,
+                           int ownedWedges,
+                           int ownedHexes);
+}  
 namespace hs {
   
   RAWVolumeContent::RAWVolumeContent(const std::string &fileName,
@@ -24,13 +35,15 @@ namespace hs {
                                      const box3i &cellRange,
                                      vec3i fullVolumeDims,
                                      ScalarType scalarType,
-                                     int numChannels)
+                                     int numChannels,
+                                     float isoValue)
     : fileName(fileName),
       thisPartID(thisPartID),
       cellRange(cellRange),
       fullVolumeDims(fullVolumeDims),
       scalarType(scalarType),
-      numChannels(numChannels)
+      numChannels(numChannels),
+      isoValue(isoValue)
   {}
 
   void splitKDTree(std::vector<box3i> &regions,
@@ -110,11 +123,18 @@ namespace hs {
     std::cout << "RAW Volume: input data file of " << dims << " voxels will be read in the following bricks:" << std::endl;
     for (int i=0;i<regions.size();i++)
       std::cout << " #" << i << " : " << regions[i] << std::endl;
+
+    float isoValue = NAN;
+    std::string isoString = dataURL.get("iso",dataURL.get("isoValue"));
+    if (!isoString.empty())
+      isoValue = std::stof(isoString);
+    
     for (int i=0;i<dataURL.numParts;i++) {
       loader->addContent(new RAWVolumeContent(dataURL.where,i,
                                               regions[i],
                                               dims,scalarType,
-                                              numChannels));
+                                              numChannels,
+                                              isoValue));
     }
   }
   
@@ -149,10 +169,68 @@ namespace hs {
     }
     vec3f gridOrigin(cellRange.lower);
     vec3f gridSpacing(1.f);
-    
-    dataGroup.structuredVolumes.push_back
-      (std::make_shared<StructuredVolume>(numVoxels,scalarType,rawData,
-                                          gridOrigin,gridSpacing));
+
+    bool doIso = !isnan(isoValue);
+    if (doIso) {
+      umesh::UMesh::SP
+        volume = std::make_shared<umesh::UMesh>();
+      volume->perVertex = std::make_shared<umesh::Attribute>();
+      
+      for (int iz=0;iz<numVoxels.z;iz++)
+        for (int iy=0;iy<numVoxels.y;iy++)
+          for (int ix=0;ix<numVoxels.x;ix++) {
+            volume->vertices.push_back(umesh::vec3f(ix,iy,iz)*(const umesh::vec3f&)gridSpacing+(const umesh::vec3f&)gridOrigin);
+            size_t idx = ix+size_t(numVoxels.x)*(iy+size_t(numVoxels.y)*iz);
+            float scalar
+              = (scalarType == StructuredVolume::FLOAT)
+              ? ((const float*)rawData.data())[idx]
+              : (1.f/255.f*((const uint8_t*)rawData.data())[idx]);
+              
+            volume->perVertex->values.push_back(scalar);
+          }
+      if (size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z) > (1ull<<30))
+        throw std::runtime_error("volume dims too large to extract iso-surface via umesh");
+      volume->finalize();
+      PRINT(volume->toString());
+      for (int iz=0;iz<numVoxels.z-1;iz++)
+        for (int iy=0;iy<numVoxels.y-1;iy++)
+          for (int ix=0;ix<numVoxels.x-1;ix++) {
+            umesh::Hex hex;
+            int i000 = (ix+0)+int(numVoxels.x)*((iy+0)+int(numVoxels.y)*(iz+0));
+            int i001 = (ix+1)+int(numVoxels.x)*((iy+0)+int(numVoxels.y)*(iz+0));
+            int i010 = (ix+0)+int(numVoxels.x)*((iy+1)+int(numVoxels.y)*(iz+0));
+            int i011 = (ix+1)+int(numVoxels.x)*((iy+1)+int(numVoxels.y)*(iz+0));
+            int i100 = (ix+0)+int(numVoxels.x)*((iy+0)+int(numVoxels.y)*(iz+1));
+            int i101 = (ix+1)+int(numVoxels.x)*((iy+0)+int(numVoxels.y)*(iz+1));
+            int i110 = (ix+0)+int(numVoxels.x)*((iy+1)+int(numVoxels.y)*(iz+1));
+            int i111 = (ix+1)+int(numVoxels.x)*((iy+1)+int(numVoxels.y)*(iz+1));
+            hex.base = { i000,i001,i011,i010 };
+            hex.top  = { i100,i101,i111,i110 };
+            volume->hexes.push_back(hex);
+          }
+
+      // volume = umesh::tetrahedralize(volume,0,0,0,volume->hexes.size());
+      // PRINT(volume->toString());
+      umesh::UMesh::SP surf = umesh::extractIsoSurface(volume,isoValue);
+      surf->finalize();
+      PRINT(surf->toString());
+
+      mini::Mesh::SP mesh = mini::Mesh::create();
+      for (auto vtx : surf->vertices)
+        mesh->vertices.push_back((const vec3f&)vtx);
+      for (auto idx : surf->triangles)
+        mesh->indices.push_back((const vec3i&)idx);
+      mini::Object::SP obj = mini::Object::create({mesh});
+      mini::Instance::SP inst = mini::Instance::create(obj);
+      mini::Scene::SP model = mini::Scene::create({inst});
+      
+      if (!mesh->indices.empty())
+        dataGroup.minis.push_back(model);
+    } else {
+      dataGroup.structuredVolumes.push_back
+        (std::make_shared<StructuredVolume>(numVoxels,scalarType,rawData,
+                                            gridOrigin,gridSpacing));
+    }
   }
   
   std::string RAWVolumeContent::toString() 
