@@ -17,7 +17,9 @@
 #pragma once
 
 #include "hayStack/common.h"
+#if BARNEY_MPI
 #include <mpi.h>
+#endif
 #include <stdexcept>
 
 #define HS_MPI_CALL(fctCall)                                                 \
@@ -28,11 +30,15 @@ namespace hs {
 
     inline std::string mpiErrorString(int rc)
     {
+#if BARNEY_MPI
       char s[MPI_MAX_ERROR_STRING];
       memset(s,0,MPI_MAX_ERROR_STRING);
       int len = MPI_MAX_ERROR_STRING;
       MPI_Error_string(rc,s,&len);
       return s;
+#else
+      throw std::runtime_error("mpi support not compiled in");
+#endif
     }
     struct Exception : public std::runtime_error {
       Exception(const std::string &where, int rc)

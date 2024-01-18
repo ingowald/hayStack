@@ -8,6 +8,13 @@ dependencies
 
     sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev
 
+# MPI
+
+For data parallel work you need to have mpi installed with cuda
+support. for openmpi 4.1.6, build with
+
+    ./configure --enable-cxx-exceptions --with-cuda=/usr/local/cuda --with-cuda-libdir=/usr/lib/x86_64-linux-gnu/ --prefix=/mnt/nfs/opt
+
 
 # Example Data Sets and How to Run Them
 
@@ -82,4 +89,26 @@ To run the "jahmad" model (from Tim Sandstom at AMES)  -including spheres and a 
 	
 Make sure to adjust `count=` `-ndg` and `16@` values when running on a
 larger machine (the above is for dual-RTX 8000, single workstation)
+
+
+
+
+
+## Structured Data: LLNL (subset, so it also runs on laptop)
+
+![](png/llnl.jpg)
+
+### Local-node Rendering
+
+    ./hsViewerQT raw:///home/wald/models/structured/llnl_0250.raw:format=uint8:dims=2048,2048,1920:extract=512,512,512,1024,1024,1024 --camera 2066.13 1846.6 242.936 1061.26 1013.85 971.708 0 0 -1 -fovy 60 -xf /home/wald/models/structured/llnl.xf
+
+### Data-Parallel Rendering
+
+To run data parallel (in this case, 2):
+- run with mpirun
+- change `raw://<path>` to `raw://2@<path>` (in this case, to split into 2 parts)
+- specify num data groups to, in this example, 2:  `-ndg 2`
+
+    /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT raw://2@/home/wald/models/structured/llnl_0250.raw:format=uint8:dims=2048,2048,1920:extract=512,512,512,1024,1024,1024 --camera 2066.13 1846.6 242.936 1061.26 1013.85 971.708 0 0 -1 -fovy 60 -xf /home/wald/models/structured/llnl.xf -ndg 2
+
 
