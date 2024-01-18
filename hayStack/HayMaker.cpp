@@ -15,82 +15,41 @@
 // ======================================================================== //
 
 #include "HayMaker.h"
+#include "hayStack/TransferFunction.h"
 #include <map>
+#include <fstream>
 
 namespace hs {
 
-  // #if HANARI
-  //   std::string g_libraryName = "barney";
-  //   static const bool g_true = true;
-  //   bool g_enableDebug = true;
-  //   static const char *g_traceDir = nullptr;
-  //   static anari::Library g_debug = nullptr;
-  //   bool g_verbose = true;
-  
-  // static void statusFunc(const void *userData,
-  //     ANARIDevice device,
-  //     ANARIObject source,
-  //     ANARIDataType sourceType,
-  //     ANARIStatusSeverity severity,
-  //     ANARIStatusCode code,
-  //     const char *message)
-  // {
-  //   const bool verbose = userData ? *(const bool *)userData : false;
-  //   if (severity == ANARI_SEVERITY_FATAL_ERROR) {
-  //     fprintf(stderr, "[FATAL][%p] %s\n", source, message);
-  //     std::exit(1);
-  //   } else if (severity == ANARI_SEVERITY_ERROR)
-  //     fprintf(stderr, "[ERROR][%p] %s\n", source, message);
-  //   else if (severity == ANARI_SEVERITY_WARNING)
-  //     fprintf(stderr, "[WARN ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
-  //     fprintf(stderr, "[PERF ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_INFO)
-  //     fprintf(stderr, "[INFO ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_DEBUG)
-  //     fprintf(stderr, "[DEBUG][%p] %s\n", source, message);
-  // }
+  void TransferFunction::load(const std::string &fileName)
+  {
+    // std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };
+    // range1f domain = { 0.f, 0.f };
+    // float   baseDensity = 1.f;
+    static const size_t xfFileFormatMagic = 0x1235abc000;
+    std::ifstream in(fileName.c_str(),std::ios::binary);
+    size_t magic;
+    in.read((char*)&magic,sizeof(xfFileFormatMagic));
+    
+    in.read((char*)&baseDensity,sizeof(baseDensity));
+    range1f absDomain, relDomain;
+    in.read((char*)&absDomain,sizeof(absDomain));
+    in.read((char*)&relDomain,sizeof(relDomain));
 
-  //   static anari::Device initializeANARI()
-  // {
-  //   auto library =
-  //     anariLoadLibrary(g_libraryName.c_str(), statusFunc, &g_verbose);
-  //   if (!library)
-  //     throw std::runtime_error("Failed to load ANARI library");
-  
-  //   if (g_enableDebug)
-  //     g_debug = anariLoadLibrary("debug", statusFunc, &g_true);
-  
-  //   anari::Device dev = anariNewDevice(library, "default");
-  
-  //   anari::unloadLibrary(library);
-  
-  //   if (g_enableDebug)
-  //     anari::setParameter(dev, dev, "glDebug", true);
-  
-  // #ifdef USE_GLES2
-  //   anari::setParameter(dev, dev, "glAPI", "OpenGL_ES");
-  // #else
-  //   anari::setParameter(dev, dev, "glAPI", "OpenGL");
-  // #endif
-
-  //   if (g_enableDebug) {
-  //     anari::Device dbg = anariNewDevice(g_debug, "debug");
-  //     anari::setParameter(dbg, dbg, "wrappedDevice", dev);
-  //     if (g_traceDir) {
-  //       anari::setParameter(dbg, dbg, "traceDir", g_traceDir);
-  //       anari::setParameter(dbg, dbg, "traceMode", "code");
-  //     }
-  //     anari::commitParameters(dbg, dbg);
-  //     anari::release(dev, dev);
-  //     dev = dbg;
-  //   }
-
-  //   anari::commitParameters(dev, dev);
-
-  //   return dev;
-  // }
-  // #endif
+    float absDomainSize = absDomain.upper - absDomain.lower;
+    domain.lower = absDomain.lower + (relDomain.lower/100.f) * absDomainSize;
+    domain.upper = absDomain.lower + (relDomain.upper/100.f) * absDomainSize;
+    PRINT(relDomain);
+    PRINT(absDomain);
+    PRINT(domain);
+    // ColorMap colorMap;
+    int numColorMapValues;
+    in.read((char*)&numColorMapValues,sizeof(numColorMapValues));
+    colorMap.resize(numColorMapValues);
+    in.read((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
+    // alphaEditor->setColorMap(colorMap,AlphaEditor::OVERWRITE_ALPHA);
+  }
+    
 
 #if HANARI
   static void statusFunc(const void * /*userData*/,

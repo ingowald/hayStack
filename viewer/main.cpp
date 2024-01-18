@@ -53,6 +53,7 @@ namespace hs {
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
+    int  numFramesAccum = 1;
     static bool verbose;
     struct {
       vec3f vp   = vec3f(0.f);
@@ -327,6 +328,8 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
+    } else if (arg == "--num-frames") {
+      fromCL.numFramesAccum = std::stoi(av[++i]);
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--no-mum") {
@@ -373,6 +376,7 @@ int main(int ac, char **av)
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   hs::mpi::Comm workers = world.split(!isHeadNode);
 
+  
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   ThisRankData thisRankData;
@@ -509,9 +513,15 @@ int main(int ac, char **av)
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
-  
-  renderer->renderFrame();
 
+  hs::TransferFunction xf;
+  xf.load(fromCL.xfFileName);
+  renderer->setTransferFunction(xf);
+
+  for (int i=0;i<fromCL.numFramesAccum;i++)
+    renderer->renderFrame();
+
+  stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
 

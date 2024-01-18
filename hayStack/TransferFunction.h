@@ -16,44 +16,20 @@
 
 #pragma once
 
-#include "hayStack/TransferFunction.h"
+#include "hayStack/common.h"
+#include <vector>
 
 /* parallel renderer abstraction */
 namespace hs {
   using namespace owl::common;
   using range1f = owl::common::interval<float> ;
   
-  struct Camera {
-    vec3f vp, vi, vu;
-    float fovy;
-  };
-
-  struct DirLight {
-    vec3f direction;
-    vec3f radiance;
-  };
-
-  struct PointLight {
-    vec3f position;
-    vec3f power;
+  struct TransferFunction {
+    void load(const std::string &fileName);
+    
+    std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };
+    range1f domain = { 0.f, 0.f };
+    float   baseDensity = 1.f;
   };
   
-  /*! base abstraction for any renderer - no matter whether its a
-      single node or multiple workers on the back */
-  struct Renderer {
-
-    virtual void setTransferFunction(const TransferFunction &xf) {}
-    virtual void renderFrame() {}
-    virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
-    virtual void resetAccumulation() {}
-    virtual void setCamera(const Camera &camera) {}
-    // virtual void setXF(const range1f &domain,
-    //                    const std::vector<vec4f> &colors) {}
-    virtual void screenShot() {}
-    virtual void terminate() {}
-    virtual void setLights(float ambient,
-                           const std::vector<PointLight> &pointLights,
-                           const std::vector<DirLight> &dirLights) {}
-  };
-
 }
