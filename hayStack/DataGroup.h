@@ -42,7 +42,8 @@ namespace hs {
     void mergeUnstructuredMeshes();
     
     std::vector<mini::Scene::SP>      minis;
-    std::vector<umesh::UMesh::SP>     unsts;
+    /*! mesh AND domain. domain being empty means 'no clip box' */
+    std::vector<std::pair<umesh::UMesh::SP,box3f>>     unsts;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<StructuredVolume::SP> structuredVolumes;

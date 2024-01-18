@@ -471,7 +471,9 @@ namespace hs {
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
-    for (auto unst : myData.unsts) {
+    for (auto _unst : myData.unsts) {
+      auto unst = _unst.first;
+      const box3f domain = _unst.second;
 #if HANARI
 #else
       BNMaterial material = BN_DEFAULT_MATERIAL;
@@ -509,7 +511,8 @@ namespace hs {
          gridOffsets.data(),
          (const int *)gridDims.data(),
          (const float *)gridDomains.data(),
-         gridScalars.data(), (int)gridScalars.size());
+         gridScalars.data(), (int)gridScalars.size(),
+         (const float3*)&domain.lower);
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
       dg.createdVolumes.push_back(volume);

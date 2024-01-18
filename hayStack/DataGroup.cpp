@@ -29,11 +29,9 @@ namespace hs {
       // dont have any unstructured meshes - done.
       return;
     
-    // umesh::UMesh::SP mergedMesh = unsts[0];
-    // for (int i=1;i<unsts.size();i++)
-    //   mergedMesh->append(unsts[i]);
-    // unsts.clear();
-    // unsts.push_back(mergedMesh);
+    std::vector<umesh::UMesh::SP> unsts;
+    for (auto _unst : this->unsts)
+      unsts.push_back(_unst.first);
     umesh::UMesh::SP merged = umesh::mergeMeshes(unsts);
     unsts.clear();
     unsts.push_back(merged);
@@ -53,13 +51,17 @@ namespace hs {
     for (auto mini : minis)
       if (mini)
         bounds.spatial.extend(mini->getBounds());
-    for (auto unst : unsts)
+    for (auto _unst : unsts) {
+      auto unst = _unst.first;
       if (unst) {
         umesh::box3f bb = unst->getBounds();
+        if (!_unst.second.empty())
+          bb = (const umesh::box3f &)_unst.second;
         bounds.spatial.extend((const box3f&)bb);
         umesh::range1f sr = unst->getValueRange();
         bounds.scalars.extend((const range1f&)sr);
       }
+    }
     for (auto sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());
@@ -70,7 +72,6 @@ namespace hs {
       bounds.spatial.extend(volume->getBounds());
       bounds.scalars.extend(volume->getValueRange());
     }
-    PING; PRINT(bounds.scalars);
     return bounds;
   }
 

@@ -251,18 +251,21 @@ namespace hs {
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else {
-    ResourceSpecifier url(contentDescriptor);
-    if (url.type == "spheres")
-      SpheresFromFile::create(this,url);
-    else if (url.type == "ts.tri") 
-      TSTriContent::create(this,contentDescriptor);
-    // else if (url.type == "en-dump")
-    //   ENDumpContent::create(this,contentDescriptor);
-    else if (url.type == "raw") 
-      RAWVolumeContent::create(this,contentDescriptor);
-    else
-      throw std::runtime_error
-        ("could not recognize content type '"+url.type+"'");
+      ResourceSpecifier url(contentDescriptor);
+      if (url.type == "spheres")
+        SpheresFromFile::create(this,url);
+      else if (url.type == "ts.tri") 
+        TSTriContent::create(this,contentDescriptor);
+      // else if (url.type == "en-dump")
+      //   ENDumpContent::create(this,contentDescriptor);
+      else if (url.type == "raw") 
+        RAWVolumeContent::create(this,contentDescriptor);
+      else if (url.type == "spumesh")
+        // spatially partitioned umeshes
+        SpatiallyPartitionedUMeshContent::create(this,contentDescriptor);
+      else
+        throw std::runtime_error
+          ("could not recognize content type '"+url.type+"'");
     }    
     // else if (startsWith(contentDescriptor,"en-dump://")) {
     //   ENDumpContent::create(this,contentDescriptor);
