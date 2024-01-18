@@ -320,6 +320,7 @@ namespace hs {
   
   void HayMaker::buildDataGroup(int dgID)
   {
+    PING;
 #if HANARI
     
 #else
@@ -331,8 +332,10 @@ namespace hs {
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
                                clamp(5.f-fabsf(i-40),0.f,1.f)));
 
+    PING;
     auto &dg = perDG[dgID];
       
+    PING;
 #if HANARI
     std::vector<anari::Surface>   rootGroupGeoms;
     std::vector<anari::Group>     groups;
@@ -343,6 +346,7 @@ namespace hs {
     std::vector<affine3f> xfms;
     auto &myData = rankData.dataGroups[dgID];
 
+    PING;
     // ------------------------------------------------------------------
     // render all SphereGeoms
     // ------------------------------------------------------------------
@@ -364,6 +368,7 @@ namespace hs {
 #endif
     }
 
+    PING;
     // ------------------------------------------------------------------
     // render all CylinderGeoms
     // ------------------------------------------------------------------
@@ -386,6 +391,7 @@ namespace hs {
       }
 #endif
     }
+    PING;
 
     // ------------------------------------------------------------------
     // render all (possibly instanced) triangle meshes from mini format
@@ -403,6 +409,7 @@ namespace hs {
 // #else
 // #endif
 
+    PING;
 #if HANARI
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
@@ -473,6 +480,7 @@ namespace hs {
       }
     }
     
+    PING;
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
@@ -522,25 +530,50 @@ namespace hs {
     }
     
 
+    PING;
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
 #if HANARI
+      PING; PRINT(myData.structuredVolumes.size());
       anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
+      
       auto field = anari::newObject<anari::SpatialField>(device, "structuredRegular");
+      PING;
       anari::setParameter(device, field, "origin",
                           (const anari::math::float3&)vol->gridOrigin);
+      PING;
       anari::setParameter(device, field, "spacing",
                           (const anari::math::float3&)vol->gridSpacing);
-      anari::setParameterArray3D
-        (device, field, "data", (const float *)vol->rawData.data(),
-         volumeDims.x, volumeDims.y, volumeDims.z);
+      PING;
+      PRINT(vol->scalarType);
+      switch(vol->scalarType) {
+      case StructuredVolume::FLOAT:
+        anari::setParameterArray3D
+          (device, field, "data", (const float *)vol->rawData.data(),
+           volumeDims.x, volumeDims.y, volumeDims.z);
+        break;
+      case StructuredVolume::UINT8:
+        anari::setParameterArray3D
+          (device, field, "data", (const uint8_t *)vol->rawData.data(),
+           volumeDims.x, volumeDims.y, volumeDims.z);
+        break;
+      default:
+        throw std::runtime_error("un-supported scalar type in hanari structured volume");
+      }
+        
+      PING;
       anari::commitParameters(device, field);
 
+      PING;
       auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
+      PING;
       anari::setAndReleaseParameter(device, volume, "field", field);
+      PING;
       dg.createdVolumes.push_back(volume);
+      PRINT(dg.createdVolumes.size());
+      PING;
 #else
       BNScalarType scalarType;
       switch(vol->scalarType) {
@@ -565,6 +598,7 @@ namespace hs {
 #endif
     }
     
+    PING;
 
     // ------------------------------------------------------------------
     // create a single instance for all 'root' geometry that isn't
@@ -583,16 +617,19 @@ namespace hs {
       xfms.push_back(affine3f());
 #endif
     }
+    PING;
     // ------------------------------------------------------------------
     // create a single instance for all 'root' volume(s)
     // ------------------------------------------------------------------
     if (!dg.createdVolumes.empty()) {
 #if HANARI
+    PING;
       anari::Group rootGroup
         = anariNewGroup(device);
       anari::setParameterArray1D(device, rootGroup, "volume",
                                  dg.createdVolumes.data(),
                                  dg.createdVolumes.size());
+    PING;
 #else
       BNGroup rootGroup
         = bnGroupCreate(barney,nullptr,0,
@@ -601,15 +638,18 @@ namespace hs {
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
 #endif
+    PING;
       xfms.push_back(affine3f());
       dg.volumeGroup = rootGroup;
     }
 
+    PING;
       
     // ------------------------------------------------------------------
     // finally - specify top-level instances for all the stuff we
     // generated
     // -----------------------------------------------------------------
+    PING;
 #if HANARI
 
     std::vector<anari::Instance> instances;
