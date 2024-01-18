@@ -42,7 +42,7 @@ namespace hs {
     bool mergeUnstructuredMeshes = false;
     
     std::string xfFileName = "";
-    std::string outFileName = "hay.png";
+    static std::string outFileName;
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
@@ -56,6 +56,7 @@ namespace hs {
     static bool measure;
   };
   
+  std::string FromCL::outFileName = "hayStack.png";
   bool FromCL::measure = 0;
   bool FromCL::verbose = true;
 
@@ -63,7 +64,9 @@ namespace hs {
   
   void usage(const std::string &error="")
   {
-    std::cout << "./haystack ... <args>" << std::endl;
+    std::cout << "./hs{Offline,Viewer,ViewerQT} ... <args>" << std::endl;
+    std::cout << "w/ args:" << std::endl;
+    std::cout << "-xf file.xf   ; specify transfer function" << std::endl;
     if (!error.empty())
       throw std::runtime_error("fatal error: " +error);
     exit(0);
@@ -130,8 +133,10 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
-    } else if (arg == "-mum" || arg == "--merge-unstructured-meshes") {
+    } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
+    } else if (arg == "--no-mum") {
+      fromCL.mergeUnstructuredMeshes = false;
     } else if (arg == "--default-radius") {
       loader.defaultRadius = std::stof(av[++i]);
     } else if (arg == "--measure") {
@@ -180,8 +185,11 @@ int main(int ac, char **av)
   if (!isHeadNode) {
     loader.loadData(workers,thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
-  if (fromCL.mergeUnstructuredMeshes)
+  if (fromCL.mergeUnstructuredMeshes) {
+    std::cout << "merging potentially separate unstructured meshes into single mesh" << std::endl;
     thisRankData.mergeUnstructuredMeshes();
+    std::cout << "done mergine umeshes..." << std::endl;
+  }
   
   int numDataGroupsLocally = thisRankData.size();
   
@@ -292,6 +300,8 @@ int main(int ac, char **av)
 
   int total_samples = 0;
   hs::Camera camera;
+
+  double t2 = getCurrentTime();
 
 	while (true) {		
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
@@ -455,7 +465,27 @@ int main(int ac, char **av)
 
 			// spp_one_step = renderer->getTotalSamples();
 			// double start_render_time = getCurrentTime();				
-			renderer->renderFrame();
+      /////////////////////////////////////////////////
+			//renderer->renderFrame();
+      double t0 = getCurrentTime();
+      renderer->renderFrame();
+      double t1 = getCurrentTime();
+      static double sum_t = 0.f;
+      static double sum_w = 0.f;
+      sum_t = 0.8f*sum_t + (t1-t0);
+      sum_w = 0.8f*sum_w + 1.f;
+      float timePerFrame = sum_t / sum_w;
+      float fps = 1.f/timePerFrame;
+      std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
+
+      if(getCurrentTime() - t2 > 2.0) {
+        std::cout << title << std::endl;
+        t2 = getCurrentTime();
+      }      
+      /////////////////////////////////////////////////
+
+
+
       total_samples++;				
 			// render_time = getCurrentTime() - start_render_time;
 			// render_time_accu += render_time;

@@ -37,6 +37,9 @@
 #endif
 #include <cuda_runtime.h>
 
+#include <iostream>
+#include <fstream>
+
 namespace hs {
 
   struct FromCL {
@@ -510,10 +513,48 @@ int main(int ac, char **av)
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
 
+  if (!fromCL.xfFileName.empty()) {
+    //XFEditor xfEditor(worldBounds.scalars);
+    //xfEditor.loadFrom(fromCL.xfFileName);
+
+    const size_t xfFileFormatMagic = 0x1235abc000;
+    std::ifstream in(fromCL.xfFileName,std::ios::binary);
+    size_t magic;
+    in.read((char*)&magic,sizeof(xfFileFormatMagic));
+    float floatVal;
+    in.read((char*)&floatVal,sizeof(floatVal));
+    float opacityScaleSpinBox = floatVal;
+
+    in.read((char*)&floatVal,sizeof(floatVal));
+    float abs_domain_lower = floatVal;
+    in.read((char*)&floatVal,sizeof(floatVal));
+    float abs_domain_upper = floatVal;
+
+    in.read((char*)&floatVal,sizeof(floatVal));
+    float rel_domain_lower = floatVal;
+    in.read((char*)&floatVal,sizeof(floatVal));
+    float rel_domain_upper = floatVal;
+
+    std::vector<vec4f> colorMap;
+    int numColorMapValues;
+    in.read((char*)&numColorMapValues,sizeof(numColorMapValues));
+    colorMap.resize(numColorMapValues);
+    in.read((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
+    
+    //alphaEditor->setColorMap(colorMap,AlphaEditor::OVERWRITE_ALPHA);    
+    
+    TransferFunction xf;
+    xf.colorMap = colorMap;
+    xf.domain = range1f(abs_domain_lower, abs_domain_upper);
+    xf.baseDensity = powf(1.1f, opacityScaleSpinBox - 100.f);
+
+    renderer->setTransferFunction(xf);
+
+    std::cout << "loaded xf from " << fromCL.xfFileName << std::endl;        
+  }
+
 #if 1
-  double t = getCurrentTime();
-  double t2 = getCurrentTime();
-  while(getCurrentTime() - t < 20.0) {
+  for(int i = 0; i < 50; i++) {
       double t0 = getCurrentTime();
       renderer->renderFrame();
       double t1 = getCurrentTime();
@@ -524,11 +565,7 @@ int main(int ac, char **av)
       float timePerFrame = sum_t / sum_w;
       float fps = 1.f/timePerFrame;
       std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
-
-      if(getCurrentTime() - t2 > 2.0) {
-        std::cout << title << std::endl;
-        t2 = getCurrentTime();
-      }
+      std::cout << title << std::endl;
   }
 #else    
   renderer->renderFrame();
