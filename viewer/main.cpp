@@ -581,6 +581,7 @@ int main(int ac, char **av)
   renderer->renderFrame();
 #endif 
 
+  std::cout << "outFileName:  " << fromCL.outFileName << std::endl;
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
 
