@@ -225,6 +225,10 @@ namespace hs {
           colors.emplace_back(c.x,c.y,c.z);
           opacities.emplace_back(c.w);
         }
+        anari::setParameter(device, vol,
+                            "unitDistance",
+                            xf.baseDensity);
+                            
 
         anari::setAndReleaseParameter
           (device,
@@ -277,7 +281,7 @@ namespace hs {
   void HayMaker::renderFrame()
   {
 #if HANARI
-    anari::commitParameters(device, frame);
+    // anari::commitParameters(device, frame);
     anari::render(device, frame);
     auto fb = anari::map<uint32_t>(device, frame, "channel.color");
     if (fb.width != fbSize.x || fb.height != fbSize.y)
@@ -294,6 +298,7 @@ namespace hs {
   void HayMaker::resetAccumulation()
   {
 #if HANARI
+    anari::commitParameters(device, frame);
 #else
     bnAccumReset(fb);
 #endif
@@ -626,6 +631,7 @@ namespace hs {
     PING;
       anari::Group rootGroup
         = anariNewGroup(device);
+      PING; PRINT(dg.createdVolumes.size());
       anari::setParameterArray1D(device, rootGroup, "volume",
                                  dg.createdVolumes.data(),
                                  dg.createdVolumes.size());
