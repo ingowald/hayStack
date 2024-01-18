@@ -19,100 +19,100 @@
 
 namespace hs {
 
-// #if HANARI
-//   std::string g_libraryName = "barney";
-//   static const bool g_true = true;
-//   bool g_enableDebug = true;
-//   static const char *g_traceDir = nullptr;
-//   static anari::Library g_debug = nullptr;
-//   bool g_verbose = true;
+  // #if HANARI
+  //   std::string g_libraryName = "barney";
+  //   static const bool g_true = true;
+  //   bool g_enableDebug = true;
+  //   static const char *g_traceDir = nullptr;
+  //   static anari::Library g_debug = nullptr;
+  //   bool g_verbose = true;
   
-// static void statusFunc(const void *userData,
-//     ANARIDevice device,
-//     ANARIObject source,
-//     ANARIDataType sourceType,
-//     ANARIStatusSeverity severity,
-//     ANARIStatusCode code,
-//     const char *message)
-// {
-//   const bool verbose = userData ? *(const bool *)userData : false;
-//   if (severity == ANARI_SEVERITY_FATAL_ERROR) {
-//     fprintf(stderr, "[FATAL][%p] %s\n", source, message);
-//     std::exit(1);
-//   } else if (severity == ANARI_SEVERITY_ERROR)
-//     fprintf(stderr, "[ERROR][%p] %s\n", source, message);
-//   else if (severity == ANARI_SEVERITY_WARNING)
-//     fprintf(stderr, "[WARN ][%p] %s\n", source, message);
-//   else if (verbose && severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
-//     fprintf(stderr, "[PERF ][%p] %s\n", source, message);
-//   else if (verbose && severity == ANARI_SEVERITY_INFO)
-//     fprintf(stderr, "[INFO ][%p] %s\n", source, message);
-//   else if (verbose && severity == ANARI_SEVERITY_DEBUG)
-//     fprintf(stderr, "[DEBUG][%p] %s\n", source, message);
-// }
+  // static void statusFunc(const void *userData,
+  //     ANARIDevice device,
+  //     ANARIObject source,
+  //     ANARIDataType sourceType,
+  //     ANARIStatusSeverity severity,
+  //     ANARIStatusCode code,
+  //     const char *message)
+  // {
+  //   const bool verbose = userData ? *(const bool *)userData : false;
+  //   if (severity == ANARI_SEVERITY_FATAL_ERROR) {
+  //     fprintf(stderr, "[FATAL][%p] %s\n", source, message);
+  //     std::exit(1);
+  //   } else if (severity == ANARI_SEVERITY_ERROR)
+  //     fprintf(stderr, "[ERROR][%p] %s\n", source, message);
+  //   else if (severity == ANARI_SEVERITY_WARNING)
+  //     fprintf(stderr, "[WARN ][%p] %s\n", source, message);
+  //   else if (verbose && severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
+  //     fprintf(stderr, "[PERF ][%p] %s\n", source, message);
+  //   else if (verbose && severity == ANARI_SEVERITY_INFO)
+  //     fprintf(stderr, "[INFO ][%p] %s\n", source, message);
+  //   else if (verbose && severity == ANARI_SEVERITY_DEBUG)
+  //     fprintf(stderr, "[DEBUG][%p] %s\n", source, message);
+  // }
 
-//   static anari::Device initializeANARI()
-// {
-//   auto library =
-//     anariLoadLibrary(g_libraryName.c_str(), statusFunc, &g_verbose);
-//   if (!library)
-//     throw std::runtime_error("Failed to load ANARI library");
+  //   static anari::Device initializeANARI()
+  // {
+  //   auto library =
+  //     anariLoadLibrary(g_libraryName.c_str(), statusFunc, &g_verbose);
+  //   if (!library)
+  //     throw std::runtime_error("Failed to load ANARI library");
   
-//   if (g_enableDebug)
-//     g_debug = anariLoadLibrary("debug", statusFunc, &g_true);
+  //   if (g_enableDebug)
+  //     g_debug = anariLoadLibrary("debug", statusFunc, &g_true);
   
-//   anari::Device dev = anariNewDevice(library, "default");
+  //   anari::Device dev = anariNewDevice(library, "default");
   
-//   anari::unloadLibrary(library);
+  //   anari::unloadLibrary(library);
   
-//   if (g_enableDebug)
-//     anari::setParameter(dev, dev, "glDebug", true);
+  //   if (g_enableDebug)
+  //     anari::setParameter(dev, dev, "glDebug", true);
   
-// #ifdef USE_GLES2
-//   anari::setParameter(dev, dev, "glAPI", "OpenGL_ES");
-// #else
-//   anari::setParameter(dev, dev, "glAPI", "OpenGL");
-// #endif
+  // #ifdef USE_GLES2
+  //   anari::setParameter(dev, dev, "glAPI", "OpenGL_ES");
+  // #else
+  //   anari::setParameter(dev, dev, "glAPI", "OpenGL");
+  // #endif
 
-//   if (g_enableDebug) {
-//     anari::Device dbg = anariNewDevice(g_debug, "debug");
-//     anari::setParameter(dbg, dbg, "wrappedDevice", dev);
-//     if (g_traceDir) {
-//       anari::setParameter(dbg, dbg, "traceDir", g_traceDir);
-//       anari::setParameter(dbg, dbg, "traceMode", "code");
-//     }
-//     anari::commitParameters(dbg, dbg);
-//     anari::release(dev, dev);
-//     dev = dbg;
-//   }
+  //   if (g_enableDebug) {
+  //     anari::Device dbg = anariNewDevice(g_debug, "debug");
+  //     anari::setParameter(dbg, dbg, "wrappedDevice", dev);
+  //     if (g_traceDir) {
+  //       anari::setParameter(dbg, dbg, "traceDir", g_traceDir);
+  //       anari::setParameter(dbg, dbg, "traceMode", "code");
+  //     }
+  //     anari::commitParameters(dbg, dbg);
+  //     anari::release(dev, dev);
+  //     dev = dbg;
+  //   }
 
-//   anari::commitParameters(dev, dev);
+  //   anari::commitParameters(dev, dev);
 
-//   return dev;
-// }
-// #endif
+  //   return dev;
+  // }
+  // #endif
 
 #if HANARI
   static void statusFunc(const void * /*userData*/,
-    ANARIDevice /*device*/,
-    ANARIObject source,
-    ANARIDataType /*sourceType*/,
-    ANARIStatusSeverity severity,
-    ANARIStatusCode /*code*/,
-    const char *message)
-{
-  if (severity == ANARI_SEVERITY_FATAL_ERROR) {
-    fprintf(stderr, "[FATAL][%p] %s\n", source, message);
-    std::exit(1);
-  } else if (severity == ANARI_SEVERITY_ERROR) {
-    fprintf(stderr, "[ERROR][%p] %s\n", source, message);
-  } else if (severity == ANARI_SEVERITY_WARNING) {
-    fprintf(stderr, "[WARN ][%p] %s\n", source, message);
-  } else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING) {
-    fprintf(stderr, "[PERF ][%p] %s\n", source, message);
+                         ANARIDevice /*device*/,
+                         ANARIObject source,
+                         ANARIDataType /*sourceType*/,
+                         ANARIStatusSeverity severity,
+                         ANARIStatusCode /*code*/,
+                         const char *message)
+  {
+    if (severity == ANARI_SEVERITY_FATAL_ERROR) {
+      fprintf(stderr, "[FATAL][%p] %s\n", source, message);
+      std::exit(1);
+    } else if (severity == ANARI_SEVERITY_ERROR) {
+      fprintf(stderr, "[ERROR][%p] %s\n", source, message);
+    } else if (severity == ANARI_SEVERITY_WARNING) {
+      fprintf(stderr, "[WARN ][%p] %s\n", source, message);
+    } else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING) {
+      fprintf(stderr, "[PERF ][%p] %s\n", source, message);
+    }
+    // Ignore INFO/DEBUG messages
   }
-  // Ignore INFO/DEBUG messages
-}
 #endif
   
   HayMaker::HayMaker(Comm &world,
@@ -213,13 +213,6 @@ namespace hs {
         std::vector<anari::math::float3> colors;
         std::vector<float> opacities;
 
-        std::cout << "should set real xf here ..." << std::endl;
-        // colors.emplace_back(0.f, 0.f, 1.f);
-        // colors.emplace_back(0.f, 1.f, 0.f);
-        // colors.emplace_back(1.f, 0.f, 0.f);
-
-        // opacities.emplace_back(0.f);
-        // opacities.emplace_back(1.f);
         for (int i=0;i<xf.colorMap.size();i++) {
           auto c = xf.colorMap[i];
           colors.emplace_back(c.x,c.y,c.z);
@@ -228,7 +221,6 @@ namespace hs {
         anari::setParameter(device, vol,
                             "unitDistance",
                             xf.baseDensity);
-                            
 
         anari::setAndReleaseParameter
           (device,
@@ -240,15 +232,13 @@ namespace hs {
            vol,
            "opacity",
            anari::newArray1D(device, opacities.data(), opacities.size()));
-        // float voxelRange[2];
-        // anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &g_voxelRange);
         range1f valueRange = xf.domain;
         anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &valueRange.lower);
         
         anari::commitParameters(device, vol);
         
         anari::setAndReleaseParameter
-          (device, // m_state.
+          (device, 
            model, "volume", anari::newArray1D(device, &vol));
         anari::release(device, vol);
 #else
@@ -325,7 +315,6 @@ namespace hs {
   
   void HayMaker::buildDataGroup(int dgID)
   {
-    PING;
 #if HANARI
     
 #else
@@ -337,10 +326,8 @@ namespace hs {
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
                                clamp(5.f-fabsf(i-40),0.f,1.f)));
 
-    PING;
     auto &dg = perDG[dgID];
-      
-    PING;
+
 #if HANARI
     std::vector<anari::Surface>   rootGroupGeoms;
     std::vector<anari::Group>     groups;
@@ -351,7 +338,6 @@ namespace hs {
     std::vector<affine3f> xfms;
     auto &myData = rankData.dataGroups[dgID];
 
-    PING;
     // ------------------------------------------------------------------
     // render all SphereGeoms
     // ------------------------------------------------------------------
@@ -373,7 +359,6 @@ namespace hs {
 #endif
     }
 
-    PING;
     // ------------------------------------------------------------------
     // render all CylinderGeoms
     // ------------------------------------------------------------------
@@ -396,7 +381,6 @@ namespace hs {
       }
 #endif
     }
-    PING;
 
     // ------------------------------------------------------------------
     // render all (possibly instanced) triangle meshes from mini format
@@ -410,11 +394,10 @@ namespace hs {
       // anariSetParameter(device, surface, "geometry", ANARI_GEOMETRY, mesh);
       // anariSetParameter(device, surface, "material", ANARI_MATERIAL, material);
       // anariCommitParameters(device, surface);
-// #if HANARI
-// #else
-// #endif
+      // #if HANARI
+      // #else
+      // #endif
 
-    PING;
 #if HANARI
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
@@ -485,7 +468,6 @@ namespace hs {
       }
     }
     
-    PING;
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
@@ -535,24 +517,18 @@ namespace hs {
     }
     
 
-    PING;
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
 #if HANARI
-      PING; PRINT(myData.structuredVolumes.size());
       anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
       
       auto field = anari::newObject<anari::SpatialField>(device, "structuredRegular");
-      PING;
       anari::setParameter(device, field, "origin",
                           (const anari::math::float3&)vol->gridOrigin);
-      PING;
       anari::setParameter(device, field, "spacing",
                           (const anari::math::float3&)vol->gridSpacing);
-      PING;
-      PRINT(vol->scalarType);
       switch(vol->scalarType) {
       case StructuredVolume::FLOAT:
         anari::setParameterArray3D
@@ -568,17 +544,11 @@ namespace hs {
         throw std::runtime_error("un-supported scalar type in hanari structured volume");
       }
         
-      PING;
       anari::commitParameters(device, field);
 
-      PING;
       auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
-      PING;
       anari::setAndReleaseParameter(device, volume, "field", field);
-      PING;
       dg.createdVolumes.push_back(volume);
-      PRINT(dg.createdVolumes.size());
-      PING;
 #else
       BNScalarType scalarType;
       switch(vol->scalarType) {
@@ -591,7 +561,6 @@ namespace hs {
       default: throw std::runtime_error("Unknown scalar type");
       }
       BNMaterial material = BN_DEFAULT_MATERIAL;
-      PING; PRINT(vol->dims);
       BNScalarField bnVol = bnStructuredDataCreate
         (barney,
          (const int3&)vol->dims,
@@ -603,7 +572,6 @@ namespace hs {
 #endif
     }
     
-    PING;
 
     // ------------------------------------------------------------------
     // create a single instance for all 'root' geometry that isn't
@@ -622,20 +590,16 @@ namespace hs {
       xfms.push_back(affine3f());
 #endif
     }
-    PING;
     // ------------------------------------------------------------------
     // create a single instance for all 'root' volume(s)
     // ------------------------------------------------------------------
     if (!dg.createdVolumes.empty()) {
 #if HANARI
-    PING;
       anari::Group rootGroup
         = anariNewGroup(device);
-      PING; PRINT(dg.createdVolumes.size());
       anari::setParameterArray1D(device, rootGroup, "volume",
                                  dg.createdVolumes.data(),
                                  dg.createdVolumes.size());
-    PING;
 #else
       BNGroup rootGroup
         = bnGroupCreate(barney,nullptr,0,
@@ -644,18 +608,14 @@ namespace hs {
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
 #endif
-    PING;
       xfms.push_back(affine3f());
       dg.volumeGroup = rootGroup;
     }
 
-    PING;
-      
     // ------------------------------------------------------------------
     // finally - specify top-level instances for all the stuff we
     // generated
     // -----------------------------------------------------------------
-    PING;
 #if HANARI
 
     std::vector<anari::Instance> instances;
@@ -691,7 +651,7 @@ namespace hs {
       // anariSetParameter(self.device, instance, 'transform', ANARI_FLOAT32_MAT4, transform)
       anari::commitParameters(device, inst);
       instances.push_back(inst);
-    }
+    } 
     anari::setAndReleaseParameter
       (device,
        model,
@@ -701,7 +661,7 @@ namespace hs {
 #else
     
     bnSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
-                        groups.size());
+                   groups.size());
     bnBuild(barney);
 #endif
   }
