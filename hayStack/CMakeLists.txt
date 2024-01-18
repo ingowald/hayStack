@@ -1,5 +1,5 @@
 # ======================================================================== #
-# Copyright 2023-2023 Ingo Wald                                            #
+# Copyright 2023-2024 Ingo Wald                                            #
 #                                                                          #
 # Licensed under the Apache License, Version 2.0 (the "License");          #
 # you may not use this file except in compliance with the License.         #
@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and      #
 # limitations under the License.                                           #
 # ======================================================================== #
+
+option(HANARI "Use ANARI device?" OFF)
+
+if (HANARI)
+  find_package(anari 0.8.0 REQUIRED #COMPONENTS viewer
+    )
+  find_package(MPI REQUIRED)
+endif()
+
 
 add_library(hayStack
   MPIWrappers.h
@@ -47,7 +56,7 @@ target_link_libraries(hayStack
   miniScene
   umesh
 #  mpiRenderInf
-  barney_mpi
+#  barney_mpi
   )
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 
@@ -55,4 +64,22 @@ if(NCCL_FOUND)
   target_compile_definitions(hayStack PUBLIC -DUSE_NCCL=1)
   target_include_directories(hayStack PUBLIC ${NCCL_INCLUDE_DIRS})
   target_link_libraries(hayStack PUBLIC ${NCCL_LIBRARIES})
+endif()
+
+if (HANARI)
+  target_compile_definitions(hayStack
+    PUBLIC
+    -DHANARI=1
+    )
+  target_link_libraries(hayStack
+    PUBLIC
+#    anari::anari_viewer
+    anari::anari
+    MPI::MPI_CXX
+    )
+else()
+  target_link_libraries(hayStack
+    PUBLIC
+    barney_mpi
+    )
 endif()

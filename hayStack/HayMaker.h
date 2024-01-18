@@ -22,7 +22,12 @@
 #include "hayStack/HayStack.h"
 #include "hayStack/DataGroup.h"
 #include "hayStack/MPIRenderer.h"
-#include "barney.h"
+#if HANARI
+# include <anari/anari_cpp.hpp>
+# include "anari/anari_cpp/ext/linalg.h"
+#else
+# include "barney.h"
+#endif
 
 namespace hs {
 
@@ -47,7 +52,6 @@ namespace hs {
     void setCamera(const Camera &camera);
 
 
-    BNCamera     camera;
     /*! need this for the camera aspect ratio */
     vec2i        fbSize;
     Comm        &world;
@@ -57,14 +61,31 @@ namespace hs {
     bool         verbose;
 
     struct PerDG {
+#if HANARI
+      std::vector<anari::Volume> createdVolumes;
+      anari::Group volumeGroup = 0;
+#else
       std::vector<BNVolume> createdVolumes;
       BNGroup volumeGroup = 0;
+#endif
     };
     std::vector<PerDG> perDG;
     
+#if HANARI
+    // ANARIDevice
+    anari::Device device = 0;
+        // m_state.world = anari::newObject<anari::World>(device);
+    //m_frame = anari::newObject<anari::Frame>(m_device);
+    anari::Frame  frame  = 0;
+    anari::World  model  = 0;
+    anari::Camera camera = 0;
+    uint32_t *hostRGBA   = 0;
+#else
     BNContext barney = 0;
     BNModel   model = 0;
     BNFrameBuffer fb = 0;
+    BNCamera     camera;
+#endif
   };
 
 }

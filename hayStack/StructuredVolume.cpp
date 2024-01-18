@@ -36,6 +36,9 @@ namespace hs {
     case FLOAT:
       for (int i=0;i<numScalars;i++) range.extend(((const float *)rawData.data())[i]);
       break;
+    case UINT8:
+      for (int i=0;i<numScalars;i++) range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
+      break;
     default:
       HAYSTACK_NYI();
     }

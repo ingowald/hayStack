@@ -30,7 +30,11 @@ namespace hs {
                      const box3i &cellRange,
                      vec3i fullVolumeDims,
                      ScalarType type,
-                     int numChannels);
+                     int numChannels,
+                     /*! if not NaN, we'll actually not store the
+                         volume, but run iso-value extraction and use
+                         the resulting surface(s) */
+                     const float isoValue);
     
     static void create(DataLoader *loader,
                        const ResourceSpecifier &dataURL);
@@ -46,6 +50,7 @@ namespace hs {
     const int         numChannels;
     const ScalarType  scalarType;
     const box3i       myCells;
+    const float       isoValue;
   };
   
 }

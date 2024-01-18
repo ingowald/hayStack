@@ -172,9 +172,6 @@ namespace hs {
 #endif
 
       if (xfDirty) {
-        std::cout << "------ render dirty, set xf -------------------------------------------------" << std::endl;
-        PRINT(xf.domain);
-        
         renderer->setTransferFunction(xf);
         xfDirty = false;
         accumDirty = true;
