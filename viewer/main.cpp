@@ -567,6 +567,16 @@ int main(int ac, char **av)
       std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
       std::cout << title << std::endl;
   }
+
+  size_t mem_free = 0, mem_tot = 0;
+  int numGPUs = 0;
+  cudaGetDeviceCount(&numGPUs);
+  for(int id = 0; id < numGPUs; id++) {
+    cudaSetDevice(id);
+    cudaMemGetInfo(&mem_free, &mem_tot);
+    printf("GPU %d: used: %f [GB]\n", id, (mem_tot - mem_free) / (1024.0 * 1024.0 * 1024.0));
+  }
+
 #else    
   renderer->renderFrame();
 #endif 
