@@ -22,7 +22,7 @@
 // #define STB_IMAGE_IMPLEMENTATION 1
 #include "stb/stb_image.h"
 
-namespace std {
+namespace tinyobj {
   inline bool operator<(const tinyobj::index_t &a,
                         const tinyobj::index_t &b)
   {
@@ -40,7 +40,7 @@ namespace std {
 }
 
 namespace mini {
-
+  
   /*! find vertex with given position, normal, texcoord, and return
     its vertex ID, or, if it doesn't exit, add it to the mesh, and
     its just-created index */
