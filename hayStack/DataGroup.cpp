@@ -33,8 +33,8 @@ namespace hs {
     for (auto _unst : this->unsts)
       unsts.push_back(_unst.first);
     umesh::UMesh::SP merged = umesh::mergeMeshes(unsts);
-    unsts.clear();
-    unsts.push_back(merged);
+    this->unsts.clear();
+    this->unsts.push_back({merged,box3f()});
   }
       
   BoundsData ThisRankData::getBounds() const
@@ -51,7 +51,7 @@ namespace hs {
     for (auto mini : minis)
       if (mini)
         bounds.spatial.extend(mini->getBounds());
-    for (auto _unst : unsts) {
+    for (auto &_unst : unsts) {
       auto unst = _unst.first;
       if (unst) {
         umesh::box3f bb = unst->getBounds();
@@ -62,13 +62,13 @@ namespace hs {
         bounds.scalars.extend((const range1f&)sr);
       }
     }
-    for (auto sphereSet : sphereSets)
+    for (auto &sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());
-    for (auto cylinderSet : cylinderSets)
+    for (auto &cylinderSet : cylinderSets)
       if (cylinderSet)
         bounds.spatial.extend(cylinderSet->getBounds());
-    for (auto volume : structuredVolumes) {
+    for (auto &volume : structuredVolumes) {
       bounds.spatial.extend(volume->getBounds());
       bounds.scalars.extend(volume->getValueRange());
     }

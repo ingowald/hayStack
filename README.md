@@ -130,3 +130,28 @@ volume), then perform surface rendering on that.
 
 
 
+## lander-small, SPATIAL partitioning
+
+given already-merged single umesh for lander-small, break it into 4 spatially paritioned pieces:
+
+    ./umeshPartitionSpatially /mnt/raid/nfs/shared/umesh/lander-small-vort_mag-9800.umesh -o /mnt/raid/nfs/shared/barney/lander-small-vort_mag-9800-n4 -n 4
+
+
+## lander-small, ORIGINAL (object-space) partitioning
+
+given original fun3d data dump directory, import each rank's data into a separate umesh:
+
+    
+    ./umeshBreakApartFun3D -o /mnt/raid/space/barney/lander-small //mnt/raid/new_models/unstructured/lander-small/geometry/dAgpu0145_Fa_me --scalars /mnt/raid/new_models/unstructured/lander-small/10000unsteadyiters/dAgpu0145_Fa_volume_data. -var vort_mag -ts 9800
+	
+then running on (in this example) 2 ranks (for my 2x8000 machine):
+
+	mm && /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT /mnt/raid/space/barney/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /mnt/raid/nfs/shared/umesh/lander-small-surface.obj
+
+to run offline
+
+    mm && /home/wald/opt/bin/mpirun -n 2 ./hsOffline /mnt/raid/space/barney/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /mnt/raid/nfs/shared/umesh/lander-small-surface.obj --num-frames 128 -o lander-small-offline.png
+	
+camera and xf file checked into this repo, under `data/`
+
+

@@ -72,7 +72,10 @@ namespace hs {
         their own acceleration strcutre, etc, then that may have some
         negative side effects on performance */
     void mergeUnstructuredMeshes()
-    { for (auto &dg : dataGroups) dg.mergeUnstructuredMeshes(); }
+    {
+      for (auto &dg : dataGroups) dg.mergeUnstructuredMeshes();
+      for (auto &dg : dataGroups) PRINT(dg.unsts.size());
+    }
       
     std::vector<DataGroup> dataGroups;
   };
