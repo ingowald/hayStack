@@ -6,7 +6,7 @@
 ..
 dependencies
 
-    sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev
+    sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev libucx-dev
 
 # MPI
 
