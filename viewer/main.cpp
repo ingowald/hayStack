@@ -388,11 +388,8 @@ int main(int ac, char **av)
     thisRankData.mergeUnstructuredMeshes();
     std::cout << "done mergine umeshes..." << std::endl;
   }
-  
+
   int numDataGroupsLocally = thisRankData.size();
-  
-
-
   HayMaker hayMaker(/* the ring that binds them all : */world,
                     /* the workers */workers,
                     thisRankData,

@@ -43,6 +43,8 @@ add_library(hayStack
   MPIRenderer.cpp
   HayMaker.h
   HayMaker.cpp
+  TransferFunction.h
+  TransferFunction.cpp
   )
 
 target_link_libraries(hayStack
