@@ -15,82 +15,11 @@
 // ======================================================================== //
 
 #include "HayMaker.h"
+#include "hayStack/TransferFunction.h"
 #include <map>
+#include <fstream>
 
 namespace hs {
-
-  // #if HANARI
-  //   std::string g_libraryName = "barney";
-  //   static const bool g_true = true;
-  //   bool g_enableDebug = true;
-  //   static const char *g_traceDir = nullptr;
-  //   static anari::Library g_debug = nullptr;
-  //   bool g_verbose = true;
-  
-  // static void statusFunc(const void *userData,
-  //     ANARIDevice device,
-  //     ANARIObject source,
-  //     ANARIDataType sourceType,
-  //     ANARIStatusSeverity severity,
-  //     ANARIStatusCode code,
-  //     const char *message)
-  // {
-  //   const bool verbose = userData ? *(const bool *)userData : false;
-  //   if (severity == ANARI_SEVERITY_FATAL_ERROR) {
-  //     fprintf(stderr, "[FATAL][%p] %s\n", source, message);
-  //     std::exit(1);
-  //   } else if (severity == ANARI_SEVERITY_ERROR)
-  //     fprintf(stderr, "[ERROR][%p] %s\n", source, message);
-  //   else if (severity == ANARI_SEVERITY_WARNING)
-  //     fprintf(stderr, "[WARN ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
-  //     fprintf(stderr, "[PERF ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_INFO)
-  //     fprintf(stderr, "[INFO ][%p] %s\n", source, message);
-  //   else if (verbose && severity == ANARI_SEVERITY_DEBUG)
-  //     fprintf(stderr, "[DEBUG][%p] %s\n", source, message);
-  // }
-
-  //   static anari::Device initializeANARI()
-  // {
-  //   auto library =
-  //     anariLoadLibrary(g_libraryName.c_str(), statusFunc, &g_verbose);
-  //   if (!library)
-  //     throw std::runtime_error("Failed to load ANARI library");
-  
-  //   if (g_enableDebug)
-  //     g_debug = anariLoadLibrary("debug", statusFunc, &g_true);
-  
-  //   anari::Device dev = anariNewDevice(library, "default");
-  
-  //   anari::unloadLibrary(library);
-  
-  //   if (g_enableDebug)
-  //     anari::setParameter(dev, dev, "glDebug", true);
-  
-  // #ifdef USE_GLES2
-  //   anari::setParameter(dev, dev, "glAPI", "OpenGL_ES");
-  // #else
-  //   anari::setParameter(dev, dev, "glAPI", "OpenGL");
-  // #endif
-
-  //   if (g_enableDebug) {
-  //     anari::Device dbg = anariNewDevice(g_debug, "debug");
-  //     anari::setParameter(dbg, dbg, "wrappedDevice", dev);
-  //     if (g_traceDir) {
-  //       anari::setParameter(dbg, dbg, "traceDir", g_traceDir);
-  //       anari::setParameter(dbg, dbg, "traceMode", "code");
-  //     }
-  //     anari::commitParameters(dbg, dbg);
-  //     anari::release(dev, dev);
-  //     dev = dbg;
-  //   }
-
-  //   anari::commitParameters(dev, dev);
-
-  //   return dev;
-  // }
-  // #endif
 
 #if HANARI
   static void statusFunc(const void * /*userData*/,
@@ -471,7 +400,10 @@ namespace hs {
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
-    for (auto unst : myData.unsts) {
+PRINT(myData.unsts.size());
+    for (auto _unst : myData.unsts) {
+      auto unst = _unst.first;
+      const box3f domain = _unst.second;
 #if HANARI
 #else
       BNMaterial material = BN_DEFAULT_MATERIAL;
@@ -509,7 +441,8 @@ namespace hs {
          gridOffsets.data(),
          (const int *)gridDims.data(),
          (const float *)gridDomains.data(),
-         gridScalars.data(), (int)gridScalars.size());
+         gridScalars.data(), (int)gridScalars.size(),
+         (const float3*)&domain.lower);
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
       dg.createdVolumes.push_back(volume);
