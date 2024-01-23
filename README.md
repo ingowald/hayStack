@@ -101,6 +101,9 @@ Single-node, dual-gpu, multi-gpu data-parallel (no MPI):
 	
 ![](png/dns-one-eighth.jpg)
 
+same w/ MPI, single node:
+
+    /home/wald/opt/bin/mpirun -n 2 -host localhost:2 /cluster/hsViewerQT raw://2@/cluster/dns-one-eighth-5120-3840-768.raw:format=float:dims=5120,3840,768 -ndg 2  --camera -456.228 4753.82 611.822 2376.76 1678.84 -150.28 0 0 1 -fovy 60 -xf /cluster/dns-one-eighth.xf
 
 ## Structured Data: LLNL (subset, so it also runs on laptop)
 
