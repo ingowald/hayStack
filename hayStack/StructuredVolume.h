@@ -28,7 +28,7 @@ namespace hs {
   struct StructuredVolume {
     typedef std::shared_ptr<StructuredVolume> SP;
     
-    typedef enum { FLOAT, UINT8 } ScalarType;
+    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
 
     StructuredVolume(vec3i dims,
                      ScalarType scalarType,
@@ -56,6 +56,7 @@ namespace hs {
   {
     switch(type) {
     case StructuredVolume::FLOAT: return sizeof(float); 
+    case StructuredVolume::UINT16: return sizeof(uint8_t);
     case StructuredVolume::UINT8: return sizeof(uint8_t);
     default: throw std::runtime_error("un-handled scalar type");
     };
