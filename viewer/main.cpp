@@ -513,63 +513,28 @@ int main(int ac, char **av)
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
-<<<<<<< HEAD
 
-  if (!fromCL.xfFileName.empty()) {
-    //XFEditor xfEditor(worldBounds.scalars);
-    //xfEditor.loadFrom(fromCL.xfFileName);
+  hs::TransferFunction xf;
+  xf.load(fromCL.xfFileName);
+  renderer->setTransferFunction(xf);
 
-    const size_t xfFileFormatMagic = 0x1235abc000;
-    std::ifstream in(fromCL.xfFileName,std::ios::binary);
-    size_t magic;
-    in.read((char*)&magic,sizeof(xfFileFormatMagic));
-    float floatVal;
-    in.read((char*)&floatVal,sizeof(floatVal));
-    float opacityScaleSpinBox = floatVal;
-
-    in.read((char*)&floatVal,sizeof(floatVal));
-    float abs_domain_lower = floatVal;
-    in.read((char*)&floatVal,sizeof(floatVal));
-    float abs_domain_upper = floatVal;
-
-    in.read((char*)&floatVal,sizeof(floatVal));
-    float rel_domain_lower = floatVal;
-    in.read((char*)&floatVal,sizeof(floatVal));
-    float rel_domain_upper = floatVal;
-
-    std::vector<vec4f> colorMap;
-    int numColorMapValues;
-    in.read((char*)&numColorMapValues,sizeof(numColorMapValues));
-    colorMap.resize(numColorMapValues);
-    in.read((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
-    
-    //alphaEditor->setColorMap(colorMap,AlphaEditor::OVERWRITE_ALPHA);    
-    
-    TransferFunction xf;
-    xf.colorMap = colorMap;
-    xf.domain = range1f(abs_domain_lower, abs_domain_upper);
-    xf.baseDensity = powf(1.1f, opacityScaleSpinBox - 100.f);
-
-    renderer->setTransferFunction(xf);
-
-    std::cout << "loaded xf from " << fromCL.xfFileName << std::endl;        
+  for (int i=0;i<fromCL.numFramesAccum;i++) {
+    double t0 = getCurrentTime();
+    renderer->renderFrame();
+    double t1 = getCurrentTime();
+#if 1    
+    static double sum_t = 0.f;
+    static double sum_w = 0.f;
+    sum_t = 0.8f*sum_t + (t1-t0);
+    sum_w = 0.8f*sum_w + 1.f;
+    float timePerFrame = sum_t / sum_w;
+    float fps = 1.f/timePerFrame;
+    std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
+    std::cout << title << std::endl;    
+#endif    
   }
 
 #if 1
-  for(int i = 0; i < 50; i++) {
-      double t0 = getCurrentTime();
-      renderer->renderFrame();
-      double t1 = getCurrentTime();
-      static double sum_t = 0.f;
-      static double sum_w = 0.f;
-      sum_t = 0.8f*sum_t + (t1-t0);
-      sum_w = 0.8f*sum_w + 1.f;
-      float timePerFrame = sum_t / sum_w;
-      float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
-      std::cout << title << std::endl;
-  }
-
   size_t mem_free = 0, mem_tot = 0;
   int numGPUs = 0;
   cudaGetDeviceCount(&numGPUs);
@@ -578,25 +543,13 @@ int main(int ac, char **av)
     cudaMemGetInfo(&mem_free, &mem_tot);
     printf("GPU %d: used: %f [GB]\n", id, (mem_tot - mem_free) / (1024.0 * 1024.0 * 1024.0));
   }
-
-#else    
-  renderer->renderFrame();
-#endif 
-
-  std::cout << "outFileName:  " << fromCL.outFileName << std::endl;
-=======
-
-  hs::TransferFunction xf;
-  xf.load(fromCL.xfFileName);
-  renderer->setTransferFunction(xf);
-
-  for (int i=0;i<fromCL.numFramesAccum;i++)
-    renderer->renderFrame();
+#endif     
 
   stbi_flip_vertically_on_write(true);
->>>>>>> main
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
+
+  std::cout << "outFileName:  " << fromCL.outFileName << std::endl;
 
   renderer->terminate();
 #endif

@@ -59,18 +59,19 @@ set(TFE_SOURCES
 )
 
 # ------------------------------------------------------------------
-add_executable(hsViewer
-  ${SOURCES}
-  ${TFE_SOURCES}
-  )
-target_link_libraries(hsViewer
-  PUBLIC
-  hayStack
-  owl_viewer
-  )
-target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
-target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
-
+if(HS_VIEWER)
+  add_executable(hsViewer
+    ${SOURCES}
+    ${TFE_SOURCES}
+    )
+  target_link_libraries(hsViewer
+    PUBLIC
+    hayStack
+    owl_viewer
+    )
+  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
+  target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
+endif()
 # ------------------------------------------------------------------
 add_executable(hsOffline
   ${SOURCES}
@@ -79,7 +80,6 @@ target_link_libraries(hsOffline
   PUBLIC
   hayStack
   )
-
 # ------------------------------------------------------------------
 
 if (HT_CUTEE)
