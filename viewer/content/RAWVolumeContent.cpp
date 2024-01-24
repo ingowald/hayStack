@@ -84,6 +84,8 @@ namespace hs {
       scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
       scalarType = StructuredVolume::FLOAT;
+    else if (type == "uint16")
+      scalarType = StructuredVolume::UINT16;
     else
       throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
 
@@ -96,8 +98,6 @@ namespace hs {
     vec3i dims;
     int n = sscanf(dimsString.c_str(),"%i,%i,%i",&dims.x,&dims.y,&dims.z);
     if (n != 3) throw std::runtime_error("RAWVolumeContent:: could not parse dims from '"+dimsString+"'");
-
-    PRINT(dims);
 
     box3i initRegion = { vec3i(0), dims-1 };
     std::string extractString = dataURL.get("extract");
