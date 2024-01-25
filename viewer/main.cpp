@@ -321,6 +321,12 @@ int main(int ac, char **av)
   world.barrier();
   if (world.rank == 0)
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
+
+
+  int device_count;
+  cudaGetDeviceCount(&device_count);
+  std::cout << "#hv: rank: " << world.rank  << ", GPU devices: " << device_count <<  std::endl; fflush(0);
+
   world.barrier();
 
   FromCL fromCL;
