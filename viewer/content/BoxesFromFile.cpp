@@ -50,7 +50,7 @@ namespace hs {
     std::vector<box3f> boxes;
     FILE *file = fopen(data.where.c_str(),"rb");
     assert(file);
-    size_t sizeOfBox = sizeof(box4f);
+    size_t sizeOfBox = sizeof(box3f);
     int64_t numBoxesInFile = fileSize / sizeOfBox;
     int64_t numBoxesToLoad
       = std::min((int64_t)data.get_size("count",numBoxesInFile),
@@ -103,6 +103,11 @@ namespace hs {
     assert(rc);
     
     auto getVertex = [&](vec3f v) -> int {
+#if 0
+      int ID = mesh->vertices.size();
+      mesh->vertices.push_back(v);
+      return ID;
+#else
       auto it = vertexIDs.find(v);
       if (it == vertexIDs.end()) {
         int ID = mesh->vertices.size();
@@ -111,6 +116,7 @@ namespace hs {
         return ID;
       }
       return it->second;
+#endif
     };
     for (size_t j=0;j<my_count;j++) {
       box3f box = boxes[j];
