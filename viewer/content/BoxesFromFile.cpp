@@ -47,7 +47,7 @@ namespace hs {
     
   void   BoxesFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
   {
-    // std::vector<box3f> boxes;
+    std::vector<box3f> boxes;
     FILE *file = fopen(data.where.c_str(),"rb");
     assert(file);
     size_t sizeOfBox = sizeof(box4f);
@@ -66,7 +66,7 @@ namespace hs {
       + (numBoxesToLoad * (thisPartID+1)) / data.numParts;
     size_t my_count = my_end - my_begin;
     // boxes->origins.resize(my_count);
-    // boxes.resize(my_count);
+    boxes.resize(my_count);
     fseek(file,my_begin*sizeOfBox,SEEK_SET);
     // const std::string format = data.get("format","xyz");
     // if (format =="xyzf") {
@@ -99,6 +99,9 @@ namespace hs {
       4,0,2, 4,2,6
     };
     
+    int rc = fread((char*)boxes.data(),sizeof(boxes[0]),my_count,file);
+    assert(rc);
+    
     auto getVertex = [&](vec3f v) -> int {
       auto it = vertexIDs.find(v);
       if (it == vertexIDs.end()) {
@@ -109,10 +112,8 @@ namespace hs {
       }
       return it->second;
     };
-    for (size_t i=0;i<my_count;i++) {
-      box3f box;
-      int rc = fread((char*)&box,sizeof(box),1,file);
-      assert(rc);
+    for (size_t j=0;j<my_count;j++) {
+      box3f box = boxes[j];
       int boxIndices[8];
       for (int iz=0;iz<2;iz++)
         for (int iy=0;iy<2;iy++)
