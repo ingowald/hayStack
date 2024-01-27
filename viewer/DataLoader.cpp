@@ -19,6 +19,7 @@
 #include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
+#include "viewer/content/BoxesFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
@@ -260,6 +261,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,contentDescriptor);
+      else if (url.type == "boxes") 
+        BoxesFromFile::create(this,contentDescriptor);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
         SpatiallyPartitionedUMeshContent::create(this,contentDescriptor);
