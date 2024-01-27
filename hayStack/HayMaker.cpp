@@ -17,7 +17,6 @@
 #include "HayMaker.h"
 #include "hayStack/TransferFunction.h"
 #include <map>
-#include <fstream>
 
 namespace hs {
 
@@ -400,7 +399,6 @@ namespace hs {
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
-PRINT(myData.unsts.size());
     for (auto _unst : myData.unsts) {
       auto unst = _unst.first;
       const box3f domain = _unst.second;
@@ -473,6 +471,19 @@ PRINT(myData.unsts.size());
           (device, field, "data", (const uint8_t *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
+      case StructuredVolume::UINT16: {
+        std::cout << "volume with uint16s, converting to float" << std::endl;
+        static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
+        PRINT(volumeAsFloats.size());
+        for (size_t i=0;i<volumeAsFloats.size();i++)
+          volumeAsFloats[i] = ((uint16_t*)vol->rawData.data())[i]
+            * (1.f/((1<<16)-1));
+        PING;
+        anari::setParameterArray3D
+          (device, field, "data", (const float *)volumeAsFloats.data(),
+           volumeDims.x, volumeDims.y, volumeDims.z);
+        PING;
+        } break;
       default:
         throw std::runtime_error("un-supported scalar type in hanari structured volume");
       }
@@ -491,7 +502,7 @@ PRINT(myData.unsts.size());
       case StructuredVolume::FLOAT:
         scalarType = BN_FLOAT;
         break;
-      default: throw std::runtime_error("Unknown scalar type");
+      default: throw std::runtime_error("Unknown or un-supported scalar type");
       }
       BNMaterial material = BN_DEFAULT_MATERIAL;
       BNScalarField bnVol = bnStructuredDataCreate
