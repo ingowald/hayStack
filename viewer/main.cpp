@@ -322,10 +322,24 @@ int main(int ac, char **av)
   if (world.rank == 0)
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
 
-
+#if 1
   int device_count;
   cudaGetDeviceCount(&device_count);
-  std::cout << "#hv: rank: " << world.rank  << ", GPU devices: " << device_count <<  std::endl; fflush(0);
+  std::string dev_properties = " (";
+
+  for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp deviceProp;
+      cudaGetDeviceProperties(&deviceProp, i);
+
+      //std::cout << "Device " << i << ": " << deviceProp.name << std::endl;
+      //std::cout << "  Device ID: " << deviceProp.pciBusID << ":" << deviceProp.pciDeviceID << std::endl;
+      // Other properties can also be accessed from deviceProp
+      dev_properties += std::to_string(deviceProp.pciBusID) + std::string(":") + std::to_string(deviceProp.pciDeviceID) + std::string(",");
+  }
+  dev_properties += ")";
+
+  std::cout << "#hv: rank: " << world.rank  << ", GPU devices: " << device_count <<  dev_properties << std::endl; fflush(0);
+#endif
 
   world.barrier();
 
