@@ -197,24 +197,33 @@ namespace hs {
   
     assignGroups(numDataGroups);
     rankData.resize(dataPerRank);
+
     for (int i=0;i<dataPerRank;i++) {
       int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
       if (verbose) {
-        for (int r=0;r<workers.rank;r++) 
-          workers.barrier();
-        std::cout << "#hv: worker #" << workers.rank
-                  << " loading global data group ID " << dataGroupID
-                  << " into slot " << workers.rank << "." << i << ":"
+        std::stringstream ss;
+        ss << "#hv: worker #" << workers.rank
+           << " loading global data group ID " << dataGroupID
+           << " into slot " << workers.rank << "." << i << ":";
+        std::cout << ss.str()
                   << std::endl << std::flush;
-        usleep(100);
-        fflush(0);
       }
+      // if (verbose) {
+      //   // for (int r=0;r<workers.rank;r++) 
+      //   //   workers.barrier();
+      //   std::cout << "#hv: worker #" << workers.rank
+      //             << " loading global data group ID " << dataGroupID
+      //             << " into slot " << workers.rank << "." << i << ":"
+      //             << std::endl << std::flush;
+      //   usleep(100);
+      //   fflush(0);
+      // }
       loadDataGroup(rankData.dataGroups[i],
                     dataGroupID,
                     verbose);
-      if (verbose) 
-        for (int r=workers.rank;r<workers.size;r++) 
-          workers.barrier();
+      // if (verbose) 
+      //   for (int r=workers.rank;r<workers.size;r++) 
+      //     workers.barrier();
     }
     if (verbose) {
       workers.barrier();

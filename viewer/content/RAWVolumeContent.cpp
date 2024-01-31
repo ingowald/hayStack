@@ -191,7 +191,6 @@ namespace hs {
       if (size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z) > (1ull<<30))
         throw std::runtime_error("volume dims too large to extract iso-surface via umesh");
       volume->finalize();
-      PRINT(volume->toString());
       for (int iz=0;iz<numVoxels.z-1;iz++)
         for (int iy=0;iy<numVoxels.y-1;iy++)
           for (int ix=0;ix<numVoxels.x-1;ix++) {
@@ -235,7 +234,9 @@ namespace hs {
   
   std::string RAWVolumeContent::toString() 
   {
-    return "RAWVolumeContent{}";
+    std::stringstream ss;
+    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",my cells="<<myCells<< "}";
+    return ss.str();
   }
 
   
