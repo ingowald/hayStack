@@ -194,3 +194,10 @@ camera and xf file checked into this repo, under `data/`
 
 
 	
+## rot-strat: 4096x4096x4096xfloat (256GB)
+
+One with a fuzzy transfer function:
+![](png/rotstrat-fuzzy.jpg)
+
+... and same, with a dense one:
+![](png/rotstrat-dense.jpg)

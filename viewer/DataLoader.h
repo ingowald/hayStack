@@ -58,6 +58,12 @@ namespace hs {
   /*! abstraction for an entity that can load one or more pieces of
     renderable data (i.e., "content") from a file */
   struct DataLoader {
+    DataLoader(hs::mpi::Comm &workers)
+      : workers(workers)
+    {}
+
+    /*! returns rank of process loading the data */
+    int myRank() const { return workers.rank; }
     void addContent(const std::string &contentDescriptor);
     
     /*! interface for any type of loadablecontent to add one or more
@@ -75,8 +81,7 @@ namespace hs {
     /*! actually loads one rank's data, based on which content got
         assigned to which rank. must get called on every worker
         collaboratively - but only on active workers */
-    void loadData(hs::mpi::Comm &workers,
-                  ThisRankData &rankData,
+    void loadData(ThisRankData &rankData,
                   int numDataGroups,
                   int dataPerRank,
                   bool verbose);
@@ -88,6 +93,7 @@ namespace hs {
 
     /*! default radius to use for spheres that do not have a radius specified */
     static float defaultRadius;
+    hs::mpi::Comm workers;
   };
 
   /*! abstraction for some piece of renderable content, such as a
@@ -115,6 +121,9 @@ namespace hs {
   /*! a data loader that assigns objects dynamically to data groups
     based on their projected weight */
   struct DynamicDataLoader : public DataLoader {
+    DynamicDataLoader(hs::mpi::Comm &workers)
+      : DataLoader(workers)
+    {}
     void assignGroups(int numDataGroups) override;
 
     void loadDataGroup(DataGroup &dg,

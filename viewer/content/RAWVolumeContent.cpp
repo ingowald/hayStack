@@ -120,10 +120,11 @@ namespace hs {
     if (regions.size() < dataURL.numParts)
       throw std::runtime_error("input data too small to split into indicated number of parts");
 
-    std::cout << "RAW Volume: input data file of " << dims << " voxels will be read in the following bricks:" << std::endl;
-    for (int i=0;i<regions.size();i++)
-      std::cout << " #" << i << " : " << regions[i] << std::endl;
-
+    if (loader->myRank() == 0) {
+      std::cout << "RAW Volume: input data file of " << dims << " voxels will be read in the following bricks:" << std::endl;
+      for (int i=0;i<regions.size();i++)
+        std::cout << " #" << i << " : " << regions[i] << std::endl;
+    }
     float isoValue = NAN;
     std::string isoString = dataURL.get("iso",dataURL.get("isoValue"));
     if (!isoString.empty())
@@ -235,7 +236,7 @@ namespace hs {
   std::string RAWVolumeContent::toString() 
   {
     std::stringstream ss;
-    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",my cells="<<cellRange<< "}";
+    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",cellRange="<<cellRange<< "}";
     return ss.str();
   }
 

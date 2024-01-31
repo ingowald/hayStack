@@ -174,8 +174,7 @@ namespace hs {
   /*! actually loads one rank's data, based on which content got
     assigned to which rank. must get called on every worker
     collaboratively - but only on active workers */
-  void DataLoader::loadData(hs::mpi::Comm &workers,
-                            ThisRankData &rankData,
+  void DataLoader::loadData(ThisRankData &rankData,
                             int numDataGroups,
                             int dataPerRank,
                             bool verbose)
