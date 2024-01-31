@@ -140,7 +140,7 @@ namespace hs {
   
   size_t RAWVolumeContent::projectedSize()
   {
-    vec3i numVoxels = myCells.size()+1;
+    vec3i numVoxels = cellRange.size()+1;
     return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(scalarType);
   }
   
@@ -235,7 +235,7 @@ namespace hs {
   std::string RAWVolumeContent::toString() 
   {
     std::stringstream ss;
-    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",my cells="<<myCells<< "}";
+    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",my cells="<<cellRange<< "}";
     return ss.str();
   }
 
