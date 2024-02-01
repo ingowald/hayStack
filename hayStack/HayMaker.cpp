@@ -346,6 +346,7 @@ namespace hs {
                             &material,
                             (float3*)sphereSet->origins.data(),
                             sphereSet->origins.size(),
+                            (float3*)sphereSet->colors.data(),
                             sphereSet->radii.data(),
                             sphereSet->radius);
         geoms.push_back(geom);

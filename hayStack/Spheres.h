@@ -30,6 +30,7 @@ namespace hs {
     box3f getBounds() const;
     
     std::vector<vec3f> origins;
+    std::vector<vec3f> colors;
     
     /*! array of radii - can be empty (in which case `radius` applies
         for all spheres equally), but if non-empty it has to be the
