@@ -80,12 +80,18 @@ Notes:
   
 
 
+## Spheres (`priya` data set)
+
+![](jpg/priya.jpg)
+
+    ./hsViewerQT spheres:///cluster/priya/105000.p4:format=xyzi:radius=1  --camera 33.7268 519.912 545.901 499.61 166.807 -72.1014 0 1 0 -fovy 60
+
 
 ## Tim Sandstrom "Spheres and Triangles" Data
 
 To run the "jahmad" model (from Tim Sandstom at AMES)  -including spheres and a hex-helicopter surface mock-up -- use this:
 
-    ./hsViewer spheres://16@/home/wald/models/sandstrom-spheres/jahmad/30172.xyz.flt.1:count=400M:radius=.003 -ndg 2 ts.tri:///home/wald/models/sandstrom-spheres/jahmad/srf.30172.tri
+    mpirun -n 8 -host $HOSTS ./hsViewer spheres://8@/cluster/sandstrom-spheres/jahmad/30172.xyz.flt.1:radius=.003 -ndg 8 ts.tri:///cluster/sandstrom-spheres/jahmad/srf.30172.tri
 	
 Make sure to adjust `count=` `-ndg` and `16@` values when running on a
 larger machine (the above is for dual-RTX 8000, single workstation)

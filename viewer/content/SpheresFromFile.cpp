@@ -86,13 +86,26 @@ namespace hs {
       struct
       {
         vec3f pos;
-        int type;
+        uint32_t type;
       } v;
       for (size_t i=0;i<my_count;i++) {
         int rc = fread((char*)&v,sizeof(v),1,file);
         assert(rc);
+        vec3f baseColors[] = {
+          { 0,0,1 },
+          { 0,1,0 },
+          { 1,0,0 },
+          { 1,1,0 },
+          { 1,0,1 },
+          { 0,1,1 },
+        };
         spheres->origins.push_back(vec3f{v.pos.x,v.pos.y,v.pos.z});
-        spheres->colors.push_back(randomColor(v.type));
+        spheres->colors.push_back(
+                                  // v.type < 6
+                                  // ? baseColors[v.type]
+                                  // :
+                                  randomColor(13+(int)v.type));
+        // spheres->colors.push_back(randomColor(13+v.type));
       }
     } else if (format == "xyz") {
       vec3f v;
