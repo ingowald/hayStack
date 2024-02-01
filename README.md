@@ -133,7 +133,7 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 ### KingSnake (1024x1024x795)
 
-![](jpg/kingsnake.jpg)
+![](data/kingsnake.jpg)
 
     /home/wald/opt/bin/mpirun -n 2 /home/wald/Projects/hayStack/with-hanari/hsViewerQT raw://2@/mnt/raid/new_models/raw/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 -ndg 2 -xf /home/wald/Projects/hayStack/data/kingsnake.xf `cat /home/wald/Projects/hayStack/data/kingsnake.cam`
 
@@ -146,10 +146,19 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 
 
-### rotstrat (SUSBET FOR NOW)
+### `rotstrat` (`4096x4096x4096_float`, 256GB)
 
-	/home/wald/opt/bin/mpirun -n 2 /home/wald/Projects/hayStack/with-hanari/hsViewerQT raw://2@/mnt/raid/new_models/raw/rotstrat_temperature_4096x4096x4096_float32.raw:format=float:dims=4096,4094,4096:extract=0,0,0,1024,1024,1024 -ndg 2
+`rotstrat` is large - 256GB - you'll need to run data parallel. E.g.:
 
+	/home/wald/opt/bin/mpirun -n 8 $HOSTS /home/wald/Projects/hayStack/bin/hsViewerQT raw://8@/cluster/rotstrat_temperature_4096x4096x4096_float32.raw:format=float:dims=4096,4094,4096:extract=0,0,0,1024,1024,1024 -ndg 8 -xf /cluster/rotstrat-dense.xf  --camera 4666.62 -3069.99 663.698 2126.13 1007.38 1887.62 1 0 0 -fovy 60
+
+With dense XF:
+![](data/rotstrat-dense.jpg)
+
+With more 'fuzzy' XF:
+![](data/rotstrat-fuzzy.jpg)
+
+- not yet tested with hanari/banari
 
 
 ## Data-Parallel Iso-Surface from Structured Data: LLNL (subset, so it also runs on laptop)
