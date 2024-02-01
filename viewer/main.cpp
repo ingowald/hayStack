@@ -39,6 +39,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <omp.h>
+#include "barney/Logging.h"
 
 namespace hs {
 
@@ -319,6 +321,8 @@ int main(int ac, char **av)
   hs::mpi::Comm world(MPI_COMM_WORLD);
 
   world.barrier();
+  double local_time = omp_get_wtime();
+
   if (world.rank == 0)
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
 
@@ -340,6 +344,10 @@ int main(int ac, char **av)
 
   std::cout << "#hv: rank: " << world.rank  << ", GPU devices: " << device_count <<  dev_properties << std::endl; fflush(0);
 #endif
+
+  double global_time = local_time;
+  world.bc_send(&global_time, sizeof(global_time)); 
+  barney::logging::setFirstTime(local_time, global_time);
 
   world.barrier();
 

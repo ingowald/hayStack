@@ -29,6 +29,9 @@ option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
 option(HS_VIEWER "Use QT Viewer and XFEditor" ON)
 option(USE_NCCL "Use NCCL" OFF)
 
+# Find the OpenMP package
+find_package(OpenMP)
+
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------

@@ -71,6 +71,11 @@ if(HS_VIEWER)
     )
   target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
   target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
+
+  if(OpenMP_CXX_FOUND)
+      target_link_libraries(hsViewer PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
 endif()
 # ------------------------------------------------------------------
 add_executable(hsOffline
@@ -80,6 +85,10 @@ target_link_libraries(hsOffline
   PUBLIC
   hayStack
   )
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(hsOffline PUBLIC OpenMP::OpenMP_CXX)
+endif()  
 # ------------------------------------------------------------------
 
 if (HT_CUTEE)
@@ -104,6 +113,10 @@ if (HT_CUTEE)
     CUDA_USE_STATIC_CUDA_RUNTIME ON
     CUDA_ARCHITECTURES OFF
     )
+
+    if(OpenMP_CXX_FOUND)
+      target_link_libraries(hsViewerQT PUBLIC OpenMP::OpenMP_CXX)
+    endif()      
   
 endif()
 
@@ -149,4 +162,8 @@ if(WITH_CLIENT_GPUJPEG)
   target_compile_definitions(hsBlender PUBLIC -DWITH_CLIENT_GPUJPEG)
   target_link_libraries(hsBlender PUBLIC ${GPUJPEG_LIBRARIES})
 endif()
+
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(hsBlender PUBLIC OpenMP::OpenMP_CXX)
+endif()      
 
