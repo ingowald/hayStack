@@ -102,7 +102,7 @@ Single-node, dual-gpu, multi-gpu data-parallel (no MPI):
 
     ./hsViewerQT raw://2@/cluster/dns-one-eighth-5120-3840-768.raw:format=float:dims=5120,3840,768 -ndg 2  --camera -456.228 4753.82 611.822 2376.76 1678.84 -150.28 0 0 1 -fovy 60 -xf /cluster/dns-one-eighth.xf
 	
-![](png/dns-one-eighth.jpg)
+![](jpg/dns-one-eighth.jpg)
 
 same w/ MPI, single node:
 
@@ -110,7 +110,7 @@ same w/ MPI, single node:
 
 ## Structured Data: LLNL (subset, so it also runs on laptop)
 
-![](png/llnl.jpg)
+![](jpg/llnl.jpg)
 
 ### Local-node Rendering
 
@@ -133,7 +133,7 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 ### KingSnake (1024x1024x795)
 
-![](png/kingsnake.jpg)
+![](jpg/kingsnake.jpg)
 
     /home/wald/opt/bin/mpirun -n 2 /home/wald/Projects/hayStack/with-hanari/hsViewerQT raw://2@/mnt/raid/new_models/raw/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 -ndg 2 -xf /home/wald/Projects/hayStack/data/kingsnake.xf `cat /home/wald/Projects/hayStack/data/kingsnake.cam`
 
@@ -154,7 +154,7 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 ## Data-Parallel Iso-Surface from Structured Data: LLNL (subset, so it also runs on laptop)
 
-![](png/llnl-iso.jpg)
+![](jpg/llnl-iso.jpg)
 
 same as previous example with LLNL data-parallel volume rendeirng,
 just add "iso=0.5" to content loader. This will perform data parallel
@@ -197,7 +197,7 @@ camera and xf file checked into this repo, under `data/`
 ## rot-strat: 4096x4096x4096xfloat (256GB)
 
 One with a fuzzy transfer function:
-![](png/rotstrat-fuzzy.jpg)
+![](jpg/rotstrat-fuzzy.jpg)
 
 ... and same, with a dense one:
-![](png/rotstrat-dense.jpg)
+![](jpg/rotstrat-dense.jpg)
