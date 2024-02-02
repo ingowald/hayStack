@@ -14,6 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#include <barney.h>
 #include "HayMaker.h"
 #include "hayStack/TransferFunction.h"
 #include <map>
@@ -398,9 +399,9 @@ namespace hs {
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
+      TextureLibrary textureLibrary(barney);
 #endif
 
-      TextureLibrary textureLibrary(barney);
       
       for (auto inst : mini->instances) {
         if (!miniGroups[inst->object]) {

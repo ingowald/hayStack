@@ -52,8 +52,8 @@ target_link_libraries(hayStack
   owl
   miniScene
   umesh
+  barney_mpi
 #  mpiRenderInf
-#  barney_mpi
   )
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 
@@ -67,10 +67,5 @@ if (HANARI)
 #    anari::anari_viewer
     anari::anari
     MPI::MPI_CXX
-    )
-else()
-  target_link_libraries(hayStack
-    PUBLIC
-    barney_mpi
     )
 endif()
