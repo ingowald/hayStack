@@ -53,7 +53,7 @@ namespace hs {
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
-    int  numFramesAccum = 1;
+    int  numFramesAccum = 1024;
     static bool verbose;
     struct {
       vec3f vp   = vec3f(0.f);

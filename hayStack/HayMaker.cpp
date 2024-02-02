@@ -122,6 +122,7 @@ namespace hs {
     this->hostRGBA = hostRGBA;
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
+    anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
               
     anari::commitParameters(device, frame);
 #else
@@ -478,11 +479,9 @@ namespace hs {
         for (size_t i=0;i<volumeAsFloats.size();i++)
           volumeAsFloats[i] = ((uint16_t*)vol->rawData.data())[i]
             * (1.f/((1<<16)-1));
-        PING;
         anari::setParameterArray3D
           (device, field, "data", (const float *)volumeAsFloats.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
-        PING;
         } break;
       default:
         throw std::runtime_error("un-supported scalar type in hanari structured volume");
