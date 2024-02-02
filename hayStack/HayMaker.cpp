@@ -243,6 +243,8 @@ namespace hs {
   }
 
 
+#if HANARI
+#else
   struct TextureLibrary
   {
     TextureLibrary(BNDataGroup barney)
@@ -307,6 +309,7 @@ namespace hs {
     std::map<mini::Texture::SP,BNTexture> alreadyCreated;
     BNDataGroup barney;
   };
+#endif
   
   void HayMaker::buildDataGroup(int dgID)
   {
