@@ -69,7 +69,7 @@ namespace hs {
       = data.get_size("begin",0)
       + (numSpheresToLoad * (thisPartID+0)) / data.numParts;
     size_t my_end
-      = data.get_size("begin",0)
+      = data.get_size("end",0)
       + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
     size_t my_count = my_end - my_begin;
     // spheres->origins.resize(my_count);
@@ -81,6 +81,31 @@ namespace hs {
         int rc = fread((char*)&v,sizeof(v),1,file);
         assert(rc);
         spheres->origins.push_back(vec3f{v.x,v.y,v.z});
+      }
+    } else if (format =="xyzi") {
+      struct
+      {
+        vec3f pos;
+        uint32_t type;
+      } v;
+      for (size_t i=0;i<my_count;i++) {
+        int rc = fread((char*)&v,sizeof(v),1,file);
+        assert(rc);
+        vec3f baseColors[] = {
+          { 0,0,1 },
+          { 0,1,0 },
+          { 1,0,0 },
+          { 1,1,0 },
+          { 1,0,1 },
+          { 0,1,1 },
+        };
+        spheres->origins.push_back(vec3f{v.pos.x,v.pos.y,v.pos.z});
+        spheres->colors.push_back(
+                                  // v.type < 6
+                                  // ? baseColors[v.type]
+                                  // :
+                                  randomColor(13+(int)v.type));
+        // spheres->colors.push_back(randomColor(13+v.type));
       }
     } else if (format == "xyz") {
       vec3f v;

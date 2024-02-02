@@ -49,7 +49,6 @@ namespace hs {
     const box3i       cellRange;
     const int         numChannels;
     const ScalarType  scalarType;
-    const box3i       myCells;
     const float       isoValue;
   };
   

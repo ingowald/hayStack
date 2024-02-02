@@ -80,18 +80,27 @@ Notes:
   
 
 
+## Spheres (`priya` data set)
+
+![](jpg/priya.jpg)
+
+    ./hsViewerQT spheres:///cluster/priya/105000.p4:format=xyzi:radius=1  --camera 33.7268 519.912 545.901 499.61 166.807 -72.1014 0 1 0 -fovy 60
+
 
 ## Tim Sandstrom "Spheres and Triangles" Data
 
 To run the "jahmad" model (from Tim Sandstom at AMES)  -including spheres and a hex-helicopter surface mock-up -- use this:
 
-    ./hsViewer spheres://16@/home/wald/models/sandstrom-spheres/jahmad/30172.xyz.flt.1:count=400M:radius=.003 -ndg 2 ts.tri:///home/wald/models/sandstrom-spheres/jahmad/srf.30172.tri
+    mpirun -n 8 -host $HOSTS ./hsViewer spheres://8@/cluster/sandstrom-spheres/jahmad/30172.xyz.flt.1:radius=.003 -ndg 8 ts.tri:///cluster/sandstrom-spheres/jahmad/srf.30172.tri
 	
 Make sure to adjust `count=` `-ndg` and `16@` values when running on a
 larger machine (the above is for dual-RTX 8000, single workstation)
 
 
 
+## Engine
+
+    /home/wald/opt/bin/mpirun -n 2 /cluster/hsViewerQT raw://2@/cluster/engine_256x256x128_uint8.raw:format=uint8:dims=256,256,128 -xf /cluster/engine.xf --camera 316.657 220.631 67.4258 128.608 103.132 38.6924 0 0 1 -fovy 60
 
 ## DNS-one-eighth
 
@@ -99,7 +108,7 @@ Single-node, dual-gpu, multi-gpu data-parallel (no MPI):
 
     ./hsViewerQT raw://2@/cluster/dns-one-eighth-5120-3840-768.raw:format=float:dims=5120,3840,768 -ndg 2  --camera -456.228 4753.82 611.822 2376.76 1678.84 -150.28 0 0 1 -fovy 60 -xf /cluster/dns-one-eighth.xf
 	
-![](png/dns-one-eighth.jpg)
+![](jpg/dns-one-eighth.jpg)
 
 same w/ MPI, single node:
 
@@ -107,7 +116,7 @@ same w/ MPI, single node:
 
 ## Structured Data: LLNL (subset, so it also runs on laptop)
 
-![](png/llnl.jpg)
+![](jpg/llnl.jpg)
 
 ### Local-node Rendering
 
@@ -130,7 +139,7 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 ### KingSnake (1024x1024x795)
 
-![](png/kingsnake.jpg)
+![](data/kingsnake.jpg)
 
     /home/wald/opt/bin/mpirun -n 2 /home/wald/Projects/hayStack/with-hanari/hsViewerQT raw://2@/mnt/raid/new_models/raw/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 -ndg 2 -xf /home/wald/Projects/hayStack/data/kingsnake.xf `cat /home/wald/Projects/hayStack/data/kingsnake.cam`
 
@@ -143,15 +152,24 @@ assumes that libanari_library_barney and libanari etc are all in same dir
 
 
 
-### rotstrat (SUSBET FOR NOW)
+### `rotstrat` (`4096x4096x4096_float`, 256GB)
 
-	/home/wald/opt/bin/mpirun -n 2 /home/wald/Projects/hayStack/with-hanari/hsViewerQT raw://2@/mnt/raid/new_models/raw/rotstrat_temperature_4096x4096x4096_float32.raw:format=float:dims=4096,4094,4096:extract=0,0,0,1024,1024,1024 -ndg 2
+`rotstrat` is large - 256GB - you'll need to run data parallel. E.g.:
 
+	/home/wald/opt/bin/mpirun -n 8 $HOSTS /home/wald/Projects/hayStack/bin/hsViewerQT raw://8@/cluster/rotstrat_temperature_4096x4096x4096_float32.raw:format=float:dims=4096,4094,4096:extract=0,0,0,1024,1024,1024 -ndg 8 -xf /cluster/rotstrat-dense.xf  --camera 4666.62 -3069.99 663.698 2126.13 1007.38 1887.62 1 0 0 -fovy 60
+
+With dense XF:
+![](data/rotstrat-dense.jpg)
+
+With more 'fuzzy' XF:
+![](data/rotstrat-fuzzy.jpg)
+
+- not yet tested with hanari/banari
 
 
 ## Data-Parallel Iso-Surface from Structured Data: LLNL (subset, so it also runs on laptop)
 
-![](png/llnl-iso.jpg)
+![](jpg/llnl-iso.jpg)
 
 same as previous example with LLNL data-parallel volume rendeirng,
 just add "iso=0.5" to content loader. This will perform data parallel
@@ -190,4 +208,3 @@ to run offline
 camera and xf file checked into this repo, under `data/`
 
 
-	

@@ -323,7 +323,7 @@ int main(int ac, char **av)
   FromCL fromCL;
   // BarnConfig config;
 
-  DynamicDataLoader loader;
+  DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
     if (arg[0] != '-') {
@@ -381,7 +381,7 @@ int main(int ac, char **av)
   int dataPerRank   = fromCL.dpr;
   ThisRankData thisRankData;
   if (!isHeadNode) {
-    loader.loadData(workers,thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
+    loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
   if (fromCL.mergeUnstructuredMeshes) {
     std::cout << "merging potentially separate unstructured meshes into single mesh" << std::endl;

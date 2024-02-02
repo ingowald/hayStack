@@ -14,30 +14,26 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
 #pragma once
 
-#include "hayStack/HayStack.h"
+#include "viewer/DataLoader.h"
 
 namespace hs {
   
-  struct SphereSet {
-    typedef std::shared_ptr<SphereSet> SP;
+  /*! a file of 'raw' boxes */
+  struct BoxesFromFile : public LoadableContent {
+    BoxesFromFile(const ResourceSpecifier &data,
+                  int thisPartID);
+    static void create(DataLoader *loader,
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
 
-    static SP create() { return std::make_shared<SphereSet>(); }
-    
-    box3f getBounds() const;
-    
-    std::vector<vec3f> origins;
-    std::vector<vec3f> colors;
-    
-    /*! array of radii - can be empty (in which case `radius` applies
-        for all spheres equally), but if non-empty it has to be the
-        same size as `origins` */
-    std::vector<float> radii;
-    
-    float radius = .1f;
+    std::string toString() override;
+
+    const ResourceSpecifier data;
+    const size_t fileSize;
+    const int thisPartID = 0;
   };
-
-} // ::hs
+  
+}
