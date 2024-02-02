@@ -14,7 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include <barney.h>
 #include "HayMaker.h"
 #include "hayStack/TransferFunction.h"
 #include <map>
