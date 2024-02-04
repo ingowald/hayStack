@@ -84,6 +84,8 @@ namespace hs {
       scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
       scalarType = StructuredVolume::FLOAT;
+    else if (type == "uint16")
+      scalarType = StructuredVolume::UINT16;
     else
       throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
 
@@ -96,8 +98,6 @@ namespace hs {
     vec3i dims;
     int n = sscanf(dimsString.c_str(),"%i,%i,%i",&dims.x,&dims.y,&dims.z);
     if (n != 3) throw std::runtime_error("RAWVolumeContent:: could not parse dims from '"+dimsString+"'");
-
-    PRINT(dims);
 
     box3i initRegion = { vec3i(0), dims-1 };
     std::string extractString = dataURL.get("extract");
@@ -120,10 +120,11 @@ namespace hs {
     if (regions.size() < dataURL.numParts)
       throw std::runtime_error("input data too small to split into indicated number of parts");
 
-    std::cout << "RAW Volume: input data file of " << dims << " voxels will be read in the following bricks:" << std::endl;
-    for (int i=0;i<regions.size();i++)
-      std::cout << " #" << i << " : " << regions[i] << std::endl;
-
+    if (loader->myRank() == 0) {
+      std::cout << "RAW Volume: input data file of " << dims << " voxels will be read in the following bricks:" << std::endl;
+      for (int i=0;i<regions.size();i++)
+        std::cout << " #" << i << " : " << regions[i] << std::endl;
+    }
     float isoValue = NAN;
     std::string isoString = dataURL.get("iso",dataURL.get("isoValue"));
     if (!isoString.empty())
@@ -140,7 +141,7 @@ namespace hs {
   
   size_t RAWVolumeContent::projectedSize()
   {
-    vec3i numVoxels = myCells.size()+1;
+    vec3i numVoxels = cellRange.size()+1;
     return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(scalarType);
   }
   
@@ -191,7 +192,6 @@ namespace hs {
       if (size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z) > (1ull<<30))
         throw std::runtime_error("volume dims too large to extract iso-surface via umesh");
       volume->finalize();
-      PRINT(volume->toString());
       for (int iz=0;iz<numVoxels.z-1;iz++)
         for (int iy=0;iy<numVoxels.y-1;iy++)
           for (int ix=0;ix<numVoxels.x-1;ix++) {
@@ -235,7 +235,9 @@ namespace hs {
   
   std::string RAWVolumeContent::toString() 
   {
-    return "RAWVolumeContent{}";
+    std::stringstream ss;
+    ss << "RAWVolumeContext{#" << thisPartID << ",fileName="<<fileName<<",cellRange="<<cellRange<< "}";
+    return ss.str();
   }
 
   

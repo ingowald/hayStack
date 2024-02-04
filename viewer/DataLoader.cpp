@@ -19,6 +19,7 @@
 #include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
+#include "viewer/content/BoxesFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
@@ -173,8 +174,7 @@ namespace hs {
   /*! actually loads one rank's data, based on which content got
     assigned to which rank. must get called on every worker
     collaboratively - but only on active workers */
-  void DataLoader::loadData(hs::mpi::Comm &workers,
-                            ThisRankData &rankData,
+  void DataLoader::loadData(ThisRankData &rankData,
                             int numDataGroups,
                             int dataPerRank,
                             bool verbose)
@@ -196,24 +196,33 @@ namespace hs {
   
     assignGroups(numDataGroups);
     rankData.resize(dataPerRank);
+
     for (int i=0;i<dataPerRank;i++) {
       int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
       if (verbose) {
-        for (int r=0;r<workers.rank;r++) 
-          workers.barrier();
-        std::cout << "#hv: worker #" << workers.rank
-                  << " loading global data group ID " << dataGroupID
-                  << " into slot " << workers.rank << "." << i << ":"
+        std::stringstream ss;
+        ss << "#hv: worker #" << workers.rank
+           << " loading global data group ID " << dataGroupID
+           << " into slot " << workers.rank << "." << i << ":";
+        std::cout << ss.str()
                   << std::endl << std::flush;
-        usleep(100);
-        fflush(0);
       }
+      // if (verbose) {
+      //   // for (int r=0;r<workers.rank;r++) 
+      //   //   workers.barrier();
+      //   std::cout << "#hv: worker #" << workers.rank
+      //             << " loading global data group ID " << dataGroupID
+      //             << " into slot " << workers.rank << "." << i << ":"
+      //             << std::endl << std::flush;
+      //   usleep(100);
+      //   fflush(0);
+      // }
       loadDataGroup(rankData.dataGroups[i],
                     dataGroupID,
                     verbose);
-      if (verbose) 
-        for (int r=workers.rank;r<workers.size;r++) 
-          workers.barrier();
+      // if (verbose) 
+      //   for (int r=workers.rank;r<workers.size;r++) 
+      //     workers.barrier();
     }
     if (verbose) {
       workers.barrier();
@@ -260,6 +269,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,contentDescriptor);
+      else if (url.type == "boxes") 
+        BoxesFromFile::create(this,contentDescriptor);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
         SpatiallyPartitionedUMeshContent::create(this,contentDescriptor);

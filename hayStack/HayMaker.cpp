@@ -17,7 +17,6 @@
 #include "HayMaker.h"
 #include "hayStack/TransferFunction.h"
 #include <map>
-#include <fstream>
 
 namespace hs {
 
@@ -123,6 +122,7 @@ namespace hs {
     this->hostRGBA = hostRGBA;
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
+    anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
               
     anari::commitParameters(device, frame);
 #else
@@ -241,6 +241,75 @@ namespace hs {
                     fbSize.x / float(fbSize.y));
 #endif
   }
+
+
+#if HANARI
+#else
+  struct TextureLibrary
+  {
+    TextureLibrary(BNDataGroup barney)
+      : barney(barney)
+    {}
+
+    BNTexture getOrCreate(mini::Texture::SP miniTex)
+    {
+      auto it = alreadyCreated.find(miniTex);
+      if (it != alreadyCreated.end()) return it->second;
+
+      BNTexture bnTex = create(miniTex);
+      alreadyCreated[miniTex] = bnTex;
+      return bnTex;
+    }
+    
+  private:
+    BNTexture create(mini::Texture::SP miniTex)
+    {
+      if (!miniTex) return 0;
+      BNTexelFormat texelFormat;
+      switch (miniTex->format) {
+      case mini::Texture::FLOAT4:
+        texelFormat = BN_TEXEL_FORMAT_RGBA32F;
+        break;
+      case mini::Texture::FLOAT1:
+        texelFormat = BN_TEXEL_FORMAT_R32F;
+        break;
+      case mini::Texture::RGBA_UINT8:
+        texelFormat = BN_TEXEL_FORMAT_RGBA8;
+        break;
+      default:
+        std::cout << "warning: unsupported mini::Texture format #" << (int)miniTex->format << std::endl;
+        return 0;
+      }
+      
+      BNTextureFilterMode filterMode;
+      switch (miniTex->filterMode) {
+      case mini::Texture::FILTER_BILINEAR:
+        /*! default filter mode - bilinear */
+        filterMode = BN_TEXTURE_LINEAR;
+        break;
+      case mini::Texture::FILTER_NEAREST:
+        /*! explicitly request nearest-filtering */
+        filterMode = BN_TEXTURE_NEAREST;
+        break;
+      default:
+        std::cout << "warning: unsupported mini::Texture filter mode #" << (int)miniTex->filterMode << std::endl;
+        return 0;
+      }
+
+      BNTextureAddressMode addressMode = BN_TEXTURE_WRAP;
+      BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
+      BNTexture newTex
+        = bnTexture2DCreate(barney,texelFormat,
+                            miniTex->size.x,miniTex->size.y,
+                            miniTex->data.data(),
+                            filterMode,addressMode,colorSpace);
+      return newTex;
+    }
+    
+    std::map<mini::Texture::SP,BNTexture> alreadyCreated;
+    BNDataGroup barney;
+  };
+#endif
   
   void HayMaker::buildDataGroup(int dgID)
   {
@@ -281,6 +350,7 @@ namespace hs {
                             &material,
                             (float3*)sphereSet->origins.data(),
                             sphereSet->origins.size(),
+                            (float3*)sphereSet->colors.data(),
                             sphereSet->radii.data(),
                             sphereSet->radius);
         geoms.push_back(geom);
@@ -331,7 +401,10 @@ namespace hs {
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
+      TextureLibrary textureLibrary(barney);
 #endif
+
+      
       for (auto inst : mini->instances) {
         if (!miniGroups[inst->object]) {
 #if HANARI
@@ -370,12 +443,26 @@ namespace hs {
             auto geom = surface;
 #else
             BNMaterial material = BN_DEFAULT_MATERIAL;
+            mini::Material::SP miniMat = miniMesh->material;
+            material.baseColor = (const float3&)miniMat->baseColor;
+            material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
+            material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
+            // some of our test mini files have a texture, but basecolor isn't set - fix this here.
+            if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
+              (vec3f&)material.baseColor = vec3f(1.f);
+              
             BNGeom geom
               = bnTriangleMeshCreate
               (barney,&material,
                (int3*)miniMesh->indices.data(),miniMesh->indices.size(),
                (float3*)miniMesh->vertices.data(),miniMesh->vertices.size(),
-               nullptr,nullptr);
+               miniMesh->normals.empty()
+               ? nullptr
+               : (float3*)miniMesh->normals.data(),
+               miniMesh->texcoords.empty()
+               ? nullptr
+               : (float2*)miniMesh->texcoords.data()
+               );
 #endif
             geoms.push_back(geom);
           }
@@ -400,7 +487,6 @@ namespace hs {
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
-PRINT(myData.unsts.size());
     for (auto _unst : myData.unsts) {
       auto unst = _unst.first;
       const box3f domain = _unst.second;
@@ -473,6 +559,16 @@ PRINT(myData.unsts.size());
           (device, field, "data", (const uint8_t *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
+      case StructuredVolume::UINT16: {
+        std::cout << "volume with uint16s, converting to float" << std::endl;
+        static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
+        for (size_t i=0;i<volumeAsFloats.size();i++)
+          volumeAsFloats[i] = ((uint16_t*)vol->rawData.data())[i]
+            * (1.f/((1<<16)-1));
+        anari::setParameterArray3D
+          (device, field, "data", (const float *)volumeAsFloats.data(),
+           volumeDims.x, volumeDims.y, volumeDims.z);
+        } break;
       default:
         throw std::runtime_error("un-supported scalar type in hanari structured volume");
       }
@@ -491,7 +587,7 @@ PRINT(myData.unsts.size());
       case StructuredVolume::FLOAT:
         scalarType = BN_FLOAT;
         break;
-      default: throw std::runtime_error("Unknown scalar type");
+      default: throw std::runtime_error("Unknown or un-supported scalar type");
       }
       BNMaterial material = BN_DEFAULT_MATERIAL;
       BNScalarField bnVol = bnStructuredDataCreate
