@@ -33,6 +33,7 @@ namespace hs {
     for (auto _unst : this->unsts)
       unsts.push_back(_unst.first);
     umesh::UMesh::SP merged = umesh::mergeMeshes(unsts);
+    std:: cout << "done merging, got " << merged->toString() << std::endl;
     this->unsts.clear();
     this->unsts.push_back({merged,box3f()});
   }
