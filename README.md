@@ -87,6 +87,13 @@ Notes:
     ./hsViewerQT spheres:///cluster/priya/105000.p4:format=xyzi:radius=1  --camera 33.7268 519.912 545.901 499.61 166.807 -72.1014 0 1 0 -fovy 60
 
 
+## (Offline-)data parallel on structured data
+
+    mm && /home/wald/opt/bin/mpirun -n 4 ./hsOffline raw://4@/home/wald/models/magnetic-512-volume/magnetic-512-volume.raw:format=float:dims=512,512,512 --camera 33.0947 773.916 567.922 282.57 317.985 188.347 0 0 1 -fovy 60 -xf /home/wald/models/magnetic-512-volume/magnetic-512-volume.xf -o hs.png --num-frames 8 -ndg 4
+
+- this is for 4 ranks; when using more make sure to change all three of `-ndg X`, `mpirun -n X` and `raw://X@...`!
+
+
 ## Tim Sandstrom "Spheres and Triangles" Data
 
 To run the "jahmad" model (from Tim Sandstom at AMES)  -including spheres and a hex-helicopter surface mock-up -- use this:
