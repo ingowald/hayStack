@@ -44,7 +44,14 @@ namespace hs {
     
     void   executeLoad(DataGroup &dataGroup, bool verbose) override
     {
-      dataGroup.unsts.push_back({umesh::UMesh::loadFrom(fileName),box3f()});
+      umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(fileName);
+#if 0
+      std::cout << "KILLING ALL NON-TETS!" << std::endl;
+      mesh->pyrs.clear();
+      mesh->hexes.clear();
+      mesh->wedges.clear();
+#endif
+      dataGroup.unsts.push_back({mesh,box3f()});
     }
 
     const std::string fileName;

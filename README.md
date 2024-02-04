@@ -208,3 +208,39 @@ to run offline
 camera and xf file checked into this repo, under `data/`
 
 
+## lander-small, with umesh-specific partitioning (objet space and/or spatial)
+
+given original fun3d data dump directory, first merge into a single umesh
+  
+    for f in vort_mag turb1 rho; do
+	  ./umeshImportLanderFun3D \
+	     $IN/lander-small/geometry/dAgpu0145_Fa_me \
+		 --scalars $IN/lander-small/10000unsteadyiters/dAgpu0145_Fa_volume_data. \
+		 -o $TMP/lander-small-$f-10000.umesh -ts 10000 -var $f
+	done
+	
+then partition object-space (into, in this example, 8 ranks) as such:
+
+    ./umeshPartitionObjectSpace \
+	   $TMP/lander-small-vort_mag-10000.umesh \
+	   -o $CLUSTER/lander-small-vort_mag-1000.os-n8\
+	   -n 8
+
+or partition spatially (into, in this example, 8 ranks) as such:
+
+    ./umeshPartitionSpatially \
+	   $TMP/lander-small-vort_mag-10000.umesh \
+	   -o $CLUSTER/lander-small-vort_mag-1000.spatial-n8\
+	   -n 8
+
+then run as follows:
+
+#	mm && /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT /mnt/raid/space/barney/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /mnt/raid/nfs/shared/umesh/lander-small-surface.obj
+
+# to run offline
+
+#    mm && /home/wald/opt/bin/mpirun -n 2 ./hsOffline /mnt/raid/space/barney/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /mnt/raid/nfs/shared/umesh/lander-small-surface.obj --num-frames 128 -o lander-small-offline.png
+	
+# camera and xf file checked into this repo, under `data/`
+
+
