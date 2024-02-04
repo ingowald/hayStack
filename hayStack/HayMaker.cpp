@@ -370,11 +370,14 @@ namespace hs {
         BNGeom geom
           = bnCylindersCreate(barney,
                               &material,
-                              (float3*)cylinderSet->points.data(),
-                              cylinderSet->points.size(),
+                              (float3*)cylinderSet->vertices.data(),
+                              cylinderSet->vertices.size(),
+                              (float3*)cylinderSet->colors.data(),
+                              cylinderSet->colorPerVertex,
                               (int2*)cylinderSet->indices.data(),
                               cylinderSet->indices.size(),
                               cylinderSet->radii.data(),
+                              cylinderSet->radiusPerVertex,
                               cylinderSet->radius);
         geoms.push_back(geom);
       }

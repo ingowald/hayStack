@@ -271,6 +271,8 @@ namespace hs {
         RAWVolumeContent::create(this,contentDescriptor);
       else if (url.type == "boxes") 
         BoxesFromFile::create(this,contentDescriptor);
+      else if (url.type == "cylinders") 
+        CylindersFromFile::create(this,contentDescriptor);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
         SpatiallyPartitionedUMeshContent::create(this,contentDescriptor);

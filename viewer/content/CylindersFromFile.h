@@ -19,7 +19,7 @@
 #include "viewer/DataLoader.h"
 
 namespace hs {
-  
+
   /*! a file of 'raw' spheres */
   struct CylindersFromFile : public LoadableContent {
     CylindersFromFile(const std::string &fileName,

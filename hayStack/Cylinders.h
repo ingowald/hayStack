@@ -27,8 +27,11 @@ namespace hs {
     
     box3f getBounds() const;
     
-    std::vector<vec3f> points;
-    
+    std::vector<vec3f> vertices;
+
+    /*! per-elelemnt of per-vertex colors */
+    std::vector<vec3f> colors;
+
     /*! array of index pair; each such pair refers to two points in
         the points[] array; those are the begin/end of that
         cylinder. If this array is empty, it is to be treated as if it
@@ -37,9 +40,14 @@ namespace hs {
     
     /*! array of radii - can be empty (in which case `radius` applies
         for all spheres equally), but if non-empty it has to be the
-        same size as `indices` */
+        same size as `indices`, or same size of 'points' dependong on
+        whether those are per-vertex or per-element radii */
     std::vector<float> radii;
 
+    bool colorPerVertex  = false;
+    bool radiusPerVertex = false;
+    bool roundedCap      = false;
+    
     /*! fall-back radius for all cylinders if radii array is empty */
     float radius = .1f;
   };
