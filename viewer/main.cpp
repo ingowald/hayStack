@@ -49,26 +49,28 @@ namespace hs {
     bool mergeUnstructuredMeshes = false;
     
     std::string xfFileName = "";
-    static std::string outFileName;
+    std::string outFileName = "hayStack.png";
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
     int  numFramesAccum = 1024;
-    static bool verbose;
+    int  spp            = 1;
+    bool verbose = true;
     struct {
       vec3f vp   = vec3f(0.f);
       vec3f vi   = vec3f(0.f);
       vec3f vu   = vec3f(0.f,1.f,0.f);
       float fovy = 60.f;
     } camera;
-    static bool measure;
+    bool measure = 0;
   };
+  FromCL fromCL;
   
-  std::string FromCL::outFileName = "hayStack.png";
-  bool FromCL::measure = 0;
-  bool FromCL::verbose = true;
+  // std::string FromCL::outFileName = "hayStack.png";
+  // bool FromCL::measure = 0;
+  // bool FromCL::verbose = true;
 
-  inline bool verbose() { return FromCL::verbose; }
+  inline bool verbose() { return fromCL.verbose; }
   
   void usage(const std::string &error="")
   {
@@ -111,7 +113,7 @@ namespace hs {
   public:
     void screenShot()
     {
-      std::string fileName = FromCL::outFileName;
+      std::string fileName = fromCL.outFileName;
       std::vector<int> hostFB(fbSize.x*fbSize.y);
       cudaMemcpy(hostFB.data(),fbPointer,
                  fbSize.x*fbSize.y*sizeof(int),
@@ -193,11 +195,11 @@ namespace hs {
         measure_t0 = getCurrentTime();
       
       double t0 = getCurrentTime();
-      renderer->renderFrame();
+      renderer->renderFrame(fromCL.spp);
       ++numFramesRendered;
       double t1 = getCurrentTime();
 
-      if (FromCL::measure) {
+      if (fromCL.measure) {
         int numFramesMeasured = numFramesRendered - measure_warmup_frames;
         float numSecondsMeasured
           = (numFramesMeasured < 1)
@@ -320,7 +322,7 @@ int main(int ac, char **av)
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
   world.barrier();
 
-  FromCL fromCL;
+  // FromCL fromCL;
   // BarnConfig config;
 
   DynamicDataLoader loader(world);
@@ -330,6 +332,8 @@ int main(int ac, char **av)
       loader.addContent(arg);
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
+    } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
+      fromCL.spp = std::stoi(av[++i]);
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--no-mum") {
@@ -515,8 +519,8 @@ int main(int ac, char **av)
   xf.load(fromCL.xfFileName);
   renderer->setTransferFunction(xf);
 
-  for (int i=0;i<fromCL.numFramesAccum;i++)
-    renderer->renderFrame();
+  for (int i=0;i<fromCL.numFramesAccum;i++) 
+    renderer->renderFrame(fromCL.spp);
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,

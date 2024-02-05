@@ -211,7 +211,7 @@ namespace mini {
                 << MINI_TERMINAL_DEFAULT << std::endl;
 
     Material::SP dummyMaterial = std::make_shared<Material>();
-    dummyMaterial->baseColor = randomColor(size_t(dummyMaterial.get()));
+    // dummyMaterial->baseColor = randomColor(size_t(dummyMaterial.get()));
 
     std::vector<Material::SP> baseMaterials;
     tinyobj::material_t *objDefaultMaterial = 0;

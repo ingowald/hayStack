@@ -197,7 +197,7 @@ namespace hs {
        });
   }
   
-  void HayMaker::renderFrame()
+  void HayMaker::renderFrame(int pathsPerPixel)
   {
 #if HANARI
     // anari::commitParameters(device, frame);
@@ -210,7 +210,7 @@ namespace hs {
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
     }
 #else
-    bnRender(model,&camera,fb);
+    bnRender(model,&camera,fb,pathsPerPixel);
 #endif
   }
 
