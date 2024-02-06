@@ -19,7 +19,6 @@
 
 namespace hs {
 
-  struct SWCLoader {
     struct FileEntry {
       int ID;
       int type;
@@ -31,15 +30,11 @@ namespace hs {
       vec3f pos, col;
       float rad;
     };
-    static void load(hs::Cylinders::SP result, const std::string &fileName);
-  };
-  
-  inline bool operator<(const SWCLoader::Vertex &a, const SWCLoader::Vertex &b)
+  inline bool operator<(const Vertex &a, const Vertex &b)
   {
     return memcmp(&a,&b,sizeof(a)) < 0;
   }
-  
-  void SWCLoader::load(hs::Cylinders::SP result, const std::string &fileName)
+  void loadSWC(hs::Cylinders::SP result, const std::string &fileName)
   {
     std::vector<FileEntry> fileEntries;
     std::map<int,int>      indexByID;
@@ -111,6 +106,7 @@ namespace hs {
     result->radiusPerVertex = true;
     for (auto it : vertices) {
       result->vertices[it.second] = it.first.pos;
+      // result->vertices[it.second] = ((it.first.pos * scale) + shift);
       result->radii[it.second] = it.first.rad;
 
       result->colors[it.second] = it.first.col;
@@ -122,30 +118,34 @@ namespace hs {
                                        size_t fileSize,
                                        int thisPartID,
                                        int numPartsToSplitInto,
-                                       float radius)
+                                       float radius,
+                                       vec3f shift,
+                                       vec3f scale)
     : fileName(fileName),
       fileSize(fileSize),
       thisPartID(thisPartID),
       numPartsToSplitInto(numPartsToSplitInto),
-      radius(radius)
+      radius(radius),
+      shift(shift),
+      scale(scale)
   {}
   
   void CylindersFromFile::create(DataLoader *loader,
-                                 const std::string &dataURL)
+                                 const ResourceSpecifier &data)
   {
-    assert(dataURL.substr(0,strlen("cylinders://")) == "cylinders://");
-    const char *s = dataURL.c_str() + strlen("cylinders://");
-    const char *atSign = strstr(s,"@");
-    int numPartsToSplitInto = 1;
-    if (atSign) {
-      numPartsToSplitInto = atoi(s);
-      s = atSign + 1;
-    }
-    const std::string fileName = s;
-    size_t fileSize = getFileSize(fileName);
-    for (int i=0;i<numPartsToSplitInto;i++)
-      loader->addContent(new CylindersFromFile(fileName,fileSize,i,numPartsToSplitInto,
-                                               loader->defaultRadius));
+    assert(data.substr(0,strlen("cylinders://")) == "cylinders://");
+    
+    vec3f scale = data.get("scale",vec3f(1.f));
+    vec3f translate = data.get("translate",vec3f(1.f));
+    
+    const std::string fileName = data.where;
+    const size_t fileSize = getFileSize(data.where);
+    for (int i=0;i<data.numParts;i++)
+      loader->addContent(new CylindersFromFile(data.where,
+                                               fileSize,i,
+                                               data.numParts,
+                                               loader->defaultRadius,
+                                               translate,scale));
   }
   
   size_t CylindersFromFile::projectedSize() 
@@ -186,7 +186,9 @@ namespace hs {
       cs->radiusPerVertex = false;
       
     } else {
-      SWCLoader::load(cs,fileName);
+      loadSWC(cs,fileName);
+      for (auto &vtx : cs->vertices)
+        vtx = vtx * scale + shift;
     }
     dataGroup.cylinderSets.push_back(cs);
   }

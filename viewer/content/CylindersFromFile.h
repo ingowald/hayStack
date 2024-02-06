@@ -26,9 +26,11 @@ namespace hs {
                       size_t fileSize,
                       int thisPartID,
                       int numPartsToSplitInto,
-                      float radius);
+                      float radius,
+                      vec3f shift,
+                      vec3f scale);
     static void create(DataLoader *loader,
-                       const std::string &dataURL);
+                       const ResourceSpecifier &dataURL);
     size_t projectedSize() override;
     void   executeLoad(DataGroup &dataGroup, bool verbose) override;
     
@@ -39,6 +41,9 @@ namespace hs {
         +prettyNumber(projectedSize())+"B}";
     }
 
+    const vec3f shift = 1.f;// = vec3f(-10.5,-5,0);
+    const vec3f scale = 1.f;
+    
     const float radius;
     const std::string fileName;
     const size_t fileSize;

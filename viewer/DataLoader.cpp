@@ -268,14 +268,14 @@ namespace hs {
       // else if (url.type == "en-dump")
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
-        RAWVolumeContent::create(this,contentDescriptor);
+        RAWVolumeContent::create(this,url);
       else if (url.type == "boxes") 
-        BoxesFromFile::create(this,contentDescriptor);
+        BoxesFromFile::create(this,url/*contentDescriptor*/);
       else if (url.type == "cylinders") 
-        CylindersFromFile::create(this,contentDescriptor);
+        CylindersFromFile::create(this,url);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
-        SpatiallyPartitionedUMeshContent::create(this,contentDescriptor);
+        SpatiallyPartitionedUMeshContent::create(this,url);
       else
         throw std::runtime_error
           ("could not recognize content type '"+url.type+"'");
