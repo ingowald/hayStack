@@ -14,6 +14,10 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#ifdef _WIN32
+#  include "glad.h"
+#endif
+
 #include "hayStack/HayMaker.h"
 #include "viewer/DataLoader.h"
 #if HS_VIEWER

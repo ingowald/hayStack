@@ -1,6 +1,10 @@
 #pragma once
 
-#include <GL/gl.h>
+#ifdef _WIN32
+#  include "glad.h"
+#else
+#  include <GL/gl.h>
+#endif
 
 namespace hs {
 

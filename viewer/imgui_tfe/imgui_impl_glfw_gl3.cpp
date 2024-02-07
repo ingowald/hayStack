@@ -12,6 +12,10 @@
 #include "imgui_impl_glfw_gl3.h"
 #include <imgui.h>
 
+#ifdef _WIN32
+#  include "glad.h"
+#endif
+
 // GL3W/GLFW
 #include <GLFW/glfw3.h>
 #ifdef _WIN32

@@ -60,17 +60,28 @@ set(TFE_SOURCES
   imgui_tfe/TFEditor.cpp
 )
 
+if(WIN32)
+  set(GLAD_SOURCES
+    external/glad/glad.cpp
+    external/glad/glad.h
+    external/glad/khrplatform.h
+  )
+elseif()
+  set(GLAD_SOURCES )
+endif()
+
 # ------------------------------------------------------------------
 add_executable(hsViewer
   ${SOURCES}
   ${TFE_SOURCES}
+  ${GLAD_SOURCES}
   )
 target_link_libraries(hsViewer
   PUBLIC
   hayStack
   owl_viewer
   )
-target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
+target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
 target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
 
 # ------------------------------------------------------------------
