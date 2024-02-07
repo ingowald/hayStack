@@ -133,7 +133,9 @@ namespace hs {
   void CylindersFromFile::create(DataLoader *loader,
                                  const ResourceSpecifier &data)
   {
+#ifndef _WIN32
     assert(data.substr(0,strlen("cylinders://")) == "cylinders://");
+#endif
     
     vec3f scale = data.get("scale",vec3f(1.f));
     vec3f translate = data.get("translate",vec3f(1.f));

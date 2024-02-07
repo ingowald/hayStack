@@ -73,6 +73,14 @@ namespace hs {
       numParts = stoi(where.substr(0,pos));
       where = where.substr(pos+1);
     }
+
+#ifdef _WIN32
+    // the name of drive
+    pos = where.find("$"); // Find the position of "$"
+    if (pos != std::string::npos) { // npos is a constant representing not found
+        where.replace(pos, 1, ":"); // Replace 1 character at pos with ":"
+    }
+#endif
   }
   
   bool ResourceSpecifier::has(const std::string &key) const

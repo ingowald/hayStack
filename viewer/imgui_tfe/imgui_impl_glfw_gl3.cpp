@@ -318,6 +318,10 @@ bool ImGui_ImplGlfwGL3_Init(GLFWwindow *window, bool install_callbacks)
     glfwSetKeyCallback(window, ImGui_ImplGlfwGL3_KeyCallback);
   }
 
+#ifdef _WIN32
+  gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+#endif
+
   return true;
 }
 
