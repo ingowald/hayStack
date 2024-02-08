@@ -17,7 +17,11 @@
 #pragma once
 
 #include "hayStack/common.h"
-#include <mpi.h>
+#if HS_FAKE_MPI
+// no mpi...
+#else
+#  include <mpi.h>
+#endif
 #include <stdexcept>
 
 #define HS_MPI_CALL(fctCall)                                                 \
@@ -25,7 +29,9 @@
     
 namespace hs {
   namespace mpi {
-
+#if HS_FAKE_MPI
+      inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
+#else
     inline std::string mpiErrorString(int rc)
     {
       char s[MPI_MAX_ERROR_STRING];
@@ -34,6 +40,7 @@ namespace hs {
       MPI_Error_string(rc,s,&len);
       return s;
     }
+#endif  
     struct Exception : public std::runtime_error {
       Exception(const std::string &where, int rc)
         : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
@@ -44,7 +51,11 @@ namespace hs {
     void finalize();
     
     struct Comm {
+#if HS_FAKE_MPI
+        Comm();
+#else   
       Comm(MPI_Comm comm=MPI_COMM_NULL);
+#endif
 
       /*! equivalent of MPI_Comm_split - splits this comm into
           possibly multiple comms, each one containing exactly those
@@ -54,7 +65,11 @@ namespace hs {
           other former ranks */
       Comm split(int color);
       
+#if HS_FAKE_MPI
+#else
       inline operator MPI_Comm() { return comm; }
+#endif
+
       void  assertValid() const;
       int   allReduceMax(int value) const;
       int   allReduceMin(int value) const;
@@ -85,6 +100,8 @@ namespace hs {
       void masterGather(// what we're sending (this rank's data only)
                         const T *sendBuffer, int numItemsSentOnEachRank);
 
+#if HS_FAKE_MPI
+#else
       template<typename T>
       void recv(int fromRank, int tag,
                 T *buffer, int numItems, MPI_Request &req);
@@ -97,7 +114,7 @@ namespace hs {
       {
         HS_MPI_CALL(Wait(&req,MPI_STATUS_IGNORE));
       }
-
+#endif
       /*! master's send side of broadcast - must be done on rank 0,
           and matched by bc_recv on all workers */
       void bc_send(const void *ptr, size_t numBytes);
@@ -107,9 +124,14 @@ namespace hs {
       void bc_recv(void *ptr, size_t numBytes);
 
       int rank = -1, size = -1;
+#if HS_FAKE_MPI
+#else
       MPI_Comm comm = MPI_COMM_NULL;
+#endif  
     };
     
+#if HS_FAKE_MPI
+#else
     template<typename T>
     inline void Comm::recv(int fromRank, int tag,
                                   T *buffer, int numItems, MPI_Request &req)
@@ -122,7 +144,6 @@ namespace hs {
                         // 1,MPI_INT,
                         fromRank,0x123+tag,comm,&req));
     }
-    
     template<typename T>
     inline void Comm::send(int toRank, int tag,
                            const T *buffer, int numItems, MPI_Request &req)
@@ -135,7 +156,8 @@ namespace hs {
                         // 1,MPI_INT,
                         toRank,0x123+tag,comm,&req));
     }
-    
+#endif
+
     /*! master-side of a gather where clietn gathers a fixed number
       of itmes from each rank */
     template<typename T>
@@ -144,9 +166,13 @@ namespace hs {
                                    // what we're sending (this rank's data only)
                                    const T *sendBuffer, int numItemsSentOnEachRank)
     {
+#if HS_FAKE_MPI
+        // nothing to do - it's a single rank anyway
+#else
       HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           recvBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           0,comm));
+#endif
     }
     
     /*! client-side of a gather where each client send a fixed number
@@ -155,9 +181,13 @@ namespace hs {
     inline void Comm::masterGather(// what we're sending (this rank's data only)
                                    const T *sendBuffer, int numItemsSentOnEachRank)
     {
-      HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+#if HS_FAKE_MPI
+        // nothing to do - it's a single rank anyway
+#else
+        HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           0,comm));
+#endif
     }
     
 

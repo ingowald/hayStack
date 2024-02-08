@@ -213,7 +213,7 @@ namespace hs {
                              size_t numBytes)
   {
     int w, h, n;
-    uint8_t *img_data = stbi_load_from_memory(asPNG, numBytes, &w, &h, &n, 4);
+    uint8_t *img_data = stbi_load_from_memory(asPNG, (int)numBytes, &w, &h, &n, 4);
 
     if (n != 3 && n != 4)
       throw std::runtime_error("ColorMap::fromPNG: only supporting "

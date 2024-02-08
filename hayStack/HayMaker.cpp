@@ -68,17 +68,28 @@ namespace hs {
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
 #else
+#if HS_FAKE_MPI
+      barney = bnContextCreate
+      (   /*data*/dataGroupIDs.data(), (int)dataGroupIDs.size(),
+          /*gpus*/nullptr, -1);
+#else
       barney = bnMPIContextCreate
         (world.comm,
          /*data*/dataGroupIDs.data(),dataGroupIDs.size(),
          /*gpus*/nullptr,-1);
 #endif
+#endif
     } else {
 #if HANARI
       throw std::runtime_error("passive master not yet implemented");
 #else
+#if HS_FAKE_MPI
+        barney = bnContextCreate
+        (/*data*/nullptr, 0,/*gpus*/nullptr, 0);
+#else
       barney = bnMPIContextCreate
         (world.comm,/*data*/nullptr,0,/*gpus*/nullptr,0);
+#endif
 #endif
     }
     
@@ -174,7 +185,7 @@ namespace hs {
         bnVolumeSetXF(vol,
                       (float2&)xf.domain,
                       (const float4*)xf.colorMap.data(),
-                      xf.colorMap.size(),
+                      (int)xf.colorMap.size(),
                       xf.baseDensity);
 #endif
       }
@@ -322,7 +333,7 @@ namespace hs {
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
-                               clamp(5.f-fabsf(i-40),0.f,1.f)));
+                               clamp(5.f-fabsf((float)i-40),0.f,1.f)));
 
     auto &dg = perDG[dgID];
 
@@ -349,7 +360,7 @@ namespace hs {
           = bnSpheresCreate(barney,
                             &material,
                             (float3*)sphereSet->origins.data(),
-                            sphereSet->origins.size(),
+                            (int)sphereSet->origins.size(),
                             (float3*)sphereSet->colors.data(),
                             sphereSet->radii.data(),
                             sphereSet->radius);
@@ -371,11 +382,11 @@ namespace hs {
           = bnCylindersCreate(barney,
                               &material,
                               (float3*)cylinderSet->vertices.data(),
-                              cylinderSet->vertices.size(),
+                              (int)cylinderSet->vertices.size(),
                               (float3*)cylinderSet->colors.data(),
                               cylinderSet->colorPerVertex,
                               (int2*)cylinderSet->indices.data(),
-                              cylinderSet->indices.size(),
+                              (int)cylinderSet->indices.size(),
                               cylinderSet->radii.data(),
                               cylinderSet->radiusPerVertex,
                               cylinderSet->radius);
@@ -457,8 +468,8 @@ namespace hs {
             BNGeom geom
               = bnTriangleMeshCreate
               (barney,&material,
-               (int3*)miniMesh->indices.data(),miniMesh->indices.size(),
-               (float3*)miniMesh->vertices.data(),miniMesh->vertices.size(),
+               (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
+               (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
                miniMesh->normals.empty()
                ? nullptr
                : (float3*)miniMesh->normals.data(),
@@ -476,7 +487,7 @@ namespace hs {
           anari::commitParameters(device, meshGroup);
 #else
           BNGroup meshGroup
-            = bnGroupCreate(barney,geoms.data(),geoms.size(),
+            = bnGroupCreate(barney,geoms.data(),(int)geoms.size(),
                             nullptr,0);
           bnGroupBuild(meshGroup);
 #endif
@@ -520,7 +531,7 @@ namespace hs {
       BNScalarField mesh = bnUMeshCreate
         (barney,
          // vertices: 4 floats each
-         (const float *)verts4f.data(),verts4f.size(),
+         (const float *)verts4f.data(),(int)verts4f.size(),
          // tets: 4 ints each
          (const int *)unst->tets.data(),(int)unst->tets.size(),
          (const int *)unst->pyrs.data(),(int)unst->pyrs.size(),
@@ -530,7 +541,8 @@ namespace hs {
          gridOffsets.data(),
          (const int *)gridDims.data(),
          (const float *)gridDomains.data(),
-         gridScalars.data(), (int)gridScalars.size(),
+         gridScalars.data(), 
+         (int)gridScalars.size(),
          (const float3*)&domain.lower);
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
@@ -615,7 +627,7 @@ namespace hs {
         = anariNewGroup(device);
 #else
       BNGroup rootGroup
-        = bnGroupCreate(barney,rootGroupGeoms.data(),rootGroupGeoms.size(),
+        = bnGroupCreate(barney,rootGroupGeoms.data(),(int)rootGroupGeoms.size(),
                         nullptr,0);
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
@@ -636,7 +648,7 @@ namespace hs {
       BNGroup rootGroup
         = bnGroupCreate(barney,nullptr,0,
                         dg.createdVolumes.data(),
-                        dg.createdVolumes.size());
+                        (int)dg.createdVolumes.size());
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
 #endif
@@ -693,7 +705,7 @@ namespace hs {
 #else
     
     bnSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
-                   groups.size());
+                   (int)groups.size());
     bnBuild(barney);
 #endif
   }

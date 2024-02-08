@@ -180,7 +180,7 @@ namespace hs {
       for (int iz=0;iz<numVoxels.z;iz++)
         for (int iy=0;iy<numVoxels.y;iy++)
           for (int ix=0;ix<numVoxels.x;ix++) {
-            volume->vertices.push_back(umesh::vec3f(ix,iy,iz)*(const umesh::vec3f&)gridSpacing+(const umesh::vec3f&)gridOrigin);
+            volume->vertices.push_back(umesh::vec3f(umesh::vec3i(ix,iy,iz))*(const umesh::vec3f&)gridSpacing+(const umesh::vec3f&)gridOrigin);
             size_t idx = ix+size_t(numVoxels.x)*(iy+size_t(numVoxels.y)*iz);
             float scalar
               = (scalarType == StructuredVolume::FLOAT)

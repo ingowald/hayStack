@@ -47,6 +47,16 @@ add_library(hayStack
   TransferFunction.cpp
   )
 
+if (WIN32)
+target_link_libraries(hayStack
+  PUBLIC
+  owl
+  miniScene
+  umesh
+  barney
+#  mpiRenderInf
+  )
+else()
 target_link_libraries(hayStack
   PUBLIC
   owl
@@ -55,7 +65,13 @@ target_link_libraries(hayStack
   barney_mpi
 #  mpiRenderInf
   )
+endif()
+
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
+
+if (WIN32)
+  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
+endif()
 
 if (HANARI)
   target_compile_definitions(hayStack

@@ -45,6 +45,8 @@ set(SOURCES
   content/RAWVolumeContent.cpp
   )  
 
+if (WIN32)
+else()
 set(TFE_SOURCES
   external/imgui/imgui.cpp
   external/imgui/imgui_draw.cpp
@@ -59,6 +61,7 @@ set(TFE_SOURCES
   imgui_tfe/TFEditor.h
   imgui_tfe/TFEditor.cpp
 )
+endif()
 
 # ------------------------------------------------------------------
 add_executable(hsViewer
@@ -70,8 +73,12 @@ target_link_libraries(hsViewer
   hayStack
   owl_viewer
   )
-target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
 target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
+if (WIN32)
+else()
+target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
+target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+endif()
 
 # ------------------------------------------------------------------
 add_executable(hsOffline

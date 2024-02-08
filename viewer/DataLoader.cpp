@@ -240,7 +240,7 @@ namespace hs {
 
   void DataLoader::addContent(LoadableContent *content) 
   {
-    allContent.push_back({content->projectedSize(),int(allContent.size()),content});
+    allContent.push_back({(double)content->projectedSize(),int(allContent.size()),content});
   }
     
   void DataLoader::addContent(const std::string &contentDescriptor)

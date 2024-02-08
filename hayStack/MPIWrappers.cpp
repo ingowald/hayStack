@@ -19,6 +19,8 @@
 namespace hs {
   namespace mpi {
 
+#if HS_FAKE_MPI
+#else
     void init(int &ac, char **av)
     {
       int required = MPI_THREAD_MULTIPLE;
@@ -150,5 +152,7 @@ namespace hs {
     {
       HS_MPI_CALL(Barrier(comm));
     }
+
+#endif
   }
 }

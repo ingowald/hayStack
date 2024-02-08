@@ -25,7 +25,11 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
 endif()
 
+if (WIN32)
+option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
+else()
 option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
+endif()
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up

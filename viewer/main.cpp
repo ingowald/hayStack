@@ -22,9 +22,11 @@
 #define STB_IMAGE_IMPLEMENTATION 1
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
-# include "imgui_tfe/imgui_impl_glfw_gl3.h"
-# include "imgui_tfe/TFEditor.h"
-# include <imgui.h>
+# if HS_HAVE_IMGUI
+#  include "imgui_tfe/imgui_impl_glfw_gl3.h"
+#  include "imgui_tfe/TFEditor.h"
+#  include <imgui.h>
+# endif
 #elif HS_CUTEE
 # include "qtOWL/OWLViewer.h"
 # include "qtOWL/XFEditor.h"
@@ -96,7 +98,9 @@ namespace hs {
       : renderer(renderer)
     {
 #if HS_VIEWER
+# if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_Init(handle, true);
+# endif
 #endif
     }
 
@@ -138,8 +142,10 @@ namespace hs {
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
         if (xfEditor)
           xfEditor->saveToFile("hayThere.xf");
+# endif
 #else
         std::cout << "dumping transfer function only works in QT viewer" << std::endl;
 #endif
@@ -151,9 +157,12 @@ namespace hs {
 #if HS_VIEWER
     void mouseMotion(const vec2i &newMousePosition) override
     {
+# if HS_HAVE_IMGUI
       ImGuiIO &io = ImGui::GetIO();
-      if (!io.WantCaptureMouse) {
-        OWLViewer::mouseMotion(newMousePosition);
+      if (!io.WantCaptureMouse) 
+# endif
+      {
+          OWLViewer::mouseMotion(newMousePosition);
       }
     }
 #endif
@@ -171,7 +180,9 @@ namespace hs {
     void render() override
     {
 #if HS_VIEWER
+# if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_NewFrame();
+# endif
 #endif
 
       if (xfDirty) {
@@ -204,7 +215,7 @@ namespace hs {
         float numSecondsMeasured
           = (numFramesMeasured < 1)
           ? 0.f
-          : (t1 - measure_t0);
+          : float(t1 - measure_t0);
 
         if (numFramesMeasured >= measure_max_frames ||
             numSecondsMeasured >= measure_max_seconds) {
@@ -219,7 +230,7 @@ namespace hs {
       static double sum_w = 0.f;
       sum_t = 0.8f*sum_t + (t1-t0);
       sum_w = 0.8f*sum_w + 1.f;
-      float timePerFrame = sum_t / sum_w;
+      float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
       std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
@@ -230,6 +241,7 @@ namespace hs {
     {
       OWLViewer::draw();
 
+#if HS_HAVE_IMGUI
       if (xfEditor) {
         ImGui::Begin("TFE");
     
@@ -242,6 +254,7 @@ namespace hs {
 
         updateXFImGui();
       }
+#endif
     }
 #endif
 
@@ -260,7 +273,9 @@ namespace hs {
 #if HS_CUTEE
     XFEditor *xfEditor = 0;
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
     TFEditor *xfEditor = 0;
+# endif
 #endif
   };
 
@@ -285,6 +300,7 @@ namespace hs {
   }
   
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
   void Viewer::updateXFImGui()
   {
     if (xfEditor->cmapUpdated()) {
@@ -305,6 +321,7 @@ namespace hs {
 
     xfEditor->downdate(); // TODO: is this necessary?
   }
+# endif
 #endif
 
 #endif  
@@ -315,7 +332,11 @@ using namespace hs;
 int main(int ac, char **av)
 {
   hs::mpi::init(ac,av);
+#if HS_FAKE_MPI
+  hs::mpi::Comm world;
+#else
   hs::mpi::Comm world(MPI_COMM_WORLD);
+#endif
 
   world.barrier();
   if (world.rank == 0)
@@ -455,14 +476,14 @@ int main(int ac, char **av)
                               /*lookat   */fromCL.camera.vi,
                               /*up-vector*/fromCL.camera.vu,
                               /*fovy(deg)*/fromCL.camera.fovy);
-
+# if HS_HAVE_IMGUI
   TFEditor    *xfEditor = new TFEditor;
   xfEditor->setRange(worldBounds.scalars);
   viewer.xfEditor       = xfEditor;
 
   if (!fromCL.xfFileName.empty())
     xfEditor->loadFromFile(fromCL.xfFileName.c_str());
-  
+# endif
   viewer.showAndRun();
 #elif HS_CUTEE
   QApplication app(ac,av);
