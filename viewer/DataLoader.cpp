@@ -96,10 +96,27 @@ namespace hs {
     std::string value = keyValuePairs.find(key)->second;
     int n = 0;
     if (strstr(value.c_str(),","))
-      sscanf(value.c_str(),"%f,%f,%f",&v.x,&v.y,&v.z);
+      n = sscanf(value.c_str(),"%f,%f,%f",&v.x,&v.y,&v.z);
     else
-      sscanf(value.c_str(),"%f %f %f",&v.x,&v.y,&v.z);
+      n = sscanf(value.c_str(),"%f %f %f",&v.x,&v.y,&v.z);
     if (n != 3)
+      throw std::runtime_error
+        ("could not parse '"+value+"' for key '"+key+"'");
+    return v;
+  }
+  
+  vec2f ResourceSpecifier::get_vec2f(const std::string &key,
+                                     vec2f defaultValue) const
+  {
+    if (!has(key)) return defaultValue;
+    vec2f v;
+    std::string value = keyValuePairs.find(key)->second;
+    int n = 0;
+    if (strstr(value.c_str(),","))
+      n = sscanf(value.c_str(),"%f,%f",&v.x,&v.y);
+    else
+      n = sscanf(value.c_str(),"%f %f",&v.x,&v.y);
+    if (n != 2)
       throw std::runtime_error
         ("could not parse '"+value+"' for key '"+key+"'");
     return v;
