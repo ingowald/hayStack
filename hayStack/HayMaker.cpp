@@ -459,6 +459,10 @@ namespace hs {
             BNMaterial material = BN_DEFAULT_MATERIAL;
             mini::Material::SP miniMat = miniMesh->material;
             material.baseColor = (const float3&)miniMat->baseColor;
+            material.transmission = miniMat->transmission;
+            material.metallic     = miniMat->metallic;
+            material.roughness    = miniMat->roughness;
+            material.ior          = miniMat->ior;
             material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
             material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
             // some of our test mini files have a texture, but basecolor isn't set - fix this here.
