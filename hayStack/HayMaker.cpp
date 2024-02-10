@@ -353,7 +353,7 @@ namespace hs {
     if (!myData.sphereSets.empty()) {
 #if HANARI
 #else
-      std::vector<BNGeom>  &geoms = rootGroupGeoms;
+      // std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
@@ -364,7 +364,11 @@ namespace hs {
                             (float3*)sphereSet->colors.data(),
                             sphereSet->radii.data(),
                             sphereSet->radius);
-        geoms.push_back(geom);
+        BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
+        bnGroupBuild(group);
+        groups.push_back(group);
+        xfms.push_back({});
+        // geoms.push_back(geom);
       }
 #endif
     }

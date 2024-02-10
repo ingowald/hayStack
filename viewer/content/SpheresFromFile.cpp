@@ -111,7 +111,7 @@ namespace hs {
           scalarRange.extend(f);
           // f = clamp(f,colorMapRange.x,colorMapRange.y);
           f = saturate((f-colorMapRange.x)/(colorMapRange.y-colorMapRange.x));
-          vec3f color = temperature_to_rgb(f);
+          vec3f color = .6f*temperature_to_rgb(f);
           spheres->colors.push_back(color);
         // spheres->colors.push_back(vec3f(fmodf(v.w,1.f)));
         }
