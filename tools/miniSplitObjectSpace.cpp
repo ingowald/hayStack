@@ -87,4 +87,16 @@ int main(int ac, char **av)
 
     ranksByCost.push({leastLoadedRank.first-biggestObject.first,leastLoadedRank.second});
   }
+
+  for (int i=0;i<numParts;i++) {
+    Scene::SP out = Scene::create();
+    out->quadLights = in->quadLights;
+    out->dirLights = in->dirLights;
+    out->envMapLight = in->envMapLight;
+
+    for (auto obj : rankObjects[i])
+      for (auto inst : objects[obj])
+        out->instances.push_back(inst);
+    out->save(outFilePrefix+std::to_string(i)+".mini");
+  }
 }
