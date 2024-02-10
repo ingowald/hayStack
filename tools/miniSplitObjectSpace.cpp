@@ -68,12 +68,12 @@ int main(int ac, char **av)
     objects[inst->object].push_back(inst);
 
   std::priority_queue<std::pair<double,Object::SP>> objectsByCost;
-  for (auto obj : objects)
+  for (auto &obj : objects)
     objectsByCost.push({computeCost(obj.second),obj.first});
 
   std::vector<std::vector<Object::SP>> rankObjects(numParts);
   std::priority_queue<std::pair<double,int>> ranksByCost;
-  for (int i=0;i<numParts;i++) ranksByCost.push({0.,0});
+  for (int i=0;i<numParts;i++) ranksByCost.push({0.,i});
 
   while (!objectsByCost.empty()) {
     auto biggestObject = objectsByCost.top();
