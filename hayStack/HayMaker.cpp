@@ -402,18 +402,16 @@ namespace hs {
     // ------------------------------------------------------------------
     // render all (possibly instanced) triangle meshes from mini format
     // ------------------------------------------------------------------
+    std::vector<mini::QuadLight> quadLights;
+    std::vector<mini::DirLight>  dirLights;
+    mini::EnvMapLight::SP        envMapLight;
     for (auto mini : myData.minis) {
-      // anari::Geometry mesh = anariNewGeometry(device, "triangle");
-      // anari::Surface surface = anariNewSurface(device);
-      // anari::Group group = anariNewGroup(device);
-      // anari::Instance instance = anariNewInstance(device, "transform");
-
-      // anariSetParameter(device, surface, "geometry", ANARI_GEOMETRY, mesh);
-      // anariSetParameter(device, surface, "material", ANARI_MATERIAL, material);
-      // anariCommitParameters(device, surface);
-      // #if HANARI
-      // #else
-      // #endif
+      for (auto quad : mini->quadLights)
+        quadLights.push_back(quad);
+      for (auto dir : mini->dirLights)
+        dirLights.push_back(dir);
+      if (mini->envMapLight)
+        envMapLight = mini->envMapLight;
 
 #if HANARI
       std::map<mini::Object::SP, anari::Group> miniGroups;
@@ -506,6 +504,56 @@ namespace hs {
       }
     }
     
+    // ------------------------------------------------------------------
+    // set light(s)
+    // ------------------------------------------------------------------
+
+    if (envMapLight) {
+      BNLight light = bnLightCreate(barney,"environment");
+      if (light) {
+        bnSet4x3fv(light,"transform",(const float *)&envMapLight->transform);
+        mini::Texture::SP envMap = envMapLight->texture;
+        if (envMap) {
+          BNData texData = 0;
+          switch(envMap->format) {
+          case mini::Texture::FLOAT4:
+            texData = bnDataCreate(barney,BN_FLOAT4,
+                                   envMap->size.x*envMap->size.y,
+                                   envMap->data.data());
+            break;
+          default:
+            std::cout << "un-supported env-map format - skipping" << std::endl;
+          };
+          bnSetData(light,"envMap.data",texData);
+          bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
+        }
+        bnCommit(light);
+        bnSetObject(barney,"envLight",light);
+      }
+    }
+    std::vector<BNLight> lights;
+    for (auto mini : quadLights) {
+      BNLight light = bnLightCreate(barney,"quad");
+      if (!light) continue;
+      bnSet3fc(light,"corner",(const float3&)mini.corner);
+      bnSet3fc(light,"edge0",(const float3&)mini.edge0);
+      bnSet3fc(light,"edge1",(const float3&)mini.edge1);
+      bnSet3fc(light,"emission",(const float3&)mini.emission);
+      bnCommit(light);
+      lights.push_back(light);
+    }
+    for (auto mini : dirLights) {
+      BNLight light = bnLightCreate(barney,"directional");
+      if (!light) continue;
+      bnSet3fc(light,"direction",(const float3&)mini.direction);
+      bnSet3fc(light,"radiance",(const float3&)mini.radiance);
+      bnCommit(light);
+      lights.push_back(light);
+    }
+    if (!lights.empty()) {
+      BNData lightsData = bnDataCreate(barney,BN_OBJECT,lights.size(),lights.data());
+      bnSetData(barney,"lights",lightsData);
+    }
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
@@ -605,10 +653,10 @@ namespace hs {
       BNScalarType scalarType;
       switch(vol->scalarType) {
       case StructuredVolume::UINT8:
-        scalarType = BN_UINT8;
+        scalarType = BN_SCALAR_UINT8;
         break;
       case StructuredVolume::FLOAT:
-        scalarType = BN_FLOAT;
+        scalarType = BN_SCALAR_FLOAT;
         break;
       default: throw std::runtime_error("Unknown or un-supported scalar type");
       }
