@@ -329,6 +329,7 @@ namespace hs {
 #else
     BNDataGroup barney = bnGetDataGroup(model,dgID);
 #endif
+    std::vector<BNLight> lights;
 
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
@@ -399,20 +400,54 @@ namespace hs {
 #endif
     }
 
-    // ------------------------------------------------------------------
-    // render all (possibly instanced) triangle meshes from mini format
-    // ------------------------------------------------------------------
-    std::vector<mini::QuadLight> quadLights;
-    std::vector<mini::DirLight>  dirLights;
-    mini::EnvMapLight::SP        envMapLight;
     for (auto mini : myData.minis) {
-      for (auto quad : mini->quadLights)
-        quadLights.push_back(quad);
-      for (auto dir : mini->dirLights)
-        dirLights.push_back(dir);
-      if (mini->envMapLight)
-        envMapLight = mini->envMapLight;
-
+      // ------------------------------------------------------------------
+      // set light(s) for given mini scene
+      // ------------------------------------------------------------------
+      for (auto ml : mini->quadLights) {
+        BNLight light = bnLightCreate(barney,"quad");
+        if (!light) continue;
+        bnSet3fc(light,"corner",(const float3&)ml.corner);
+        bnSet3fc(light,"edge0",(const float3&)ml.edge0);
+        bnSet3fc(light,"edge1",(const float3&)ml.edge1);
+        bnSet3fc(light,"emission",(const float3&)ml.emission);
+        bnCommit(light);
+        lights.push_back(light);
+      }
+      for (auto ml : mini->dirLights) {
+        BNLight light = bnLightCreate(barney,"directional");
+        if (!light) continue;
+        bnSet3fc(light,"direction",(const float3&)ml.direction);
+        bnSet3fc(light,"radiance",(const float3&)ml.radiance);
+        bnCommit(light);
+        lights.push_back(light);
+      }
+      if (mini->envMapLight) {
+        BNLight light = bnLightCreate(barney,"environment");
+        if (light) {
+          bnSet4x3fv(light,"transform",(const float *)&mini->envMapLight->transform);
+          mini::Texture::SP envMap = mini->envMapLight->texture;
+          if (envMap) {
+            BNData texData = 0;
+            switch(envMap->format) {
+            case mini::Texture::FLOAT4:
+              texData = bnDataCreate(barney,BN_FLOAT4,
+                                     envMap->size.x*envMap->size.y,
+                                     envMap->data.data());
+              break;
+            default:
+              std::cout << "un-supported env-map format - skipping" << std::endl;
+            };
+            bnSetData(light,"envMap.data",texData);
+            bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
+          }
+          bnCommit(light);
+          lights.push_back(light);
+        }
+      }
+      // ------------------------------------------------------------------
+      // render all (possibly instanced) triangle meshes from mini format
+      // ------------------------------------------------------------------
 #if HANARI
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
@@ -499,61 +534,14 @@ namespace hs {
 #endif
           miniGroups[inst->object] = meshGroup;
         }
+
         groups.push_back(miniGroups[inst->object]);
         xfms.push_back((const affine3f&)inst->xfm);
+
       }
+
     }
     
-    // ------------------------------------------------------------------
-    // set light(s)
-    // ------------------------------------------------------------------
-
-    if (envMapLight) {
-      BNLight light = bnLightCreate(barney,"environment");
-      if (light) {
-        bnSet4x3fv(light,"transform",(const float *)&envMapLight->transform);
-        mini::Texture::SP envMap = envMapLight->texture;
-        if (envMap) {
-          BNData texData = 0;
-          switch(envMap->format) {
-          case mini::Texture::FLOAT4:
-            texData = bnDataCreate(barney,BN_FLOAT4,
-                                   envMap->size.x*envMap->size.y,
-                                   envMap->data.data());
-            break;
-          default:
-            std::cout << "un-supported env-map format - skipping" << std::endl;
-          };
-          bnSetData(light,"envMap.data",texData);
-          bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
-        }
-        bnCommit(light);
-        bnSetObject(barney,"envLight",light);
-      }
-    }
-    std::vector<BNLight> lights;
-    for (auto mini : quadLights) {
-      BNLight light = bnLightCreate(barney,"quad");
-      if (!light) continue;
-      bnSet3fc(light,"corner",(const float3&)mini.corner);
-      bnSet3fc(light,"edge0",(const float3&)mini.edge0);
-      bnSet3fc(light,"edge1",(const float3&)mini.edge1);
-      bnSet3fc(light,"emission",(const float3&)mini.emission);
-      bnCommit(light);
-      lights.push_back(light);
-    }
-    for (auto mini : dirLights) {
-      BNLight light = bnLightCreate(barney,"directional");
-      if (!light) continue;
-      bnSet3fc(light,"direction",(const float3&)mini.direction);
-      bnSet3fc(light,"radiance",(const float3&)mini.radiance);
-      bnCommit(light);
-      lights.push_back(light);
-    }
-    if (!lights.empty()) {
-      BNData lightsData = bnDataCreate(barney,BN_OBJECT,lights.size(),lights.data());
-      bnSetData(barney,"lights",lightsData);
-    }
     // ------------------------------------------------------------------
     // render all UMeshes
     // ------------------------------------------------------------------
@@ -677,7 +665,7 @@ namespace hs {
     // create a single instance for all 'root' geometry that isn't
     // explicitly instantitated itself
     // ------------------------------------------------------------------
-    if (!rootGroupGeoms.empty()) {
+    if (!rootGroupGeoms.empty() || !lights.empty()) {
 #if HANARI
       anari::Group rootGroup
         = anariNewGroup(device);
@@ -686,9 +674,17 @@ namespace hs {
         = bnGroupCreate(barney,rootGroupGeoms.data(),(int)rootGroupGeoms.size(),
                         nullptr,0);
       bnGroupBuild(rootGroup);
+
+      if (!lights.empty()) {
+        BNData lightsData = bnDataCreate(barney,BN_OBJECT,lights.size(),lights.data());
+        bnSetData(rootGroup,"lights",lightsData);
+      }
+      bnCommit(rootGroup);
+      
       groups.push_back(rootGroup);
       xfms.push_back(affine3f());
 #endif
+
     }
     // ------------------------------------------------------------------
     // create a single instance for all 'root' volume(s)
