@@ -605,10 +605,10 @@ namespace hs {
       BNScalarType scalarType;
       switch(vol->scalarType) {
       case StructuredVolume::UINT8:
-        scalarType = BN_UINT8;
+        scalarType = BN_SCALAR_UINT8;
         break;
       case StructuredVolume::FLOAT:
-        scalarType = BN_FLOAT;
+        scalarType = BN_SCALAR_FLOAT;
         break;
       default: throw std::runtime_error("Unknown or un-supported scalar type");
       }
