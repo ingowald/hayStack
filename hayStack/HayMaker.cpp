@@ -426,8 +426,21 @@ namespace hs {
         BNLight light = bnLightCreate(barney,"environment");
         if (light) {
           bnSet4x3fv(light,"envMap.transform",(const float *)&mini->envMapLight->transform);
+          PRINT(mini->envMapLight->transform);
           mini::Texture::SP envMap = mini->envMapLight->texture;
           if (envMap) {
+#if 1
+            BNTextureFilterMode filterMode = BN_TEXTURE_LINEAR;
+            BNTextureAddressMode addressMode = BN_TEXTURE_WRAP;
+            BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
+            BNTexelFormat texelFormat = BN_TEXEL_FORMAT_RGBA32F;
+            BNTexture texture
+              = bnTexture2DCreate(barney,texelFormat,
+                                  envMap->size.x,envMap->size.y,
+                                  envMap->data.data(),
+                                  filterMode,addressMode,colorSpace);
+            bnSetObject(light,"envMap.texture",texture);
+#else
             BNData texData = 0;
             switch(envMap->format) {
             case mini::Texture::FLOAT4:
@@ -440,6 +453,7 @@ namespace hs {
             };
             bnSetData(light,"envMap.texels",texData);
             bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
+#endif
           }
           bnCommit(light);
           lights.push_back(light);
