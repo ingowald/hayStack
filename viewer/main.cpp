@@ -41,6 +41,8 @@
 
 namespace hs {
 
+  double t_last_render;
+  
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
         many as we have to fit for given number of ranks */
@@ -179,6 +181,7 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
+      double _t0 = getCurrentTime();
 #if HS_VIEWER
 # if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_NewFrame();
@@ -205,7 +208,7 @@ namespace hs {
       if (numFramesRendered == measure_warmup_frames)
         measure_t0 = getCurrentTime();
       
-      double t0 = getCurrentTime();
+      static double t0 = getCurrentTime();
       renderer->renderFrame(fromCL.spp);
       ++numFramesRendered;
       double t1 = getCurrentTime();
@@ -234,6 +237,9 @@ namespace hs {
       float fps = 1.f/timePerFrame;
       std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
+      t0 = t1;
+      double _t1 = getCurrentTime();
+      t_last_render = _t1-_t0;
     }
     
 #if HS_VIEWER
@@ -259,7 +265,7 @@ namespace hs {
 #endif
 
     void cameraChanged()
-    {
+    {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation(camera.vp,camera.vi,camera.vu,camera.fovy);
       renderer->setCamera(camera);
@@ -289,7 +295,7 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = r; //{ 0.f, 0.f };//r;
+    xf.domain = r; 
     xfDirty = true;
   }
   
