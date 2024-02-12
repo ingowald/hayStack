@@ -425,7 +425,7 @@ namespace hs {
       if (mini->envMapLight) {
         BNLight light = bnLightCreate(barney,"environment");
         if (light) {
-          bnSet4x3fv(light,"transform",(const float *)&mini->envMapLight->transform);
+          bnSet4x3fv(light,"envMap.transform",(const float *)&mini->envMapLight->transform);
           mini::Texture::SP envMap = mini->envMapLight->texture;
           if (envMap) {
             BNData texData = 0;
@@ -438,7 +438,7 @@ namespace hs {
             default:
               std::cout << "un-supported env-map format - skipping" << std::endl;
             };
-            bnSetData(light,"envMap.data",texData);
+            bnSetData(light,"envMap.texels",texData);
             bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
           }
           bnCommit(light);
