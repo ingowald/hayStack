@@ -366,6 +366,40 @@ namespace hs {
           //                   (float3*)sphereSet->colors.data(),
           //                   sphereSet->radii.data(),
           //                   sphereSet->radius);
+        if (!geom) continue;
+        PING;PRINT(geom);
+        // .......................................................
+        BNData origins = bnDataCreate(barney,BN_FLOAT3,
+                                      sphereSet->origins.size(),
+                                      sphereSet->origins.data());
+        bnSetData(geom,"origins",origins);
+        // .......................................................
+        if (!sphereSet->colors.empty()) {
+          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+                                       sphereSet->colors.size(),
+                                       sphereSet->colors.data());
+          bnSetData(geom,"colors",colors);
+        }
+        // .......................................................
+        if (!sphereSet->radii.empty()) {
+          BNData radii = bnDataCreate(barney,BN_FLOAT,
+                                      sphereSet->radii.size(),
+                                      sphereSet->radii.data());
+          bnSetData(geom,"radii",radii);
+        }
+        // .......................................................
+        bnSet1f(geom,"radius",sphereSet->radius);
+        // .......................................................
+        bnSet3fc(geom,"material.baseColor",material.baseColor);
+        bnSet1f(geom,"material.transmission",material.transmission);
+        bnSet1f(geom,"material.ior",material.ior);
+        if (material.colorTexture)
+          bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        if (material.alphaTexture)
+          bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // .......................................................
+        bnCommit(geom);
+        // .......................................................
         BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
         bnGroupBuild(group);
         groups.push_back(group);
