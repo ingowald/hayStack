@@ -47,7 +47,28 @@ namespace hs {
     
   size_t SpheresFromFile::projectedSize() 
   { return (100/12) * divRoundUp(fileSize, (size_t)data.numParts); }
+
+
+
+  inline float saturate(float f) { return min(1.f,max(0.f,f)); }
+  
+  inline vec3f hue_to_rgb(float hue)
+  {
+    float s = saturate( hue ) * 6.0f;
+    float r = saturate( fabsf(s - 3.f) - 1.0f );
+    float g = saturate( 2.0f - fabsf(s - 2.0f) );
+    float b = saturate( 2.0f - fabsf(s - 4.0f) );
+    return vec3f(r, g, b); 
+  }
     
+  inline vec3f temperature_to_rgb(float t)
+  {
+    float K = 4.0f / 6.0f;
+    float h = K - K * t;
+    float v = .5f + 0.5f * t;    return v * hue_to_rgb(h);
+  }
+
+  
   void   SpheresFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
@@ -58,6 +79,7 @@ namespace hs {
       = (data.get("format")=="xyzf")
       ? sizeof(vec4f)
       : sizeof(vec3f);
+
     int64_t numSpheresInFile = fileSize / sizeOfSphere;
     int64_t numSpheresToLoad
       = std::min((int64_t)data.get_size("count",numSpheresInFile),
@@ -75,12 +97,24 @@ namespace hs {
     // spheres->origins.resize(my_count);
     fseek(file,my_begin*sizeOfSphere,SEEK_SET);
     const std::string format = data.get("format","xyz");
+    range1f scalarRange;
     if (format =="xyzf") {
+      vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
       vec4f v;
       for (size_t i=0;i<my_count;i++) {
         int rc = fread((char*)&v,sizeof(v),1,file);
         assert(rc);
         spheres->origins.push_back(vec3f{v.x,v.y,v.z});
+
+        if (colorMapRange.x != colorMapRange.y) {
+          float f = v.w;
+          scalarRange.extend(f);
+          // f = clamp(f,colorMapRange.x,colorMapRange.y);
+          f = saturate((f-colorMapRange.x)/(colorMapRange.y-colorMapRange.x));
+          vec3f color = .6f*temperature_to_rgb(f);
+          spheres->colors.push_back(color);
+        // spheres->colors.push_back(vec3f(fmodf(v.w,1.f)));
+        }
       }
     } else if (format =="xyzi") {
       struct
@@ -120,6 +154,8 @@ namespace hs {
     if (verbose) {
       std::cout << "   ... done loading " << prettyNumber(my_count)
                 << " spheres from " << data.where << std::endl << std::flush;
+      if (!scalarRange.empty())
+        std::cout << "  (scalar range was " << scalarRange << ")" << std::endl;
       fflush(0);
     }
     fclose(file);

@@ -17,15 +17,28 @@
 #pragma once
 
 #include "hayStack/common.h"
-#include <mpi.h>
+#if HS_FAKE_MPI
+// no mpi...
+#else
+#  include <mpi.h>
+#endif
 #include <stdexcept>
 
+#if HS_FAKE_MPI
+#define HS_MPI_CALL(fctCall)  
+#define MPI_Comm int
+#define MPI_COMM_NULL 0
+#define MPI_Request int
+#else
 #define HS_MPI_CALL(fctCall)                                                 \
     { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
-    
+#endif
+
 namespace hs {
   namespace mpi {
-
+#if HS_FAKE_MPI
+      inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
+#else
     inline std::string mpiErrorString(int rc)
     {
       char s[MPI_MAX_ERROR_STRING];
@@ -34,6 +47,7 @@ namespace hs {
       MPI_Error_string(rc,s,&len);
       return s;
     }
+#endif  
     struct Exception : public std::runtime_error {
       Exception(const std::string &where, int rc)
         : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
@@ -55,6 +69,7 @@ namespace hs {
       Comm split(int color);
       
       inline operator MPI_Comm() { return comm; }
+
       void  assertValid() const;
       int   allReduceMax(int value) const;
       int   allReduceMin(int value) const;
@@ -107,6 +122,7 @@ namespace hs {
       void bc_recv(void *ptr, size_t numBytes);
 
       int rank = -1, size = -1;
+
       MPI_Comm comm = MPI_COMM_NULL;
     };
     
@@ -122,7 +138,6 @@ namespace hs {
                         // 1,MPI_INT,
                         fromRank,0x123+tag,comm,&req));
     }
-    
     template<typename T>
     inline void Comm::send(int toRank, int tag,
                            const T *buffer, int numItems, MPI_Request &req)
@@ -135,7 +150,7 @@ namespace hs {
                         // 1,MPI_INT,
                         toRank,0x123+tag,comm,&req));
     }
-    
+
     /*! master-side of a gather where clietn gathers a fixed number
       of itmes from each rank */
     template<typename T>
@@ -155,7 +170,7 @@ namespace hs {
     inline void Comm::masterGather(// what we're sending (this rank's data only)
                                    const T *sendBuffer, int numItemsSentOnEachRank)
     {
-      HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+        HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           0,comm));
     }

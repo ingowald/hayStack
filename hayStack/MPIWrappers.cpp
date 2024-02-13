@@ -21,11 +21,15 @@ namespace hs {
 
     void init(int &ac, char **av)
     {
+#if HS_FAKE_MPI
+        // no mpi...
+#else
       int required = MPI_THREAD_MULTIPLE;
       int provided = 0;
       HS_MPI_CALL(Init_thread(&ac,&av,required,&provided));
       if (provided != required)
         throw std::runtime_error("MPI runtime does not provide threading support");
+#endif
     }
 
     void finalize()
@@ -36,10 +40,15 @@ namespace hs {
     Comm::Comm(MPI_Comm comm)
       : comm(comm)
     {
+#if HS_FAKE_MPI
+      rank = 0;
+      size = 1;
+#else
       if (comm != MPI_COMM_NULL) {
         HS_MPI_CALL(Comm_rank(comm,&rank));
         HS_MPI_CALL(Comm_size(comm,&size));
       }
+#endif
     }
 
     /*! master's send side of broadcast - must be done on rank 0,
@@ -58,49 +67,53 @@ namespace hs {
     
     void Comm::assertValid() const
     {
+#if HS_FAKE_MPI
+        // no mpi...
+#else
       if (comm == MPI_COMM_NULL)
         throw std::runtime_error(std::string(__PRETTY_FUNCTION__)
                                  +" : not a valid mpi communicator"); 
+#endif
     }
     
     int Comm::allReduceAdd(int value) const
     {
-      int result;
+      int result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_SUM,comm));
       return result;
     }
 
     float Comm::allReduceAdd(float value) const
     {
-      float result;
+      float result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_SUM,comm));
       return result;
     }
 
     int Comm::allReduceMin(int value) const
     {
-      int result;
+      int result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MIN,comm));
       return result;
     }
 
     int Comm::allReduceMax(int value) const
     {
-      int result;
+      int result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MAX,comm));
       return result;
     }
     
     float Comm::allReduceMax(float value) const
     {
-      float result;
+      float result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MAX,comm));
       return result;
     }
     
     float Comm::allReduceMin(float value) const
     {
-      float result;
+      float result = 0;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MIN,comm));
       return result;
     }
@@ -139,16 +152,19 @@ namespace hs {
       other former ranks */
     Comm Comm::split(int color)
     {
+#if HS_FAKE_MPI
+        return Comm();
+#else
       MPI_Comm newComm;
       HS_MPI_CALL(Comm_split(comm,color,rank,&newComm));
       return Comm(newComm);
+#endif
     }
-      
-
     
     void Comm::barrier() const
     {
       HS_MPI_CALL(Barrier(comm));
     }
+
   }
 }

@@ -74,11 +74,11 @@ namespace hs {
     for (int64_t i=0;i<numVertices;i++) {
       vec3f v;
       in.read((char *)&d,sizeof(d));
-      v.x = d;
+      v.x = (float)d;
       in.read((char *)&d,sizeof(d));
-      v.y = d;
+      v.y = (float)d;
       in.read((char *)&d,sizeof(d));
-      v.z = d;
+      v.z = (float)d;
       vertices.push_back(v);
     }
 

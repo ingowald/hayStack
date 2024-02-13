@@ -64,7 +64,7 @@ namespace hs {
     { dataGroups.resize(numDataGroups); }
 
     /*! returns the number of data groups *on this rank* */
-    int size() const { return dataGroups.size(); }
+    int size() const { return (int)dataGroups.size(); }
 
     /*! this is an optimization in particular for models (like lander)
         where one rank might get multiple "smaller" unstructured

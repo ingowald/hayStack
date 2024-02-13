@@ -66,8 +66,6 @@ if(WIN32)
     external/glad/glad.h
     external/glad/khrplatform.h
   )
-elseif()
-  set(GLAD_SOURCES )
 endif()
 
 # ------------------------------------------------------------------
@@ -81,8 +79,13 @@ target_link_libraries(hsViewer
   hayStack
   owl_viewer
   )
-target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
 target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
+if (WIN32)
+  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
+else()
+  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
+endif()
+target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
 
 # ------------------------------------------------------------------
 add_executable(hsOffline

@@ -68,17 +68,28 @@ namespace hs {
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
 #else
+#if HS_FAKE_MPI
+      barney = bnContextCreate
+      (   /*data*/dataGroupIDs.data(), (int)dataGroupIDs.size(),
+          /*gpus*/nullptr, -1);
+#else
       barney = bnMPIContextCreate
         (world.comm,
          /*data*/dataGroupIDs.data(),dataGroupIDs.size(),
          /*gpus*/nullptr,-1);
 #endif
+#endif
     } else {
 #if HANARI
       throw std::runtime_error("passive master not yet implemented");
 #else
+#if HS_FAKE_MPI
+        barney = bnContextCreate
+        (/*data*/nullptr, 0,/*gpus*/nullptr, 0);
+#else
       barney = bnMPIContextCreate
         (world.comm,/*data*/nullptr,0,/*gpus*/nullptr,0);
+#endif
 #endif
     }
     
@@ -174,7 +185,7 @@ namespace hs {
         bnVolumeSetXF(vol,
                       (float2&)xf.domain,
                       (const float4*)xf.colorMap.data(),
-                      xf.colorMap.size(),
+                      (int)xf.colorMap.size(),
                       xf.baseDensity);
 #endif
       }
@@ -318,11 +329,12 @@ namespace hs {
 #else
     BNDataGroup barney = bnGetDataGroup(model,dgID);
 #endif
+    std::vector<BNLight> lights;
 
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
-                               clamp(5.f-fabsf(i-40),0.f,1.f)));
+                               clamp(5.f-fabsf((float)i-40),0.f,1.f)));
 
     auto &dg = perDG[dgID];
 
@@ -342,18 +354,22 @@ namespace hs {
     if (!myData.sphereSets.empty()) {
 #if HANARI
 #else
-      std::vector<BNGeom>  &geoms = rootGroupGeoms;
+      // std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
           = bnSpheresCreate(barney,
                             &material,
                             (float3*)sphereSet->origins.data(),
-                            sphereSet->origins.size(),
+                            (int)sphereSet->origins.size(),
                             (float3*)sphereSet->colors.data(),
                             sphereSet->radii.data(),
                             sphereSet->radius);
-        geoms.push_back(geom);
+        BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
+        bnGroupBuild(group);
+        groups.push_back(group);
+        xfms.push_back({});
+        // geoms.push_back(geom);
       }
 #endif
     }
@@ -371,11 +387,11 @@ namespace hs {
           = bnCylindersCreate(barney,
                               &material,
                               (float3*)cylinderSet->vertices.data(),
-                              cylinderSet->vertices.size(),
+                              (int)cylinderSet->vertices.size(),
                               (float3*)cylinderSet->colors.data(),
                               cylinderSet->colorPerVertex,
                               (int2*)cylinderSet->indices.data(),
-                              cylinderSet->indices.size(),
+                              (int)cylinderSet->indices.size(),
                               cylinderSet->radii.data(),
                               cylinderSet->radiusPerVertex,
                               cylinderSet->radius);
@@ -384,22 +400,68 @@ namespace hs {
 #endif
     }
 
-    // ------------------------------------------------------------------
-    // render all (possibly instanced) triangle meshes from mini format
-    // ------------------------------------------------------------------
     for (auto mini : myData.minis) {
-      // anari::Geometry mesh = anariNewGeometry(device, "triangle");
-      // anari::Surface surface = anariNewSurface(device);
-      // anari::Group group = anariNewGroup(device);
-      // anari::Instance instance = anariNewInstance(device, "transform");
-
-      // anariSetParameter(device, surface, "geometry", ANARI_GEOMETRY, mesh);
-      // anariSetParameter(device, surface, "material", ANARI_MATERIAL, material);
-      // anariCommitParameters(device, surface);
-      // #if HANARI
-      // #else
-      // #endif
-
+      // ------------------------------------------------------------------
+      // set light(s) for given mini scene
+      // ------------------------------------------------------------------
+      for (auto ml : mini->quadLights) {
+        BNLight light = bnLightCreate(barney,"quad");
+        if (!light) continue;
+        bnSet3fc(light,"corner",(const float3&)ml.corner);
+        bnSet3fc(light,"edge0",(const float3&)ml.edge0);
+        bnSet3fc(light,"edge1",(const float3&)ml.edge1);
+        bnSet3fc(light,"emission",(const float3&)ml.emission);
+        bnCommit(light);
+        lights.push_back(light);
+      }
+      for (auto ml : mini->dirLights) {
+        BNLight light = bnLightCreate(barney,"directional");
+        if (!light) continue;
+        bnSet3fc(light,"direction",(const float3&)ml.direction);
+        bnSet3fc(light,"radiance",(const float3&)ml.radiance);
+        bnCommit(light);
+        lights.push_back(light);
+      }
+      if (mini->envMapLight) {
+        BNLight light = bnLightCreate(barney,"environment");
+        if (light) {
+          bnSet4x3fv(light,"envMap.transform",(const float *)&mini->envMapLight->transform);
+          PRINT(mini->envMapLight->transform);
+          mini::Texture::SP envMap = mini->envMapLight->texture;
+          if (envMap) {
+#if 1
+            BNTextureFilterMode filterMode = BN_TEXTURE_LINEAR;
+            BNTextureAddressMode addressMode = BN_TEXTURE_WRAP;
+            BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
+            BNTexelFormat texelFormat = BN_TEXEL_FORMAT_RGBA32F;
+            BNTexture texture
+              = bnTexture2DCreate(barney,texelFormat,
+                                  envMap->size.x,envMap->size.y,
+                                  envMap->data.data(),
+                                  filterMode,addressMode,colorSpace);
+            bnSetObject(light,"envMap.texture",texture);
+#else
+            BNData texData = 0;
+            switch(envMap->format) {
+            case mini::Texture::FLOAT4:
+              texData = bnDataCreate(barney,BN_FLOAT4,
+                                     envMap->size.x*envMap->size.y,
+                                     envMap->data.data());
+              break;
+            default:
+              std::cout << "un-supported env-map format - skipping" << std::endl;
+            };
+            bnSetData(light,"envMap.texels",texData);
+            bnSet2i(light,"envMap.dims",envMap->size.x,envMap->size.y);
+#endif
+          }
+          bnCommit(light);
+          lights.push_back(light);
+        }
+      }
+      // ------------------------------------------------------------------
+      // render all (possibly instanced) triangle meshes from mini format
+      // ------------------------------------------------------------------
 #if HANARI
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
@@ -448,6 +510,10 @@ namespace hs {
             BNMaterial material = BN_DEFAULT_MATERIAL;
             mini::Material::SP miniMat = miniMesh->material;
             material.baseColor = (const float3&)miniMat->baseColor;
+            material.transmission = miniMat->transmission;
+            material.metallic     = miniMat->metallic;
+            material.roughness    = miniMat->roughness;
+            material.ior          = miniMat->ior;
             material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
             material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
             // some of our test mini files have a texture, but basecolor isn't set - fix this here.
@@ -457,8 +523,8 @@ namespace hs {
             BNGeom geom
               = bnTriangleMeshCreate
               (barney,&material,
-               (int3*)miniMesh->indices.data(),miniMesh->indices.size(),
-               (float3*)miniMesh->vertices.data(),miniMesh->vertices.size(),
+               (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
+               (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
                miniMesh->normals.empty()
                ? nullptr
                : (float3*)miniMesh->normals.data(),
@@ -476,15 +542,18 @@ namespace hs {
           anari::commitParameters(device, meshGroup);
 #else
           BNGroup meshGroup
-            = bnGroupCreate(barney,geoms.data(),geoms.size(),
+            = bnGroupCreate(barney,geoms.data(),(int)geoms.size(),
                             nullptr,0);
           bnGroupBuild(meshGroup);
 #endif
           miniGroups[inst->object] = meshGroup;
         }
+
         groups.push_back(miniGroups[inst->object]);
         xfms.push_back((const affine3f&)inst->xfm);
+
       }
+
     }
     
     // ------------------------------------------------------------------
@@ -520,7 +589,7 @@ namespace hs {
       BNScalarField mesh = bnUMeshCreate
         (barney,
          // vertices: 4 floats each
-         (const float *)verts4f.data(),verts4f.size(),
+         (const float *)verts4f.data(),(int)verts4f.size(),
          // tets: 4 ints each
          (const int *)unst->tets.data(),(int)unst->tets.size(),
          (const int *)unst->pyrs.data(),(int)unst->pyrs.size(),
@@ -530,7 +599,8 @@ namespace hs {
          gridOffsets.data(),
          (const int *)gridDims.data(),
          (const float *)gridDomains.data(),
-         gridScalars.data(), (int)gridScalars.size(),
+         gridScalars.data(), 
+         (int)gridScalars.size(),
          (const float3*)&domain.lower);
       // rootGroupGeoms.push_back(geom);
       BNVolume volume = bnVolumeCreate(barney,mesh);
@@ -585,10 +655,10 @@ namespace hs {
       BNScalarType scalarType;
       switch(vol->scalarType) {
       case StructuredVolume::UINT8:
-        scalarType = BN_UINT8;
+        scalarType = BN_SCALAR_UINT8;
         break;
       case StructuredVolume::FLOAT:
-        scalarType = BN_FLOAT;
+        scalarType = BN_SCALAR_FLOAT;
         break;
       default: throw std::runtime_error("Unknown or un-supported scalar type");
       }
@@ -609,18 +679,26 @@ namespace hs {
     // create a single instance for all 'root' geometry that isn't
     // explicitly instantitated itself
     // ------------------------------------------------------------------
-    if (!rootGroupGeoms.empty()) {
+    if (!rootGroupGeoms.empty() || !lights.empty()) {
 #if HANARI
       anari::Group rootGroup
         = anariNewGroup(device);
 #else
       BNGroup rootGroup
-        = bnGroupCreate(barney,rootGroupGeoms.data(),rootGroupGeoms.size(),
+        = bnGroupCreate(barney,rootGroupGeoms.data(),(int)rootGroupGeoms.size(),
                         nullptr,0);
       bnGroupBuild(rootGroup);
+
+      if (!lights.empty()) {
+        BNData lightsData = bnDataCreate(barney,BN_OBJECT,lights.size(),lights.data());
+        bnSetData(rootGroup,"lights",lightsData);
+      }
+      bnCommit(rootGroup);
+      
       groups.push_back(rootGroup);
       xfms.push_back(affine3f());
 #endif
+
     }
     // ------------------------------------------------------------------
     // create a single instance for all 'root' volume(s)
@@ -636,7 +714,7 @@ namespace hs {
       BNGroup rootGroup
         = bnGroupCreate(barney,nullptr,0,
                         dg.createdVolumes.data(),
-                        dg.createdVolumes.size());
+                        (int)dg.createdVolumes.size());
       bnGroupBuild(rootGroup);
       groups.push_back(rootGroup);
 #endif
@@ -693,7 +771,7 @@ namespace hs {
 #else
     
     bnSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
-                   groups.size());
+                   (int)groups.size());
     bnBuild(barney);
 #endif
   }

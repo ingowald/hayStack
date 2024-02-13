@@ -14,21 +14,22 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#ifdef _WIN32
-#  include "glad.h"
-#endif
-
 #include "hayStack/HayMaker.h"
 #include "viewer/DataLoader.h"
 #if HS_VIEWER
+#ifdef _WIN32 
+#  include "glad.h"
+#endif
 # include "samples/common/owlViewer/InspectMode.h"
 # include "samples/common/owlViewer/OWLViewer.h"
 #define STB_IMAGE_IMPLEMENTATION 1
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
-# include "imgui_tfe/imgui_impl_glfw_gl3.h"
-# include "imgui_tfe/TFEditor.h"
-# include <imgui.h>
+# if HS_HAVE_IMGUI
+#  include "imgui_tfe/imgui_impl_glfw_gl3.h"
+#  include "imgui_tfe/TFEditor.h"
+#  include <imgui.h>
+# endif
 #elif HS_CUTEE
 # include "qtOWL/OWLViewer.h"
 # include "qtOWL/XFEditor.h"
@@ -43,6 +44,8 @@
 
 namespace hs {
 
+  double t_last_render;
+  
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
         many as we have to fit for given number of ranks */
@@ -100,7 +103,9 @@ namespace hs {
       : renderer(renderer)
     {
 #if HS_VIEWER
+# if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_Init(handle, true);
+# endif
 #endif
     }
 
@@ -142,8 +147,10 @@ namespace hs {
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
         if (xfEditor)
           xfEditor->saveToFile("hayThere.xf");
+# endif
 #else
         std::cout << "dumping transfer function only works in QT viewer" << std::endl;
 #endif
@@ -155,9 +162,12 @@ namespace hs {
 #if HS_VIEWER
     void mouseMotion(const vec2i &newMousePosition) override
     {
+# if HS_HAVE_IMGUI
       ImGuiIO &io = ImGui::GetIO();
-      if (!io.WantCaptureMouse) {
-        OWLViewer::mouseMotion(newMousePosition);
+      if (!io.WantCaptureMouse) 
+# endif
+      {
+          OWLViewer::mouseMotion(newMousePosition);
       }
     }
 #endif
@@ -174,8 +184,11 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
+      double _t0 = getCurrentTime();
 #if HS_VIEWER
+# if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_NewFrame();
+# endif
 #endif
 
       if (xfDirty) {
@@ -198,7 +211,7 @@ namespace hs {
       if (numFramesRendered == measure_warmup_frames)
         measure_t0 = getCurrentTime();
       
-      double t0 = getCurrentTime();
+      static double t0 = getCurrentTime();
       renderer->renderFrame(fromCL.spp);
       ++numFramesRendered;
       double t1 = getCurrentTime();
@@ -208,7 +221,7 @@ namespace hs {
         float numSecondsMeasured
           = (numFramesMeasured < 1)
           ? 0.f
-          : (t1 - measure_t0);
+          : float(t1 - measure_t0);
 
         if (numFramesMeasured >= measure_max_frames ||
             numSecondsMeasured >= measure_max_seconds) {
@@ -223,10 +236,13 @@ namespace hs {
       static double sum_w = 0.f;
       sum_t = 0.8f*sum_t + (t1-t0);
       sum_w = 0.8f*sum_w + 1.f;
-      float timePerFrame = sum_t / sum_w;
+      float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
       std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
+      t0 = t1;
+      double _t1 = getCurrentTime();
+      t_last_render = _t1-_t0;
     }
     
 #if HS_VIEWER
@@ -234,6 +250,7 @@ namespace hs {
     {
       OWLViewer::draw();
 
+#if HS_HAVE_IMGUI
       if (xfEditor) {
         ImGui::Begin("TFE");
     
@@ -246,11 +263,12 @@ namespace hs {
 
         updateXFImGui();
       }
+#endif
     }
 #endif
 
     void cameraChanged()
-    {
+    {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation(camera.vp,camera.vi,camera.vu,camera.fovy);
       renderer->setCamera(camera);
@@ -264,7 +282,9 @@ namespace hs {
 #if HS_CUTEE
     XFEditor *xfEditor = 0;
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
     TFEditor *xfEditor = 0;
+# endif
 #endif
   };
 
@@ -278,7 +298,7 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = r; //{ 0.f, 0.f };//r;
+    xf.domain = r; 
     xfDirty = true;
   }
   
@@ -289,6 +309,7 @@ namespace hs {
   }
   
 #elif HS_VIEWER
+# if HS_HAVE_IMGUI
   void Viewer::updateXFImGui()
   {
     if (xfEditor->cmapUpdated()) {
@@ -309,6 +330,7 @@ namespace hs {
 
     xfEditor->downdate(); // TODO: is this necessary?
   }
+# endif
 #endif
 
 #endif  
@@ -318,8 +340,12 @@ using namespace hs;
 
 int main(int ac, char **av)
 {
-  hs::mpi::init(ac,av);
+  hs::mpi::init(ac, av);
+#if HS_FAKE_MPI
+  hs::mpi::Comm world;
+#else
   hs::mpi::Comm world(MPI_COMM_WORLD);
+#endif
 
   world.barrier();
   if (world.rank == 0)
@@ -446,6 +472,7 @@ int main(int ac, char **av)
     MPIRenderer::runWorker(world,&hayMaker);
     world.barrier();
     hs::mpi::finalize();
+
     exit(0);
   }
 
@@ -459,14 +486,14 @@ int main(int ac, char **av)
                               /*lookat   */fromCL.camera.vi,
                               /*up-vector*/fromCL.camera.vu,
                               /*fovy(deg)*/fromCL.camera.fovy);
-
+# if HS_HAVE_IMGUI
   TFEditor    *xfEditor = new TFEditor;
   xfEditor->setRange(worldBounds.scalars);
   viewer.xfEditor       = xfEditor;
 
   if (!fromCL.xfFileName.empty())
     xfEditor->loadFromFile(fromCL.xfFileName.c_str());
-  
+# endif
   viewer.showAndRun();
 #elif HS_CUTEE
   QApplication app(ac,av);
@@ -534,6 +561,8 @@ int main(int ac, char **av)
 #endif
 
   world.barrier();
+
   hs::mpi::finalize();
+
   return 0;
 }
