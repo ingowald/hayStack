@@ -358,13 +358,14 @@ namespace hs {
       for (auto &sphereSet : myData.sphereSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnSpheresCreate(barney,
-                            &material,
-                            (float3*)sphereSet->origins.data(),
-                            (int)sphereSet->origins.size(),
-                            (float3*)sphereSet->colors.data(),
-                            sphereSet->radii.data(),
-                            sphereSet->radius);
+          = bnGeometryCreate(barney,"spheres");
+          // = bnSpheresCreate(barney,
+          //                   &material,
+          //                   (float3*)sphereSet->origins.data(),
+          //                   (int)sphereSet->origins.size(),
+          //                   (float3*)sphereSet->colors.data(),
+          //                   sphereSet->radii.data(),
+          //                   sphereSet->radius);
         BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
         bnGroupBuild(group);
         groups.push_back(group);
@@ -384,17 +385,18 @@ namespace hs {
       for (auto &cylinderSet : myData.cylinderSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnCylindersCreate(barney,
-                              &material,
-                              (float3*)cylinderSet->vertices.data(),
-                              (int)cylinderSet->vertices.size(),
-                              (float3*)cylinderSet->colors.data(),
-                              cylinderSet->colorPerVertex,
-                              (int2*)cylinderSet->indices.data(),
-                              (int)cylinderSet->indices.size(),
-                              cylinderSet->radii.data(),
-                              cylinderSet->radiusPerVertex,
-                              cylinderSet->radius);
+          = bnGeometryCreate(barney,"cylinders");
+          // = bnCylindersCreate(barney,
+          //                     &material,
+          //                     (float3*)cylinderSet->vertices.data(),
+          //                     (int)cylinderSet->vertices.size(),
+          //                     (float3*)cylinderSet->colors.data(),
+          //                     cylinderSet->colorPerVertex,
+          //                     (int2*)cylinderSet->indices.data(),
+          //                     (int)cylinderSet->indices.size(),
+          //                     cylinderSet->radii.data(),
+          //                     cylinderSet->radiusPerVertex,
+          //                     cylinderSet->radius);
         geoms.push_back(geom);
       }
 #endif
