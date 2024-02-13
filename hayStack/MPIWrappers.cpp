@@ -78,42 +78,42 @@ namespace hs {
     
     int Comm::allReduceAdd(int value) const
     {
-      int result = 0;
+      int result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_SUM,comm));
       return result;
     }
 
     float Comm::allReduceAdd(float value) const
     {
-      float result = 0;
+      float result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_SUM,comm));
       return result;
     }
 
     int Comm::allReduceMin(int value) const
     {
-      int result = 0;
+      int result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MIN,comm));
       return result;
     }
 
     int Comm::allReduceMax(int value) const
     {
-      int result = 0;
+      int result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MAX,comm));
       return result;
     }
     
     float Comm::allReduceMax(float value) const
     {
-      float result = 0;
+      float result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MAX,comm));
       return result;
     }
     
     float Comm::allReduceMin(float value) const
     {
-      float result = 0;
+      float result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MIN,comm));
       return result;
     }
