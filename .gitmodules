@@ -6,4 +6,4 @@
 	url = https://github.com/ingowald/miniScene
 [submodule "submodules/cuteeOWL"]
 	path = submodules/cuteeOWL
-	url = git@github.com:owl-project/cuteeOWL
+	url = https://github.com/owl-project/cuteeOWL
