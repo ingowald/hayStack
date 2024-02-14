@@ -191,7 +191,11 @@ namespace hs {
     if (!file) throw std::runtime_error
                  ("when trying to determine file size: could not open file "+fileName);
     fseek(file,0,SEEK_END);
+#ifdef _WIN32
+    size_t size = _ftelli64(file);
+#else
     size_t size = ftell(file);
+#endif
     fclose(file);
     return size;
   }
