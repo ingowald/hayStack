@@ -100,6 +100,7 @@ namespace hs {
     anari::commitParameters(device, model);
     
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
+    anari::setParameter(device, renderer, "ambientRadiance", 1.f);
     anari::commitParameters(device, renderer);
     
     frame = anari::newObject<anari::Frame>(device);
