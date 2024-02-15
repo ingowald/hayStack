@@ -63,8 +63,10 @@ namespace hs {
       for (auto dg : rankData.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
 #if HANARI
-      
-      auto library = anari::loadLibrary("barney", statusFunc);
+     
+      char *envlib = getenv("ANARI_LIBRARY");
+      std::string libname = envlib ? "environment" : "barney";
+      auto library = anari::loadLibrary(libname.c_str(), statusFunc);
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
 #else
