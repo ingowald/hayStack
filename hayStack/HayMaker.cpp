@@ -325,11 +325,11 @@ namespace hs {
   void HayMaker::buildDataGroup(int dgID)
   {
 #if HANARI
-    
+    std::vector<anari::Light> lights;
 #else
     BNDataGroup barney = bnGetDataGroup(model,dgID);
-#endif
     std::vector<BNLight> lights;
+#endif
 
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
@@ -404,6 +404,8 @@ namespace hs {
       // ------------------------------------------------------------------
       // set light(s) for given mini scene
       // ------------------------------------------------------------------
+#if HANARI
+#else
       for (auto ml : mini->quadLights) {
         BNLight light = bnLightCreate(barney,"quad");
         if (!light) continue;
@@ -459,6 +461,7 @@ namespace hs {
           lights.push_back(light);
         }
       }
+#endif
       // ------------------------------------------------------------------
       // render all (possibly instanced) triangle meshes from mini format
       // ------------------------------------------------------------------
