@@ -698,18 +698,18 @@ namespace hs {
                           (const anari::math::float3&)vol->gridOrigin);
       anari::setParameter(device, field, "spacing",
                           (const anari::math::float3&)vol->gridSpacing);
-      switch(vol->scalarType) {
-      case StructuredVolume::FLOAT:
+      switch(vol->texelFormat) {
+      case BN_TEXEL_FORMAT_R32F:
         anari::setParameterArray3D
           (device, field, "data", (const float *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
-      case StructuredVolume::UINT8:
+      case BN_TEXEL_FORMAT_R8:
         anari::setParameterArray3D
           (device, field, "data", (const uint8_t *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
-      case StructuredVolume::UINT16: {
+      case BN_TEXEL_FORMAT_R16: {
         std::cout << "volume with uint16s, converting to float" << std::endl;
         static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
         for (size_t i=0;i<volumeAsFloats.size();i++)
@@ -729,25 +729,20 @@ namespace hs {
       anari::setAndReleaseParameter(device, volume, "field", field);
       dg.createdVolumes.push_back(volume);
 #else
-      BNScalarType scalarType;
-      switch(vol->scalarType) {
-      case StructuredVolume::UINT8:
-        scalarType = BN_SCALAR_UINT8;
-        break;
-      case StructuredVolume::FLOAT:
-        scalarType = BN_SCALAR_FLOAT;
-        break;
-      default: throw std::runtime_error("Unknown or un-supported scalar type");
-      }
-      BNMaterial material = BN_DEFAULT_MATERIAL;
-      BNScalarField bnVol = bnStructuredDataCreate
-        (barney,
-         (const int3&)vol->dims,
-         scalarType,
-         vol->rawData.data(),
-         (const float3&)vol->gridOrigin,
-         (const float3&)vol->gridSpacing);
-      dg.createdVolumes.push_back(bnVolumeCreate(barney,bnVol));
+      BNTexture3D texture
+        = bnTexture3DCreate(barney,
+                            vol->texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
+                            vol->rawData.data());
+      BNScalarField sf
+        = bnScalarFieldCreate(barney,"structured");
+      bnSetObject(sf,"texture",texture);
+      bnRelease(texture);
+      bnSet3ic(sf,"dims",(const int3&)vol->dims);
+      bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
+      bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
+      bnCommit(sf);
+      dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
+      bnRelease(sf);
 #endif
     }
     

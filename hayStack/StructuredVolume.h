@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "barney.h"
 #include "hayStack/HayStack.h"
 
 namespace hs {
@@ -28,15 +29,16 @@ namespace hs {
   struct StructuredVolume {
     typedef std::shared_ptr<StructuredVolume> SP;
     
-    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
+    //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
 
     StructuredVolume(vec3i dims,
-                     ScalarType scalarType,
+                     BNTexelFormat texelFormat,
+                     // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
                      const vec3f &gridOrigin,
                      const vec3f &gridSpacing)
       : dims(dims),
-        scalarType(scalarType),
+        texelFormat(texelFormat),//scalarType(scalarType),
         rawData(std::move(rawData)),
         gridOrigin(gridOrigin),
         gridSpacing(gridSpacing)
@@ -48,16 +50,23 @@ namespace hs {
     /*! dimensions of grid of scalars in rawData */
     vec3i      dims;
     std::vector<uint8_t> rawData;
-    ScalarType scalarType;
+    // ScalarType scalarType;
+    const BNTexelFormat texelFormat;
     vec3f gridOrigin, gridSpacing;
   };
 
-  inline size_t sizeOf(StructuredVolume::ScalarType type)
+  inline size_t sizeOf(BNTexelFormat type)
   {
     switch(type) {
-    case StructuredVolume::FLOAT: return sizeof(float); 
-    case StructuredVolume::UINT16: return sizeof(uint8_t);
-    case StructuredVolume::UINT8: return sizeof(uint8_t);
+    case BN_TEXEL_FORMAT_R32F:
+      return sizeof(float); 
+    case BN_TEXEL_FORMAT_R16:
+      return sizeof(uint16_t);
+    case BN_TEXEL_FORMAT_R8:
+      return sizeof(uint8_t);
+    // case StructuredVolume::FLOAT: return sizeof(float); 
+    // case StructuredVolume::UINT16: return sizeof(uint8_t);
+    // case StructuredVolume::UINT8: return sizeof(uint8_t);
     default: throw std::runtime_error("un-handled scalar type");
     };
   }
