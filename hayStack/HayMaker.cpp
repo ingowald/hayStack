@@ -361,13 +361,48 @@ namespace hs {
       for (auto &sphereSet : myData.sphereSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnSpheresCreate(barney,
-                            &material,
-                            (float3*)sphereSet->origins.data(),
-                            (int)sphereSet->origins.size(),
-                            (float3*)sphereSet->colors.data(),
-                            sphereSet->radii.data(),
-                            sphereSet->radius);
+          = bnGeometryCreate(barney,"spheres");
+          // = bnSpheresCreate(barney,
+          //                   &material,
+          //                   (float3*)sphereSet->origins.data(),
+          //                   (int)sphereSet->origins.size(),
+          //                   (float3*)sphereSet->colors.data(),
+          //                   sphereSet->radii.data(),
+          //                   sphereSet->radius);
+        if (!geom) continue;
+        PING;PRINT(geom);
+        // .......................................................
+        BNData origins = bnDataCreate(barney,BN_FLOAT3,
+                                      sphereSet->origins.size(),
+                                      sphereSet->origins.data());
+        bnSetData(geom,"origins",origins);
+        // .......................................................
+        if (!sphereSet->colors.empty()) {
+          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+                                       sphereSet->colors.size(),
+                                       sphereSet->colors.data());
+          bnSetData(geom,"colors",colors);
+        }
+        // .......................................................
+        if (!sphereSet->radii.empty()) {
+          BNData radii = bnDataCreate(barney,BN_FLOAT,
+                                      sphereSet->radii.size(),
+                                      sphereSet->radii.data());
+          bnSetData(geom,"radii",radii);
+        }
+        // .......................................................
+        bnSet1f(geom,"radius",sphereSet->radius);
+        // .......................................................
+        bnSet3fc(geom,"material.baseColor",material.baseColor);
+        bnSet1f(geom,"material.transmission",material.transmission);
+        bnSet1f(geom,"material.ior",material.ior);
+        if (material.colorTexture)
+          bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        if (material.alphaTexture)
+          bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // .......................................................
+        bnCommit(geom);
+        // .......................................................
         BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
         bnGroupBuild(group);
         groups.push_back(group);
@@ -387,17 +422,53 @@ namespace hs {
       for (auto &cylinderSet : myData.cylinderSets) {
         BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnCylindersCreate(barney,
-                              &material,
-                              (float3*)cylinderSet->vertices.data(),
-                              (int)cylinderSet->vertices.size(),
-                              (float3*)cylinderSet->colors.data(),
-                              cylinderSet->colorPerVertex,
-                              (int2*)cylinderSet->indices.data(),
-                              (int)cylinderSet->indices.size(),
-                              cylinderSet->radii.data(),
-                              cylinderSet->radiusPerVertex,
-                              cylinderSet->radius);
+          = bnGeometryCreate(barney,"cylinders");
+
+        if (!geom) continue;
+        // .......................................................
+        BNData vertices = bnDataCreate(barney,BN_FLOAT3,
+                                      cylinderSet->vertices.size(),
+                                      cylinderSet->vertices.data());
+        PRINT(cylinderSet->vertices.size());
+        bnSetData(geom,"vertices",vertices);
+        // .......................................................
+        if (cylinderSet->indices.empty()) {
+          for (int i=0;i<cylinderSet->vertices.size();i+=2) {
+            cylinderSet->indices.push_back({i,i+1});
+          }
+        }
+        BNData indices = bnDataCreate(barney,BN_INT2,
+                                      cylinderSet->indices.size(),
+                                      cylinderSet->indices.data());
+        bnSetData(geom,"indices",indices);
+        PRINT(cylinderSet->indices.size());
+        // .......................................................
+        if (!cylinderSet->colors.empty()) {
+          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+                                       cylinderSet->colors.size(),
+                                       cylinderSet->colors.data());
+          bnSetData(geom,"colors",colors);
+        }
+        // .......................................................
+        if (!cylinderSet->radii.empty()) {
+          BNData radii = bnDataCreate(barney,BN_FLOAT,
+                                      cylinderSet->radii.size(),
+                                      cylinderSet->radii.data());
+          bnSetData(geom,"radii",radii);
+          PRINT(cylinderSet->radii.size());
+          bnSet1i(geom,"radiusPerVertex",(int)cylinderSet->radiusPerVertex);
+        }
+        // .......................................................
+        bnSet3fc(geom,"material.baseColor",material.baseColor);
+        bnSet1f(geom,"material.transmission",material.transmission);
+        bnSet1f(geom,"material.ior",material.ior);
+        if (material.colorTexture)
+          bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        if (material.alphaTexture)
+          bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // .......................................................
+        bnCommit(geom);
+        // .......................................................
         geoms.push_back(geom);
       }
 #endif

@@ -137,7 +137,7 @@ namespace hs {
     vec3f translate = data.get("translate",vec3f(1.f));
     
     const std::string fileName = data.where;
-    const size_t fileSize = getFileSize(data.where);
+    const size_t fileSize = data.where == "sample" ? 1ull : getFileSize(data.where);
     for (int i=0;i<data.numParts;i++)
       loader->addContent(new CylindersFromFile(data.where,
                                                fileSize,i,
