@@ -250,9 +250,9 @@ namespace hs {
 #else
     vec3f dir = camera.vi - camera.vp;
     bnSet3fc(this->camera,"direction",(const float3&)dir);
-    bnSet3fc(this->camera,"origin",(const float3&)camera.vp);
+    bnSet3fc(this->camera,"position",(const float3&)camera.vp);
     bnSet3fc(this->camera,"up",(const float3&)camera.vu);
-    bnSet1f (this->camera,"fovy",fbSize.x / camera.fovy);
+    bnSet1f (this->camera,"fovy",camera.fovy);
     bnSet1f (this->camera,"aspect",fbSize.x / float(fbSize.y));
     // bnPinholeCamera(this->camera,
     //                 (const float3&)camera.vp,

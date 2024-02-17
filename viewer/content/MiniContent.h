@@ -43,7 +43,18 @@ namespace hs {
     
     void   executeLoad(DataGroup &dataGroup, bool verbose) override
     {
-      dataGroup.minis.push_back(mini::Scene::load(fileName));
+      mini::Scene::SP ms = mini::Scene::load(fileName);
+      dataGroup.minis.push_back(ms);
+      
+#if 1
+      if (ms->instances.size() == 1 && getenv("HS_COLOR_MESHID")) {
+        int hash = 0;
+        for (auto c : fileName) hash = hash * 13 + c;
+        PING; PRINT(hash);
+        for (auto mesh : ms->instances[0]->object->meshes)
+          mesh->material->baseColor = 0.7f*randomColor(hash);
+      }
+#endif
     }
 
     const std::string fileName;
