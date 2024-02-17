@@ -604,7 +604,7 @@ namespace hs {
             if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
               (vec3f&)material.baseColor = vec3f(1.f);
               
-            BNGeom geom
+            BNGeom geom 
               = bnTriangleMeshCreate
               (barney,&material,
                (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
