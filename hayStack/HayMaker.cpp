@@ -94,7 +94,7 @@ namespace hs {
 #endif
 #endif
     }
-    
+
 #if HANARI
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
@@ -116,6 +116,7 @@ namespace hs {
 #else
     fb = bnFrameBufferCreate(barney,0);
     model = bnModelCreate(barney);
+    camera = bnCameraCreate(barney,"perspective");
 #endif
   }
   
@@ -224,7 +225,7 @@ namespace hs {
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
     }
 #else
-    bnRender(model,&camera,fb,pathsPerPixel);
+    bnRender(model,camera,fb,pathsPerPixel);
 #endif
   }
 
@@ -242,17 +243,24 @@ namespace hs {
 #if HANARI
     anari::setParameter(device, this->camera, "aspect", fbSize.x / (float)fbSize.y);
     anari::setParameter(device, this->camera, "position", (const anari::math::float3&)camera.vp);
-    vec3f camera_dir = camera.vi - camera.vp;
+    vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera, "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(device, this->camera, "up", (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera); // commit each object to indicate modifications are done1
 #else
-    bnPinholeCamera(&this->camera,
-                    (const float3&)camera.vp,
-                    (const float3&)camera.vi,
-                    (const float3&)camera.vu,
-                    camera.fovy,
-                    fbSize.x / float(fbSize.y));
+    vec3f dir = camera.vi - camera.vp;
+    bnSet3fc(this->camera,"direction",(const float3&)dir);
+    bnSet3fc(this->camera,"position",(const float3&)camera.vp);
+    bnSet3fc(this->camera,"up",(const float3&)camera.vu);
+    bnSet1f (this->camera,"fovy",camera.fovy);
+    bnSet1f (this->camera,"aspect",fbSize.x / float(fbSize.y));
+    // bnPinholeCamera(this->camera,
+    //                 (const float3&)camera.vp,
+    //                 (const float3&)camera.vi,
+    //                 (const float3&)camera.vu,
+    //                 camera.fovy,
+    //                 fbSize.x / float(fbSize.y));
+    bnCommit(this->camera);
 #endif
   }
 
@@ -359,7 +367,7 @@ namespace hs {
 #else
       // std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
-        BNMaterial material = BN_DEFAULT_MATERIAL;
+        // BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
           = bnGeometryCreate(barney,"spheres");
           // = bnSpheresCreate(barney,
@@ -370,7 +378,6 @@ namespace hs {
           //                   sphereSet->radii.data(),
           //                   sphereSet->radius);
         if (!geom) continue;
-        PING;PRINT(geom);
         // .......................................................
         BNData origins = bnDataCreate(barney,BN_FLOAT3,
                                       sphereSet->origins.size(),
@@ -391,15 +398,15 @@ namespace hs {
           bnSetData(geom,"radii",radii);
         }
         // .......................................................
-        bnSet1f(geom,"radius",sphereSet->radius);
+        bnSet1f (geom,"radius",sphereSet->radius);
         // .......................................................
-        bnSet3fc(geom,"material.baseColor",material.baseColor);
-        bnSet1f(geom,"material.transmission",material.transmission);
-        bnSet1f(geom,"material.ior",material.ior);
-        if (material.colorTexture)
-          bnSetObject(geom,"material.colorTexture",material.colorTexture);
-        if (material.alphaTexture)
-          bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // bnSet3fc(geom,"material.baseColor",   material.baseColor);
+        // bnSet1f (geom,"material.transmission",material.transmission);
+        // bnSet1f (geom,"material.ior",         material.ior);
+        // if (material.colorTexture)
+        //   bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        // if (material.alphaTexture)
+        //   bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
         // .......................................................
         bnCommit(geom);
         // .......................................................
@@ -420,7 +427,7 @@ namespace hs {
 #else
       std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &cylinderSet : myData.cylinderSets) {
-        BNMaterial material = BN_DEFAULT_MATERIAL;
+        // BNMaterialHelper material = BN_DEFAULT_MATERIAL;
         BNGeom geom
           = bnGeometryCreate(barney,"cylinders");
 
@@ -459,13 +466,13 @@ namespace hs {
           bnSet1i(geom,"radiusPerVertex",(int)cylinderSet->radiusPerVertex);
         }
         // .......................................................
-        bnSet3fc(geom,"material.baseColor",material.baseColor);
-        bnSet1f(geom,"material.transmission",material.transmission);
-        bnSet1f(geom,"material.ior",material.ior);
-        if (material.colorTexture)
-          bnSetObject(geom,"material.colorTexture",material.colorTexture);
-        if (material.alphaTexture)
-          bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // bnSet3fc(geom,"material.baseColor",material.baseColor);
+        // bnSet1f(geom,"material.transmission",material.transmission);
+        // bnSet1f(geom,"material.ior",material.ior);
+        // if (material.colorTexture)
+        //   bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        // if (material.alphaTexture)
+        //   bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
         // .......................................................
         bnCommit(geom);
         // .......................................................
@@ -563,6 +570,7 @@ namespace hs {
                                       miniMesh->material->baseColor.z// ,
                                       // 1.f
                                       );
+            PRINT((const vec3f&)color);
             anari::setParameter(device,material,"color",color);
             anari::commitParameters(device, material);
             
@@ -584,7 +592,7 @@ namespace hs {
             
             auto geom = surface;
 #else
-            BNMaterial material = BN_DEFAULT_MATERIAL;
+            BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
             mini::Material::SP miniMat = miniMesh->material;
             material.baseColor = (const float3&)miniMat->baseColor;
             material.transmission = miniMat->transmission;
@@ -597,7 +605,7 @@ namespace hs {
             if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
               (vec3f&)material.baseColor = vec3f(1.f);
               
-            BNGeom geom
+            BNGeom geom 
               = bnTriangleMeshCreate
               (barney,&material,
                (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
@@ -641,7 +649,7 @@ namespace hs {
       const box3f domain = _unst.second;
 #if HANARI
 #else
-      BNMaterial material = BN_DEFAULT_MATERIAL;
+      //      BNMaterialHelper material = BN_DEFAULT_MATERIAL;
       std::vector<vec4f> verts4f;
       std::vector<int> gridOffsets;
       std::vector<vec3i> gridDims;
