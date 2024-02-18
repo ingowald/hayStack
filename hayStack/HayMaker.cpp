@@ -243,7 +243,7 @@ namespace hs {
 #if HANARI
     anari::setParameter(device, this->camera, "aspect", fbSize.x / (float)fbSize.y);
     anari::setParameter(device, this->camera, "position", (const anari::math::float3&)camera.vp);
-    vec3f camera_dir = camera.vi - camera.vp;
+    vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera, "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(device, this->camera, "up", (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera); // commit each object to indicate modifications are done1
@@ -570,6 +570,7 @@ namespace hs {
                                       miniMesh->material->baseColor.z// ,
                                       // 1.f
                                       );
+            PRINT((const vec3f&)color);
             anari::setParameter(device,material,"color",color);
             anari::commitParameters(device, material);
             
