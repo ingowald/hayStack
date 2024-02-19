@@ -12,6 +12,10 @@
 #include "imgui_impl_glfw_gl3.h"
 #include <imgui.h>
 
+#ifdef _WIN32
+#  include "glad.h"
+#endif
+
 // GL3W/GLFW
 #include <GLFW/glfw3.h>
 #ifdef _WIN32
@@ -313,6 +317,10 @@ bool ImGui_ImplGlfwGL3_Init(GLFWwindow *window, bool install_callbacks)
     glfwSetScrollCallback(window, ImGui_ImplGlfwGL3_ScrollCallback);
     glfwSetKeyCallback(window, ImGui_ImplGlfwGL3_KeyCallback);
   }
+
+#ifdef _WIN32
+  gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+#endif
 
   return true;
 }

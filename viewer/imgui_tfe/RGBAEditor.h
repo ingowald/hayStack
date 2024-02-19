@@ -4,7 +4,11 @@
 #pragma once
 
 // GL
-#include <GL/gl.h>
+#ifdef _WIN32
+#  include "glad.h"
+#else
+#  include <GL/gl.h>
+#endif
 // ours
 #include "hayStack/HayMaker.h" // for math types
 #include "ColorFormat.h"
