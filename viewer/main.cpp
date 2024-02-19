@@ -546,9 +546,11 @@ int main(int ac, char **av)
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
 
-  hs::TransferFunction xf;
-  xf.load(fromCL.xfFileName);
-  renderer->setTransferFunction(xf);
+  if (fromCL.xfFileName.length() > 0) {
+      hs::TransferFunction xf;
+      xf.load(fromCL.xfFileName);
+      renderer->setTransferFunction(xf);
+  }
 
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame(fromCL.spp);
