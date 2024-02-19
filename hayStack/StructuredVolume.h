@@ -35,11 +35,13 @@ namespace hs {
                      BNTexelFormat texelFormat,
                      // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
+                     std::vector<uint8_t> &rawDataRGB,
                      const vec3f &gridOrigin,
                      const vec3f &gridSpacing)
       : dims(dims),
         texelFormat(texelFormat),//scalarType(scalarType),
         rawData(std::move(rawData)),
+        rawDataRGB(std::move(rawDataRGB)),
         gridOrigin(gridOrigin),
         gridSpacing(gridSpacing)
     {}
@@ -50,6 +52,8 @@ namespace hs {
     /*! dimensions of grid of scalars in rawData */
     vec3i      dims;
     std::vector<uint8_t> rawData;
+    /*! either empty, or 3xuint8_t (RGB) for each voxel */
+    std::vector<uint8_t> rawDataRGB;
     // ScalarType scalarType;
     const BNTexelFormat texelFormat;
     vec3f gridOrigin, gridSpacing;

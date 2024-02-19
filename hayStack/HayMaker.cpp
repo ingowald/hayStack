@@ -737,14 +737,22 @@ namespace hs {
       anari::setAndReleaseParameter(device, volume, "field", field);
       dg.createdVolumes.push_back(volume);
 #else
+      BNScalarField sf
+        = bnScalarFieldCreate(barney,"structured");
       BNTexture3D texture
         = bnTexture3DCreate(barney,
                             vol->texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
                             vol->rawData.data());
-      BNScalarField sf
-        = bnScalarFieldCreate(barney,"structured");
       bnSetObject(sf,"texture",texture);
       bnRelease(texture);
+      if (vol->rawDataRGB.size() != 0) {
+        BNTexture3D texture
+          = bnTexture3DCreate(barney,
+                              BN_TEXEL_FORMAT_RGBA8,vol->dims.x,vol->dims.y,vol->dims.z,
+                              vol->rawDataRGB.data());
+        bnSetObject(sf,"textureColorMap",texture);
+        bnRelease(texture);
+      }
       bnSet3ic(sf,"dims",(const int3&)vol->dims);
       bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
       bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);

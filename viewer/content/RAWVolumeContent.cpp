@@ -148,30 +148,60 @@ namespace hs {
   void RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
   {
     vec3i numVoxels = (cellRange.size()+1);
-    size_t numScalars = numChannels*size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
+    size_t numScalars = //numChannels*
+      size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
     std::vector<uint8_t> rawData(numScalars*sizeOf(texelFormat));
     char *dataPtr = (char *)rawData.data();
     std::ifstream in(fileName.c_str(),std::ios::binary);
-    size_t texelSize = sizeOf(texelFormat);
-    for (int c=0;c<numChannels;c++) {
-      for (int iz=cellRange.lower.z;iz<=cellRange.upper.z;iz++)
-        for (int iy=cellRange.lower.y;iy<=cellRange.upper.y;iy++) {
-          int ix = cellRange.lower.x;
-          size_t ofsInScalars
-            = ix
-            + iy*size_t(fullVolumeDims.x)
-            + iz*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
-            + c *size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
-          in.seekg(ofsInScalars*texelSize);
-          in.read(dataPtr,numVoxels.x*texelSize);
-          if (!in.good())
-            throw std::runtime_error("read partial data...");
-          dataPtr += numVoxels.x*texelSize;
-        }
+    std::ifstream in_r, in_g, in_b;
+    std::vector<uint8_t> rawDataRGB;
+    if (numChannels==4) {
+      in_r.open((fileName+".r").c_str(),std::ios::binary);
+      in_g.open((fileName+".g").c_str(),std::ios::binary);
+      in_b.open((fileName+".b").c_str(),std::ios::binary);
+      rawDataRGB.resize(numScalars*4*sizeof(uint8_t));
     }
+    uint8_t *rgbPtr = rawDataRGB.data();
+    size_t texelSize = sizeOf(texelFormat);
+    for (int iz=cellRange.lower.z;iz<=cellRange.upper.z;iz++)
+      for (int iy=cellRange.lower.y;iy<=cellRange.upper.y;iy++) {
+        int ix = cellRange.lower.x;
+        size_t ofsInScalars
+          = ix
+            + iy*size_t(fullVolumeDims.x)
+          + iz*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
+          // + c *size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z)
+          ;
+        in.seekg(ofsInScalars*texelSize);
+        in.read(dataPtr,numVoxels.x*texelSize);
+        if (!in.good())
+          throw std::runtime_error("read partial data...");
+        dataPtr += numVoxels.x*texelSize;
+
+        if (numChannels == 4) {
+          std::vector<uint8_t> line_r(numVoxels.x);
+          in_r.seekg(ofsInScalars);
+          in_r.read((char *)line_r.data(),numVoxels.x);
+          std::vector<uint8_t> line_g(numVoxels.x);
+          in_g.seekg(ofsInScalars);
+          in_g.read((char *)line_g.data(),numVoxels.x);
+          std::vector<uint8_t> line_b(numVoxels.x);
+          in_b.seekg(ofsInScalars);
+          in_b.read((char *)line_b.data(),numVoxels.x);
+          uint8_t *r = line_r.data();
+          uint8_t *g = line_g.data();
+          uint8_t *b = line_b.data();
+          for (int i=0;i<numVoxels.x;i++) {
+            *rgbPtr++ = 255;
+            *rgbPtr++ = *b++;
+            *rgbPtr++ = *g++;
+            *rgbPtr++ = *r++;
+          }
+        }
+      }
     vec3f gridOrigin(cellRange.lower);
     vec3f gridSpacing(1.f);
-
+    
     bool doIso = !isnan(isoValue);
     if (doIso) {
       umesh::UMesh::SP
@@ -242,7 +272,7 @@ namespace hs {
         dataGroup.minis.push_back(model);
     } else {
       dataGroup.structuredVolumes.push_back
-        (std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,
+        (std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,rawDataRGB,
                                             gridOrigin,gridSpacing));
     }
   }
