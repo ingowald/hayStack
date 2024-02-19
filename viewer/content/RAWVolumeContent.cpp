@@ -184,18 +184,18 @@ namespace hs {
           in_r.read((char *)line_r.data(),numVoxels.x);
           std::vector<uint8_t> line_g(numVoxels.x);
           in_g.seekg(ofsInScalars);
-          in_g.read((char *)line_r.data(),numVoxels.x);
+          in_g.read((char *)line_g.data(),numVoxels.x);
           std::vector<uint8_t> line_b(numVoxels.x);
           in_b.seekg(ofsInScalars);
-          in_b.read((char *)line_r.data(),numVoxels.x);
+          in_b.read((char *)line_b.data(),numVoxels.x);
           uint8_t *r = line_r.data();
           uint8_t *g = line_g.data();
           uint8_t *b = line_b.data();
           for (int i=0;i<numVoxels.x;i++) {
-            *rgbPtr++ = *r++;
-            *rgbPtr++ = *g++;
-            *rgbPtr++ = *b++;
             *rgbPtr++ = 255;
+            *rgbPtr++ = *b++;
+            *rgbPtr++ = *g++;
+            *rgbPtr++ = *r++;
           }
         }
       }
