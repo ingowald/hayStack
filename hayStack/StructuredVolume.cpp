@@ -32,15 +32,18 @@ namespace hs {
   {
     size_t numScalars = dims.x*(size_t)dims.y*dims.z;
     range1f range;
-    switch (scalarType) {
-    case FLOAT:
-      for (size_t i=0;i<numScalars;i++) range.extend(((const float *)rawData.data())[i]);
+    switch (texelFormat) {
+    case BN_TEXEL_FORMAT_R32F:
+      for (size_t i=0;i<numScalars;i++)
+        range.extend(((const float *)rawData.data())[i]);
       break;
-    case UINT8:
-      for (size_t i=0;i<numScalars;i++) range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
+    case BN_TEXEL_FORMAT_R8:
+      for (size_t i=0;i<numScalars;i++)
+        range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
       break;
-    case UINT16:
-      for (size_t i=0;i<numScalars;i++) range.extend(1.f/((1<<16)-1)*((const uint16_t *)rawData.data())[i]);
+    case BN_TEXEL_FORMAT_R16:
+      for (size_t i=0;i<numScalars;i++)
+        range.extend(1.f/((1<<16)-1)*((const uint16_t *)rawData.data())[i]);
       break;
     default:
       HAYSTACK_NYI();

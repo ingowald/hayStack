@@ -1,6 +1,5 @@
 # HayStack
 
-
 # Building and Running
 
 ..

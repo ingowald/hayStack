@@ -34,14 +34,14 @@ namespace hs {
                                      int thisPartID,
                                      const box3i &cellRange,
                                      vec3i fullVolumeDims,
-                                     ScalarType scalarType,
+                                     BNTexelFormat texelFormat,
                                      int numChannels,
                                      float isoValue)
     : fileName(fileName),
       thisPartID(thisPartID),
       cellRange(cellRange),
       fullVolumeDims(fullVolumeDims),
-      scalarType(scalarType),
+      texelFormat(texelFormat),
       numChannels(numChannels),
       isoValue(isoValue)
   {}
@@ -79,13 +79,13 @@ namespace hs {
     std::string type = dataURL.get("type",dataURL.get("format",""));
     if (type.empty())
       throw std::runtime_error("RAWVolumeContent: 'type' not specified");
-    ScalarType scalarType;
+    BNTexelFormat texelFormat;
     if (type == "uint8" || type == "byte")
-      scalarType = StructuredVolume::UINT8;
+      texelFormat = BN_TEXEL_FORMAT_R8; //scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
-      scalarType = StructuredVolume::FLOAT;
+      texelFormat = BN_TEXEL_FORMAT_R32F; //scalarType = StructuredVolume::FLOAT;
     else if (type == "uint16")
-      scalarType = StructuredVolume::UINT16;
+      texelFormat = BN_TEXEL_FORMAT_R16; //scalarType = StructuredVolume::UINT16;
     else
       throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
 
@@ -133,7 +133,7 @@ namespace hs {
     for (int i=0;i<dataURL.numParts;i++) {
       loader->addContent(new RAWVolumeContent(dataURL.where,i,
                                               regions[i],
-                                              dims,scalarType,
+                                              dims,texelFormat,//scalarType,
                                               numChannels,
                                               isoValue));
     }
@@ -142,16 +142,17 @@ namespace hs {
   size_t RAWVolumeContent::projectedSize()
   {
     vec3i numVoxels = cellRange.size()+1;
-    return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(scalarType);
+    return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(texelFormat);
   }
   
   void RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
   {
     vec3i numVoxels = (cellRange.size()+1);
     size_t numScalars = numChannels*size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
-    std::vector<uint8_t> rawData(numScalars*sizeOf(scalarType));
+    std::vector<uint8_t> rawData(numScalars*sizeOf(texelFormat));
     char *dataPtr = (char *)rawData.data();
     std::ifstream in(fileName.c_str(),std::ios::binary);
+    size_t texelSize = sizeOf(texelFormat);
     for (int c=0;c<numChannels;c++) {
       for (int iz=cellRange.lower.z;iz<=cellRange.upper.z;iz++)
         for (int iy=cellRange.lower.y;iy<=cellRange.upper.y;iy++) {
@@ -161,11 +162,11 @@ namespace hs {
             + iy*size_t(fullVolumeDims.x)
             + iz*size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)
             + c *size_t(fullVolumeDims.x)*size_t(fullVolumeDims.y)*size_t(fullVolumeDims.z);
-          in.seekg(ofsInScalars*sizeOf(scalarType));
-          in.read(dataPtr,numVoxels.x*sizeOf(scalarType));
+          in.seekg(ofsInScalars*texelSize);
+          in.read(dataPtr,numVoxels.x*texelSize);
           if (!in.good())
             throw std::runtime_error("read partial data...");
-          dataPtr += numVoxels.x*sizeOf(scalarType);
+          dataPtr += numVoxels.x*texelSize;
         }
     }
     vec3f gridOrigin(cellRange.lower);
@@ -182,10 +183,23 @@ namespace hs {
           for (int ix=0;ix<numVoxels.x;ix++) {
             volume->vertices.push_back(umesh::vec3f(umesh::vec3i(ix,iy,iz))*(const umesh::vec3f&)gridSpacing+(const umesh::vec3f&)gridOrigin);
             size_t idx = ix+size_t(numVoxels.x)*(iy+size_t(numVoxels.y)*iz);
-            float scalar
-              = (scalarType == StructuredVolume::FLOAT)
-              ? ((const float*)rawData.data())[idx]
-              : (1.f/255.f*((const uint8_t*)rawData.data())[idx]);
+            float scalar;
+            switch(texelFormat) {
+            case BN_TEXEL_FORMAT_R32F:
+              scalar = ((const float*)rawData.data())[idx];
+              break;
+            case BN_TEXEL_FORMAT_R16:
+              scalar = ((const uint16_t*)rawData.data())[idx]*(1.f/((1<<16)-1));
+              break;
+            case BN_TEXEL_FORMAT_R8:
+              scalar = ((const uint8_t*)rawData.data())[idx]*(1.f/((1<<8)-1));
+              break;
+            default:throw std::runtime_error("not implemented...");
+            };
+            
+              // = ( == StructuredVolume::FLOAT)
+              // ? ((const float*)rawData.data())[idx]
+              // : (1.f/255.f*((const uint8_t*)rawData.data())[idx]);
               
             volume->perVertex->values.push_back(scalar);
           }
@@ -228,7 +242,7 @@ namespace hs {
         dataGroup.minis.push_back(model);
     } else {
       dataGroup.structuredVolumes.push_back
-        (std::make_shared<StructuredVolume>(numVoxels,scalarType,rawData,
+        (std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,
                                             gridOrigin,gridSpacing));
     }
   }

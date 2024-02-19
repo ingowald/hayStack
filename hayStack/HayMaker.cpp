@@ -63,8 +63,10 @@ namespace hs {
       for (auto dg : rankData.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
 #if HANARI
-      
-      auto library = anari::loadLibrary("barney", statusFunc);
+     
+      char *envlib = getenv("ANARI_LIBRARY");
+      std::string libname = envlib ? "environment" : "barney";
+      auto library = anari::loadLibrary(libname.c_str(), statusFunc);
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
 #else
@@ -92,12 +94,13 @@ namespace hs {
 #endif
 #endif
     }
-    
+
 #if HANARI
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
     
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
+    anari::setParameter(device, renderer, "ambientRadiance", 1.f);
     anari::commitParameters(device, renderer);
     
     frame = anari::newObject<anari::Frame>(device);
@@ -113,6 +116,7 @@ namespace hs {
 #else
     fb = bnFrameBufferCreate(barney,0);
     model = bnModelCreate(barney);
+    camera = bnCameraCreate(barney,"perspective");
 #endif
   }
   
@@ -221,7 +225,7 @@ namespace hs {
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
     }
 #else
-    bnRender(model,&camera,fb,pathsPerPixel);
+    bnRender(model,camera,fb,pathsPerPixel);
 #endif
   }
 
@@ -239,17 +243,24 @@ namespace hs {
 #if HANARI
     anari::setParameter(device, this->camera, "aspect", fbSize.x / (float)fbSize.y);
     anari::setParameter(device, this->camera, "position", (const anari::math::float3&)camera.vp);
-    vec3f camera_dir = camera.vi - camera.vp;
+    vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera, "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(device, this->camera, "up", (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera); // commit each object to indicate modifications are done1
 #else
-    bnPinholeCamera(&this->camera,
-                    (const float3&)camera.vp,
-                    (const float3&)camera.vi,
-                    (const float3&)camera.vu,
-                    camera.fovy,
-                    fbSize.x / float(fbSize.y));
+    vec3f dir = camera.vi - camera.vp;
+    bnSet3fc(this->camera,"direction",(const float3&)dir);
+    bnSet3fc(this->camera,"position",(const float3&)camera.vp);
+    bnSet3fc(this->camera,"up",(const float3&)camera.vu);
+    bnSet1f (this->camera,"fovy",camera.fovy);
+    bnSet1f (this->camera,"aspect",fbSize.x / float(fbSize.y));
+    // bnPinholeCamera(this->camera,
+    //                 (const float3&)camera.vp,
+    //                 (const float3&)camera.vi,
+    //                 (const float3&)camera.vu,
+    //                 camera.fovy,
+    //                 fbSize.x / float(fbSize.y));
+    bnCommit(this->camera);
 #endif
   }
 
@@ -325,11 +336,11 @@ namespace hs {
   void HayMaker::buildDataGroup(int dgID)
   {
 #if HANARI
-    
+    std::vector<anari::Light> lights;
 #else
     BNDataGroup barney = bnGetDataGroup(model,dgID);
-#endif
     std::vector<BNLight> lights;
+#endif
 
     std::vector<vec4f> xfValues;
     for (int i=0;i<100;i++)
@@ -356,15 +367,49 @@ namespace hs {
 #else
       // std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
-        BNMaterial material = BN_DEFAULT_MATERIAL;
+        // BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnSpheresCreate(barney,
-                            &material,
-                            (float3*)sphereSet->origins.data(),
-                            (int)sphereSet->origins.size(),
-                            (float3*)sphereSet->colors.data(),
-                            sphereSet->radii.data(),
-                            sphereSet->radius);
+          = bnGeometryCreate(barney,"spheres");
+          // = bnSpheresCreate(barney,
+          //                   &material,
+          //                   (float3*)sphereSet->origins.data(),
+          //                   (int)sphereSet->origins.size(),
+          //                   (float3*)sphereSet->colors.data(),
+          //                   sphereSet->radii.data(),
+          //                   sphereSet->radius);
+        if (!geom) continue;
+        // .......................................................
+        BNData origins = bnDataCreate(barney,BN_FLOAT3,
+                                      sphereSet->origins.size(),
+                                      sphereSet->origins.data());
+        bnSetData(geom,"origins",origins);
+        // .......................................................
+        if (!sphereSet->colors.empty()) {
+          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+                                       sphereSet->colors.size(),
+                                       sphereSet->colors.data());
+          bnSetData(geom,"colors",colors);
+        }
+        // .......................................................
+        if (!sphereSet->radii.empty()) {
+          BNData radii = bnDataCreate(barney,BN_FLOAT,
+                                      sphereSet->radii.size(),
+                                      sphereSet->radii.data());
+          bnSetData(geom,"radii",radii);
+        }
+        // .......................................................
+        bnSet1f (geom,"radius",sphereSet->radius);
+        // .......................................................
+        // bnSet3fc(geom,"material.baseColor",   material.baseColor);
+        // bnSet1f (geom,"material.transmission",material.transmission);
+        // bnSet1f (geom,"material.ior",         material.ior);
+        // if (material.colorTexture)
+        //   bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        // if (material.alphaTexture)
+        //   bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // .......................................................
+        bnCommit(geom);
+        // .......................................................
         BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
         bnGroupBuild(group);
         groups.push_back(group);
@@ -382,19 +427,55 @@ namespace hs {
 #else
       std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &cylinderSet : myData.cylinderSets) {
-        BNMaterial material = BN_DEFAULT_MATERIAL;
+        // BNMaterialHelper material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnCylindersCreate(barney,
-                              &material,
-                              (float3*)cylinderSet->vertices.data(),
-                              (int)cylinderSet->vertices.size(),
-                              (float3*)cylinderSet->colors.data(),
-                              cylinderSet->colorPerVertex,
-                              (int2*)cylinderSet->indices.data(),
-                              (int)cylinderSet->indices.size(),
-                              cylinderSet->radii.data(),
-                              cylinderSet->radiusPerVertex,
-                              cylinderSet->radius);
+          = bnGeometryCreate(barney,"cylinders");
+
+        if (!geom) continue;
+        // .......................................................
+        BNData vertices = bnDataCreate(barney,BN_FLOAT3,
+                                      cylinderSet->vertices.size(),
+                                      cylinderSet->vertices.data());
+        PRINT(cylinderSet->vertices.size());
+        bnSetData(geom,"vertices",vertices);
+        // .......................................................
+        if (cylinderSet->indices.empty()) {
+          for (int i=0;i<cylinderSet->vertices.size();i+=2) {
+            cylinderSet->indices.push_back({i,i+1});
+          }
+        }
+        BNData indices = bnDataCreate(barney,BN_INT2,
+                                      cylinderSet->indices.size(),
+                                      cylinderSet->indices.data());
+        bnSetData(geom,"indices",indices);
+        PRINT(cylinderSet->indices.size());
+        // .......................................................
+        if (!cylinderSet->colors.empty()) {
+          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+                                       cylinderSet->colors.size(),
+                                       cylinderSet->colors.data());
+          bnSetData(geom,"colors",colors);
+        }
+        // .......................................................
+        if (!cylinderSet->radii.empty()) {
+          BNData radii = bnDataCreate(barney,BN_FLOAT,
+                                      cylinderSet->radii.size(),
+                                      cylinderSet->radii.data());
+          bnSetData(geom,"radii",radii);
+          PRINT(cylinderSet->radii.size());
+          bnSet1i(geom,"radiusPerVertex",(int)cylinderSet->radiusPerVertex);
+        }
+        // .......................................................
+        // bnSet3fc(geom,"material.baseColor",material.baseColor);
+        // bnSet1f(geom,"material.transmission",material.transmission);
+        // bnSet1f(geom,"material.ior",material.ior);
+        // if (material.colorTexture)
+        //   bnSetObject(geom,"material.colorTexture",material.colorTexture);
+        // if (material.alphaTexture)
+        //   bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
+        // .......................................................
+        bnCommit(geom);
+        // .......................................................
         geoms.push_back(geom);
       }
 #endif
@@ -404,6 +485,8 @@ namespace hs {
       // ------------------------------------------------------------------
       // set light(s) for given mini scene
       // ------------------------------------------------------------------
+#if HANARI
+#else
       for (auto ml : mini->quadLights) {
         BNLight light = bnLightCreate(barney,"quad");
         if (!light) continue;
@@ -459,6 +542,7 @@ namespace hs {
           lights.push_back(light);
         }
       }
+#endif
       // ------------------------------------------------------------------
       // render all (possibly instanced) triangle meshes from mini format
       // ------------------------------------------------------------------
@@ -486,6 +570,7 @@ namespace hs {
                                       miniMesh->material->baseColor.z// ,
                                       // 1.f
                                       );
+            PRINT((const vec3f&)color);
             anari::setParameter(device,material,"color",color);
             anari::commitParameters(device, material);
             
@@ -507,7 +592,7 @@ namespace hs {
             
             auto geom = surface;
 #else
-            BNMaterial material = BN_DEFAULT_MATERIAL;
+            BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
             mini::Material::SP miniMat = miniMesh->material;
             material.baseColor = (const float3&)miniMat->baseColor;
             material.transmission = miniMat->transmission;
@@ -520,7 +605,7 @@ namespace hs {
             if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
               (vec3f&)material.baseColor = vec3f(1.f);
               
-            BNGeom geom
+            BNGeom geom 
               = bnTriangleMeshCreate
               (barney,&material,
                (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
@@ -564,7 +649,7 @@ namespace hs {
       const box3f domain = _unst.second;
 #if HANARI
 #else
-      BNMaterial material = BN_DEFAULT_MATERIAL;
+      //      BNMaterialHelper material = BN_DEFAULT_MATERIAL;
       std::vector<vec4f> verts4f;
       std::vector<int> gridOffsets;
       std::vector<vec3i> gridDims;
@@ -621,18 +706,18 @@ namespace hs {
                           (const anari::math::float3&)vol->gridOrigin);
       anari::setParameter(device, field, "spacing",
                           (const anari::math::float3&)vol->gridSpacing);
-      switch(vol->scalarType) {
-      case StructuredVolume::FLOAT:
+      switch(vol->texelFormat) {
+      case BN_TEXEL_FORMAT_R32F:
         anari::setParameterArray3D
           (device, field, "data", (const float *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
-      case StructuredVolume::UINT8:
+      case BN_TEXEL_FORMAT_R8:
         anari::setParameterArray3D
           (device, field, "data", (const uint8_t *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
-      case StructuredVolume::UINT16: {
+      case BN_TEXEL_FORMAT_R16: {
         std::cout << "volume with uint16s, converting to float" << std::endl;
         static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
         for (size_t i=0;i<volumeAsFloats.size();i++)
@@ -652,25 +737,20 @@ namespace hs {
       anari::setAndReleaseParameter(device, volume, "field", field);
       dg.createdVolumes.push_back(volume);
 #else
-      BNScalarType scalarType;
-      switch(vol->scalarType) {
-      case StructuredVolume::UINT8:
-        scalarType = BN_SCALAR_UINT8;
-        break;
-      case StructuredVolume::FLOAT:
-        scalarType = BN_SCALAR_FLOAT;
-        break;
-      default: throw std::runtime_error("Unknown or un-supported scalar type");
-      }
-      BNMaterial material = BN_DEFAULT_MATERIAL;
-      BNScalarField bnVol = bnStructuredDataCreate
-        (barney,
-         (const int3&)vol->dims,
-         scalarType,
-         vol->rawData.data(),
-         (const float3&)vol->gridOrigin,
-         (const float3&)vol->gridSpacing);
-      dg.createdVolumes.push_back(bnVolumeCreate(barney,bnVol));
+      BNTexture3D texture
+        = bnTexture3DCreate(barney,
+                            vol->texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
+                            vol->rawData.data());
+      BNScalarField sf
+        = bnScalarFieldCreate(barney,"structured");
+      bnSetObject(sf,"texture",texture);
+      bnRelease(texture);
+      bnSet3ic(sf,"dims",(const int3&)vol->dims);
+      bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
+      bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
+      bnCommit(sf);
+      dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
+      bnRelease(sf);
 #endif
     }
     
