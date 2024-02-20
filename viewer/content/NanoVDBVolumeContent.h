@@ -14,49 +14,35 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
+#pragma once
 
+#include "viewer/DataLoader.h"
 #include "hayStack/StructuredVolume.h"
-#include <nanovdb/NanoVDB.h>
 
 namespace hs {
+  
+  /*! a file of 'nvdb' */
+  struct NanoVDBVolumeContent : public LoadableContent {    
+    NanoVDBVolumeContent(const std::string &fileName,
+                     int thisPartID,
+                     const box3i &cellRange,
+                     vec3i fullVolumeDims,
+                     BNTexelFormat texelFormat,
+                     int numChannels);
+    
+    static void create(DataLoader *loader,
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
 
-  box3f StructuredVolume::getBounds() const
-  {
-    box3f bb;
-    bb.lower = gridOrigin;
-    bb.upper = gridSpacing * vec3f(dims);
-    return bb;
-  }
+    std::string toString() override;
 
-  range1f StructuredVolume::getValueRange() const
-  {
-    size_t numScalars = dims.x*(size_t)dims.y*dims.z;
-    range1f range;
-    switch (texelFormat) {
-    case BN_TEXEL_FORMAT_R32F:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(((const float *)rawData.data())[i]);
-      break;
-    case BN_TEXEL_FORMAT_R8:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
-      break;
-    case BN_TEXEL_FORMAT_R16:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(1.f/((1<<16)-1)*((const uint16_t *)rawData.data())[i]);
-      break;
-    case BN_TEXEL_FORMAT_NANOVDB_FLOAT:
-    {
-        nanovdb::NanoGrid<float>* const grid = (nanovdb::NanoGrid<float> *)rawData.data();
-        range.extend(grid->tree().root().data()->getMin());
-        range.extend(grid->tree().root().data()->getMax());
-    }
-    break;
-    default:
-      HAYSTACK_NYI();
-    }
-    return range;
-  }
+    const std::string   fileName;
+    const int           thisPartID;
+    const vec3i         fullVolumeDims;
+    const box3i         cellRange;
+    const int           numChannels;
+    const BNTexelFormat texelFormat;
+  };
   
 }

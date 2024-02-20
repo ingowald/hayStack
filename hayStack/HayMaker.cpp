@@ -737,6 +737,24 @@ namespace hs {
       anari::setAndReleaseParameter(device, volume, "field", field);
       dg.createdVolumes.push_back(volume);
 #else
+      if (vol->texelFormat == BN_TEXEL_FORMAT_NANOVDB_FLOAT) {
+        BNScalarField sf
+          = bnScalarFieldCreate(barney,"nanovdb");
+        BNTextureNanoVDB texture
+          = bnTextureNanoVDBCreate(barney,
+                              vol->texelFormat,vol->rawData.size(),
+                              vol->rawData.data());
+        bnSetObject(sf,"texture",texture);
+        bnRelease(texture);
+        bnSet3ic(sf,"dims",(const int3&)vol->dims);
+        bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
+        bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
+        bnCommit(sf);
+        dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
+        bnRelease(sf);
+      } 
+      else {
+
       BNScalarField sf
         = bnScalarFieldCreate(barney,"structured");
       BNTexture3D texture
@@ -759,6 +777,7 @@ namespace hs {
       bnCommit(sf);
       dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
       bnRelease(sf);
+      }
 #endif
     }
     

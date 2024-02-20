@@ -43,6 +43,8 @@ set(SOURCES
   content/TSTris.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/NanoVDBVolumeContent.h
+  content/NanoVDBVolumeContent.cpp
   )  
 
 set(TFE_SOURCES

@@ -68,6 +68,8 @@ namespace hs {
       return sizeof(uint16_t);
     case BN_TEXEL_FORMAT_R8:
       return sizeof(uint8_t);
+    case BN_TEXEL_FORMAT_NANOVDB_FLOAT:
+      return sizeof(float);
     // case StructuredVolume::FLOAT: return sizeof(float); 
     // case StructuredVolume::UINT16: return sizeof(uint8_t);
     // case StructuredVolume::UINT8: return sizeof(uint8_t);
