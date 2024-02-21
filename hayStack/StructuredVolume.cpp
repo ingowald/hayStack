@@ -48,7 +48,7 @@ namespace hs {
       break;
     case BN_TEXEL_FORMAT_NANOVDB_FLOAT:
     {
-        nanovdb::NanoGrid<float>* const grid = (nanovdb::NanoGrid<float> *)rawData.data();
+        nanovdb::NanoGrid<float>* const grid = (nanovdb::NanoGrid<float> *)rawData.data();        
         range.extend(grid->tree().root().data()->getMin());
         range.extend(grid->tree().root().data()->getMax());
     }

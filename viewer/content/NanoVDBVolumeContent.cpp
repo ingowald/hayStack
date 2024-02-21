@@ -94,10 +94,11 @@ namespace hs {
 		}
 
 		auto vdb_dims = nanogrid.gridMetaData()->worldBBox().dim();
+		auto vdb_spacing = nanogrid.gridMetaData()->voxelSize();
 		vec3i dims;
-		dims.x = vdb_dims[0];
-		dims.y = vdb_dims[1];
-		dims.z = vdb_dims[2];
+		dims.x = (int)(vdb_dims[0] / vdb_spacing[0]);
+		dims.y = (int)(vdb_dims[1] / vdb_spacing[1]);
+		dims.z = (int)(vdb_dims[2] / vdb_spacing[2]);
 
 		box3i initRegion = { vec3i(0), dims - 1 };
 		std::string extractString = dataURL.get("extract");
@@ -148,7 +149,7 @@ namespace hs {
 		std::cout << "Loaded NanoVDB grid[" << nanogrid.gridMetaData()->shortGridName() << "]...\n";
 
 		auto vdb_spacing = nanogrid.gridMetaData()->voxelSize();
-		vec3f gridSpacing(vdb_spacing[0], vdb_spacing[1], vdb_spacing[2]);
+		vec3f gridSpacing(1.0f, 1.0f, 1.0f);
 
 		std::vector<uint8_t> rawData(nanogrid.size());
 		memcpy(rawData.data(), nanogrid.data(), rawData.size());
