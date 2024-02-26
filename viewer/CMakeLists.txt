@@ -45,8 +45,6 @@ set(SOURCES
   content/RAWVolumeContent.cpp
   )  
 
-if (WIN32)
-else()
 set(TFE_SOURCES
   external/imgui/imgui.cpp
   external/imgui/imgui_draw.cpp
@@ -61,12 +59,20 @@ set(TFE_SOURCES
   imgui_tfe/TFEditor.h
   imgui_tfe/TFEditor.cpp
 )
+
+if(WIN32)
+  set(GLAD_SOURCES
+    external/glad/glad.cpp
+    external/glad/glad.h
+    external/glad/khrplatform.h
+  )
 endif()
 
 # ------------------------------------------------------------------
 add_executable(hsViewer
   ${SOURCES}
   ${TFE_SOURCES}
+  ${GLAD_SOURCES}
   )
 target_link_libraries(hsViewer
   PUBLIC
@@ -75,10 +81,11 @@ target_link_libraries(hsViewer
   )
 target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
 if (WIN32)
+  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
 else()
-target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
-target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
 endif()
+target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
 
 # ------------------------------------------------------------------
 add_executable(hsOffline

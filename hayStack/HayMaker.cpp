@@ -147,8 +147,8 @@ namespace hs {
 
   void HayMaker::setTransferFunction(const TransferFunction &xf) 
   {
-    for (int dgID=0;dgID<rankData.size();dgID++) {
-      auto &dg = perDG[dgID];
+    for (int slot=0;slot<rankData.size();slot++) {
+      auto &dg = perDG[slot];
       if (dg.createdVolumes.empty())
         continue;
 
@@ -196,9 +196,9 @@ namespace hs {
     }
     parallel_for
       ((int)rankData.size(),
-       [&](int dgID)
+       [&](int slot)
        {
-         auto &dg = perDG[dgID];
+         auto &dg = perDG[slot];
          if (dg.createdVolumes.empty())
            return;
 #if HANARI
@@ -206,8 +206,7 @@ namespace hs {
          anari::commitParameters(device, model);
 #else
          bnGroupBuild(dg.volumeGroup);
-         BNDataGroup barney = bnGetDataGroup(model,dgID);
-         bnBuild(barney);
+         bnBuild(model,slot);
 #endif
        });
   }
@@ -269,8 +268,8 @@ namespace hs {
 #else
   struct TextureLibrary
   {
-    TextureLibrary(BNDataGroup barney)
-      : barney(barney)
+    TextureLibrary(BNModel model, int slot)
+      : model(model), slot(slot)
     {}
 
     BNTexture getOrCreate(mini::Texture::SP miniTex)
@@ -321,7 +320,7 @@ namespace hs {
       BNTextureAddressMode addressMode = BN_TEXTURE_WRAP;
       BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
       BNTexture newTex
-        = bnTexture2DCreate(barney,texelFormat,
+        = bnTexture2DCreate(model,slot,texelFormat,
                             miniTex->size.x,miniTex->size.y,
                             miniTex->data.data(),
                             filterMode,addressMode,colorSpace);
@@ -329,16 +328,16 @@ namespace hs {
     }
     
     std::map<mini::Texture::SP,BNTexture> alreadyCreated;
-    BNDataGroup barney;
+    BNModel const model;
+    int     const slot;
   };
 #endif
   
-  void HayMaker::buildDataGroup(int dgID)
+  void HayMaker::buildDataGroup(int slot)
   {
 #if HANARI
     std::vector<anari::Light> lights;
 #else
-    BNDataGroup barney = bnGetDataGroup(model,dgID);
     std::vector<BNLight> lights;
 #endif
 
@@ -347,7 +346,7 @@ namespace hs {
       xfValues.push_back(vec4f(.5f,.5f,0.5f,
                                clamp(5.f-fabsf((float)i-40),0.f,1.f)));
 
-    auto &dg = perDG[dgID];
+    auto &dg = perDG[slot];
 
 #if HANARI
     std::vector<anari::Surface>   rootGroupGeoms;
@@ -357,7 +356,7 @@ namespace hs {
     std::vector<BNGroup>  groups;
 #endif
     std::vector<affine3f> xfms;
-    auto &myData = rankData.dataGroups[dgID];
+    auto &myData = rankData.dataGroups[slot];
 
     // ------------------------------------------------------------------
     // render all SphereGeoms
@@ -365,34 +364,25 @@ namespace hs {
     if (!myData.sphereSets.empty()) {
 #if HANARI
 #else
-      // std::vector<BNGeom>  &geoms = rootGroupGeoms;
       for (auto &sphereSet : myData.sphereSets) {
-        // BNMaterial material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnGeometryCreate(barney,"spheres");
-          // = bnSpheresCreate(barney,
-          //                   &material,
-          //                   (float3*)sphereSet->origins.data(),
-          //                   (int)sphereSet->origins.size(),
-          //                   (float3*)sphereSet->colors.data(),
-          //                   sphereSet->radii.data(),
-          //                   sphereSet->radius);
+          = bnGeometryCreate(model,slot,"spheres");
         if (!geom) continue;
         // .......................................................
-        BNData origins = bnDataCreate(barney,BN_FLOAT3,
+        BNData origins = bnDataCreate(model,slot,BN_FLOAT3,
                                       sphereSet->origins.size(),
                                       sphereSet->origins.data());
         bnSetData(geom,"origins",origins);
         // .......................................................
         if (!sphereSet->colors.empty()) {
-          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+          BNData colors = bnDataCreate(model,slot,BN_FLOAT3,
                                        sphereSet->colors.size(),
                                        sphereSet->colors.data());
           bnSetData(geom,"colors",colors);
         }
         // .......................................................
         if (!sphereSet->radii.empty()) {
-          BNData radii = bnDataCreate(barney,BN_FLOAT,
+          BNData radii = bnDataCreate(model,slot,BN_FLOAT,
                                       sphereSet->radii.size(),
                                       sphereSet->radii.data());
           bnSetData(geom,"radii",radii);
@@ -410,7 +400,7 @@ namespace hs {
         // .......................................................
         bnCommit(geom);
         // .......................................................
-        BNGroup group = bnGroupCreate(barney,&geom,1,0,0);
+        BNGroup group = bnGroupCreate(model,slot,&geom,1,0,0);
         bnGroupBuild(group);
         groups.push_back(group);
         xfms.push_back({});
@@ -429,11 +419,11 @@ namespace hs {
       for (auto &cylinderSet : myData.cylinderSets) {
         // BNMaterialHelper material = BN_DEFAULT_MATERIAL;
         BNGeom geom
-          = bnGeometryCreate(barney,"cylinders");
+          = bnGeometryCreate(model,slot,"cylinders");
 
         if (!geom) continue;
         // .......................................................
-        BNData vertices = bnDataCreate(barney,BN_FLOAT3,
+        BNData vertices = bnDataCreate(model,slot,BN_FLOAT3,
                                       cylinderSet->vertices.size(),
                                       cylinderSet->vertices.data());
         PRINT(cylinderSet->vertices.size());
@@ -444,21 +434,21 @@ namespace hs {
             cylinderSet->indices.push_back({i,i+1});
           }
         }
-        BNData indices = bnDataCreate(barney,BN_INT2,
+        BNData indices = bnDataCreate(model,slot,BN_INT2,
                                       cylinderSet->indices.size(),
                                       cylinderSet->indices.data());
         bnSetData(geom,"indices",indices);
         PRINT(cylinderSet->indices.size());
         // .......................................................
         if (!cylinderSet->colors.empty()) {
-          BNData colors = bnDataCreate(barney,BN_FLOAT3,
+          BNData colors = bnDataCreate(model,slot,BN_FLOAT3,
                                        cylinderSet->colors.size(),
                                        cylinderSet->colors.data());
           bnSetData(geom,"colors",colors);
         }
         // .......................................................
         if (!cylinderSet->radii.empty()) {
-          BNData radii = bnDataCreate(barney,BN_FLOAT,
+          BNData radii = bnDataCreate(model,slot,BN_FLOAT,
                                       cylinderSet->radii.size(),
                                       cylinderSet->radii.data());
           bnSetData(geom,"radii",radii);
@@ -488,7 +478,7 @@ namespace hs {
 #if HANARI
 #else
       for (auto ml : mini->quadLights) {
-        BNLight light = bnLightCreate(barney,"quad");
+        BNLight light = bnLightCreate(model,slot,"quad");
         if (!light) continue;
         bnSet3fc(light,"corner",(const float3&)ml.corner);
         bnSet3fc(light,"edge0",(const float3&)ml.edge0);
@@ -498,7 +488,7 @@ namespace hs {
         lights.push_back(light);
       }
       for (auto ml : mini->dirLights) {
-        BNLight light = bnLightCreate(barney,"directional");
+        BNLight light = bnLightCreate(model,slot,"directional");
         if (!light) continue;
         bnSet3fc(light,"direction",(const float3&)ml.direction);
         bnSet3fc(light,"radiance",(const float3&)ml.radiance);
@@ -506,7 +496,7 @@ namespace hs {
         lights.push_back(light);
       }
       if (mini->envMapLight) {
-        BNLight light = bnLightCreate(barney,"environment");
+        BNLight light = bnLightCreate(model,slot,"environment");
         if (light) {
           bnSet4x3fv(light,"envMap.transform",(const float *)&mini->envMapLight->transform);
           PRINT(mini->envMapLight->transform);
@@ -518,7 +508,7 @@ namespace hs {
             BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
             BNTexelFormat texelFormat = BN_TEXEL_FORMAT_RGBA32F;
             BNTexture texture
-              = bnTexture2DCreate(barney,texelFormat,
+              = bnTexture2DCreate(model,slot,texelFormat,
                                   envMap->size.x,envMap->size.y,
                                   envMap->data.data(),
                                   filterMode,addressMode,colorSpace);
@@ -527,7 +517,7 @@ namespace hs {
             BNData texData = 0;
             switch(envMap->format) {
             case mini::Texture::FLOAT4:
-              texData = bnDataCreate(barney,BN_FLOAT4,
+              texData = bnDataCreate(model,slot,BN_FLOAT4,
                                      envMap->size.x*envMap->size.y,
                                      envMap->data.data());
               break;
@@ -550,7 +540,7 @@ namespace hs {
       std::map<mini::Object::SP, anari::Group> miniGroups;
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
-      TextureLibrary textureLibrary(barney);
+      TextureLibrary textureLibrary(model,slot);
 #endif
 
       
@@ -607,7 +597,7 @@ namespace hs {
               
             BNGeom geom 
               = bnTriangleMeshCreate
-              (barney,&material,
+              (model,slot,&material,
                (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
                (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
                miniMesh->normals.empty()
@@ -627,7 +617,7 @@ namespace hs {
           anari::commitParameters(device, meshGroup);
 #else
           BNGroup meshGroup
-            = bnGroupCreate(barney,geoms.data(),(int)geoms.size(),
+            = bnGroupCreate(model,slot,geoms.data(),(int)geoms.size(),
                             nullptr,0);
           bnGroupBuild(meshGroup);
 #endif
@@ -672,7 +662,7 @@ namespace hs {
       }
 
       BNScalarField mesh = bnUMeshCreate
-        (barney,
+        (model,slot,
          // vertices: 4 floats each
          (const float *)verts4f.data(),(int)verts4f.size(),
          // tets: 4 ints each
@@ -688,7 +678,7 @@ namespace hs {
          (int)gridScalars.size(),
          (const float3*)&domain.lower);
       // rootGroupGeoms.push_back(geom);
-      BNVolume volume = bnVolumeCreate(barney,mesh);
+      BNVolume volume = bnVolumeCreate(model,slot,mesh);
       dg.createdVolumes.push_back(volume);
 #endif
     }
@@ -738,16 +728,16 @@ namespace hs {
       dg.createdVolumes.push_back(volume);
 #else
       BNScalarField sf
-        = bnScalarFieldCreate(barney,"structured");
+        = bnScalarFieldCreate(model,slot,"structured");
       BNTexture3D texture
-        = bnTexture3DCreate(barney,
+        = bnTexture3DCreate(model,slot,
                             vol->texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
                             vol->rawData.data());
       bnSetObject(sf,"texture",texture);
       bnRelease(texture);
       if (vol->rawDataRGB.size() != 0) {
         BNTexture3D texture
-          = bnTexture3DCreate(barney,
+          = bnTexture3DCreate(model,slot,
                               BN_TEXEL_FORMAT_RGBA8,vol->dims.x,vol->dims.y,vol->dims.z,
                               vol->rawDataRGB.data());
         bnSetObject(sf,"textureColorMap",texture);
@@ -757,7 +747,7 @@ namespace hs {
       bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
       bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
       bnCommit(sf);
-      dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
+      dg.createdVolumes.push_back(bnVolumeCreate(model,slot,sf));
       bnRelease(sf);
 #endif
     }
@@ -773,12 +763,12 @@ namespace hs {
         = anariNewGroup(device);
 #else
       BNGroup rootGroup
-        = bnGroupCreate(barney,rootGroupGeoms.data(),(int)rootGroupGeoms.size(),
+        = bnGroupCreate(model,slot,rootGroupGeoms.data(),(int)rootGroupGeoms.size(),
                         nullptr,0);
       bnGroupBuild(rootGroup);
 
       if (!lights.empty()) {
-        BNData lightsData = bnDataCreate(barney,BN_OBJECT,lights.size(),lights.data());
+        BNData lightsData = bnDataCreate(model,slot,BN_OBJECT,lights.size(),lights.data());
         bnSetData(rootGroup,"lights",lightsData);
       }
       bnCommit(rootGroup);
@@ -800,7 +790,7 @@ namespace hs {
                                  dg.createdVolumes.size());
 #else
       BNGroup rootGroup
-        = bnGroupCreate(barney,nullptr,0,
+        = bnGroupCreate(model,slot,nullptr,0,
                         dg.createdVolumes.data(),
                         (int)dg.createdVolumes.size());
       bnGroupBuild(rootGroup);
@@ -858,9 +848,9 @@ namespace hs {
     anari::commitParameters(device, model);
 #else
     
-    bnSetInstances(barney,groups.data(),(BNTransform *)xfms.data(),
+    bnSetInstances(model,slot,groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
-    bnBuild(barney);
+    bnBuild(model,slot);
 #endif
   }
   
