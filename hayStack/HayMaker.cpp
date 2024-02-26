@@ -499,7 +499,6 @@ namespace hs {
         BNLight light = bnLightCreate(model,slot,"environment");
         if (light) {
           bnSet4x3fv(light,"envMap.transform",(const float *)&mini->envMapLight->transform);
-          PRINT(mini->envMapLight->transform);
           mini::Texture::SP envMap = mini->envMapLight->texture;
           if (envMap) {
 #if 1
@@ -560,7 +559,6 @@ namespace hs {
                                       miniMesh->material->baseColor.z// ,
                                       // 1.f
                                       );
-            PRINT((const vec3f&)color);
             anari::setParameter(device,material,"color",color);
             anari::commitParameters(device, material);
             
