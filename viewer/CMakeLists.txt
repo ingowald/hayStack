@@ -116,3 +116,48 @@ if (HT_CUTEE)
   
 endif()
 
+# ------------------------------------------------------------------
+# blender
+# ------------------------------------------------------------------
+set(BLENDER_SUBDIRECTORY ON)
+add_subdirectory(blender)
+
+add_executable(hsBlender
+  blender.cpp
+  blender/renderengine_tcp.cpp
+  blender/renderengine_tcp.h
+  blender/renderengine_data.h
+
+  DataLoader.h
+  DataLoader.cpp
+  DataLoader.h
+  DataLoader.cpp
+
+  content/MiniContent.h
+  content/OBJContent.h
+  content/OBJContent.cpp
+  content/SpheresFromFile.h
+  content/SpheresFromFile.cpp
+  content/BoxesFromFile.h
+  content/BoxesFromFile.cpp
+  content/CylindersFromFile.h
+  content/CylindersFromFile.cpp
+  content/TSTris.h
+  content/TSTris.cpp
+  content/RAWVolumeContent.h
+  content/RAWVolumeContent.cpp  
+  )
+
+target_compile_definitions(hsBlender PUBLIC -DBLENDER_CLIENT)
+target_include_directories(hsBlender PUBLIC blender)
+
+target_link_libraries(hsBlender
+  PUBLIC
+  hayStack
+  )
+
+if(WITH_CLIENT_GPUJPEG)
+  target_include_directories(hsBlender PUBLIC ${GPUJPEG_INCLUDE_DIR})
+  target_compile_definitions(hsBlender PUBLIC -DWITH_CLIENT_GPUJPEG)
+  target_link_libraries(hsBlender PUBLIC ${GPUJPEG_LIBRARIES})
+endif()

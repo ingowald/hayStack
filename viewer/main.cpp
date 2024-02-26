@@ -39,6 +39,9 @@
 #endif
 #include <cuda_runtime.h>
 
+#include <iostream>
+#include <fstream>
+
 namespace hs {
 
   double t_last_render;
@@ -347,6 +350,22 @@ int main(int ac, char **av)
   world.barrier();
   if (world.rank == 0)
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
+
+#if 1
+  int device_count;
+  cudaGetDeviceCount(&device_count);
+  std::string dev_properties = " (";
+
+  for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp deviceProp;
+      cudaGetDeviceProperties(&deviceProp, i);
+      dev_properties += std::to_string(deviceProp.pciBusID) + std::string(":") + std::to_string(deviceProp.pciDeviceID) + std::string(",");
+  }
+  dev_properties += ")";
+
+  std::cout << "#hv: rank: " << world.rank  << ", GPU devices: " << device_count <<  dev_properties << std::endl; fflush(0);
+#endif
+
   world.barrier();
 
   // FromCL fromCL;
@@ -546,12 +565,39 @@ int main(int ac, char **av)
   xf.load(fromCL.xfFileName);
   renderer->setTransferFunction(xf);
 
-  for (int i=0;i<fromCL.numFramesAccum;i++) 
+  for (int i=0;i<fromCL.numFramesAccum;i++) {
+    double t0 = getCurrentTime();
     renderer->renderFrame(fromCL.spp);
+    double t1 = getCurrentTime();
+#if 1    
+    static double sum_t = 0.f;
+    static double sum_w = 0.f;
+    sum_t = 0.8f*sum_t + (t1-t0);
+    sum_w = 0.8f*sum_w + 1.f;
+    float timePerFrame = sum_t / sum_w;
+    float fps = 1.f/timePerFrame;
+    std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
+    std::cout << title << std::endl;    
+#endif    
+  }
+
+#if 1
+  size_t mem_free = 0, mem_tot = 0;
+  int numGPUs = 0;
+  cudaGetDeviceCount(&numGPUs);
+  for(int id = 0; id < numGPUs; id++) {
+    cudaSetDevice(id);
+    cudaMemGetInfo(&mem_free, &mem_tot);
+    printf("GPU %d: used: %f [GB]\n", id, (mem_tot - mem_free) / (1024.0 * 1024.0 * 1024.0));
+  }
+#endif  
+
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
+                 
+  std::cout << "outFileName:  " << fromCL.outFileName << std::endl;                 
 
   renderer->terminate();
 #endif
