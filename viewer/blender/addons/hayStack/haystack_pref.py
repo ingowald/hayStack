@@ -15,36 +15,27 @@
 # limitations under the License.                                           //
 # ======================================================================== //
 
-#####################################################################################################################
-bl_info = {
-    "name": "hayStack",
-    "author": "Milan Jaros, Ingo Wald",
-    "description": "",
-    "blender": (4, 0, 0),
-    "version": (0, 0, 2),
-    "location": "",
-    "warning": "",
-    "category": "Render"
-}
-#####################################################################################################################
+import bpy
+
+ADDON_NAME = 'hayStack'
+
+class HayStackPreferences(bpy.types.AddonPreferences):
+    bl_idname = ADDON_NAME
+
+    def draw(self, context):
+        layout = self.layout    
+
+def ctx_preferences():
+    try:
+        return bpy.context.preferences
+    except AttributeError:
+        return bpy.context.user_preferences
+
+def preferences() -> HayStackPreferences:
+    return ctx_preferences().addons[ADDON_NAME].preferences
 
 def register():
-    from . import haystack_pref
-    from . import haystack_render
-    from . import haystack_nodes
-
-    haystack_pref.register()
-    haystack_render.register()
-    haystack_nodes.register()
+    bpy.utils.register_class(HayStackPreferences)
 
 def unregister():
-    from . import haystack_pref
-    from . import haystack_render
-    from . import haystack_nodes
-    
-    try:
-        haystack_pref.unregister()
-        haystack_render.unregister()
-        haystack_nodes.unregister()
-    except RuntimeError:
-        pass 
+    bpy.utils.unregister_class(HayStackPreferences)
