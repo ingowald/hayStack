@@ -22,6 +22,12 @@ from bpy.utils import register_class, unregister_class
 from nodeitems_utils import NodeCategory, NodeItem, register_node_categories, unregister_node_categories
 
 from mathutils import Matrix
+
+from pathlib import Path
+import os
+
+from . import haystack_pref
+from . import haystack_remote
 #####################################################################################################################
 
 # Define a custom node tree type
@@ -75,6 +81,156 @@ class HayStackBaseNode(Node):
     def updateNode(self):
         pass
 
+    def get_file_path(self):
+        if haystack_pref.preferences().haystack_remote:
+            return str(self.file_path_remote)
+        else:
+            return str(bpy.path.abspath(self.file_path))
+        
+    def draw_file_path(self, layout):
+        row = layout.column(align=True)
+        if haystack_pref.preferences().haystack_remote:
+            row.prop(self, "file_path_remote")
+        else:
+            row.prop(self, "file_path")
+
+    def get_dir_path(self):
+        if haystack_pref.preferences().haystack_remote:
+            return str(self.dir_path_remote)
+        else:
+            return str(bpy.path.abspath(self.dir_path))
+        
+    def draw_dir_path(self, layout):
+        row = layout.column(align=True)
+        if haystack_pref.preferences().haystack_remote:
+            row.prop(self, "dir_path_remote")
+        else:
+            row.prop(self, "dir_path")               
+
+def update_property(self, context):
+    self.update()
+
+######################################################PANEL######################################################################
+# def haystack_update_remote_files(self, context):
+#     print(context.scene.haystack_remote_path)
+#     #bpy.ops.haystack.update_remote_files()
+
+class HAYSTACK_OT_update_remote_files(bpy.types.Operator):
+    bl_idname = 'haystack.update_remote_files'
+    bl_label = 'Update remote files'
+
+    name : bpy.props.StringProperty(        
+        default="/"
+        ) # type: ignore
+    
+    is_directory : bpy.props.BoolProperty(
+        default=True
+        ) # type: ignore
+
+    active_node: None     
+
+    def execute(self, context):
+        pref = haystack_pref.preferences()
+
+        if self.is_directory:
+            context.scene.haystack_remote_list.clear()
+            context.scene.haystack_remote_list_index = -1
+
+            if self.name == "..":
+                if context.scene.haystack_remote_path[len(context.scene.haystack_remote_path) - 1] == "/":
+                    context.scene.haystack_remote_path = os.path.dirname(context.scene.haystack_remote_path)
+
+                context.scene.haystack_remote_path = os.path.dirname(context.scene.haystack_remote_path)
+                context.scene.haystack_remote_path = str(context.scene.haystack_remote_path) + "/"
+            else:
+                divider = "/"
+                if context.scene.haystack_remote_path[len(context.scene.haystack_remote_path) - 1] == "/":
+                    divider = ""
+
+                context.scene.haystack_remote_path = str(context.scene.haystack_remote_path) + divider + str(self.name)
+
+            item = context.scene.haystack_remote_list.add()
+            item.Name = ".."
+            item.is_directory = True                
+
+            #folders
+            try:
+                remote_file_list = haystack_remote.ssh_command_sync(pref.ssh_server_name, " ls -p " + context.scene.haystack_remote_path + " | grep -e /")
+                lines = remote_file_list.split('\n')
+
+                for line in lines:
+                    if len(line) > 0:
+                        item = context.scene.haystack_remote_list.add()
+                        item.Name = line
+                        item.is_directory = True
+            except:
+                pass
+
+            #files
+            try:
+                remote_file_list = haystack_remote.ssh_command_sync(pref.ssh_server_name, " ls -p " + context.scene.haystack_remote_path + " | grep -v /")
+                lines = remote_file_list.split('\n')
+
+                for line in lines:
+                    if len(line) > 0:
+                        item = context.scene.haystack_remote_list.add()
+                        item.Name = line
+                        item.is_directory = False
+
+            except:
+                pass
+
+            try:
+                if context.active_node is not None and isinstance(context.active_node, HayStackBaseNode) and pref.haystack_remote:
+                    context.active_node.dir_path_remote = str(context.scene.haystack_remote_path)
+            except:
+                pass 
+
+        else:
+            try:
+                if context.active_node is not None and isinstance(context.active_node, HayStackBaseNode) and pref.haystack_remote:
+                    context.active_node.file_path_remote = str(context.scene.haystack_remote_path) + str(self.name)
+            except:
+                pass           
+
+        return {"FINISHED"}
+    
+class HAYSTACK_PG_remote_files(bpy.types.PropertyGroup):
+    Name : bpy.props.StringProperty(
+        name="Name"
+        ) # type: ignore
+    
+    is_directory : bpy.props.BoolProperty(
+        default=False
+        ) # type: ignore    
+    
+class HAYSTACK_UL_remote_files(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        #row = layout.row()
+        #row.label(text=item.Name)
+        op = layout.operator("haystack.update_remote_files", text=item.Name, icon='FILE_FOLDER' if item.is_directory else 'FILE_BLEND')
+        op.name = item.Name
+        op.is_directory = item.is_directory
+
+class HAYSTACK_PT_remote_file_path_node(Panel):
+    bl_space_type = 'NODE_EDITOR'
+    bl_region_type = 'UI'
+    bl_category = "Node"
+    bl_label = "Remote"   
+
+    @classmethod
+    def poll(cls, context):
+        pref = haystack_pref.preferences()        
+        return context.active_node is not None and isinstance(context.active_node, HayStackBaseNode) and pref.haystack_remote
+
+    def draw(self, context):
+        layout = self.layout
+        #node = context.active_node    
+
+        col = layout.column()
+        col.prop(context.scene, "haystack_remote_path")
+        col.operator("haystack.update_remote_files")
+        col.template_list("HAYSTACK_UL_remote_files", "", context.scene, "haystack_remote_list", context.scene, "haystack_remote_list_index")        
 
 ##################################################LOADING###################################################################    
 # UMesh
@@ -85,18 +241,25 @@ class HayStackLoadUMeshNode(HayStackBaseNode):
 
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore    
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore          
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
-        self.output_data = str(self.file_path)
+        self.output_data = self.get_file_path()
 
-    def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+    def draw_buttons(self, context, layout):        
+         self.draw_file_path(layout)
 
 # OBJ
 class HayStackLoadOBJNode(HayStackBaseNode):
@@ -106,18 +269,25 @@ class HayStackLoadOBJNode(HayStackBaseNode):
 
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore    
+        subtype="FILE_PATH",        
+        default="",
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore          
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
-        self.output_data = str(self.file_path)
+        self.output_data = self.get_file_path()
 
-    def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+    def draw_buttons(self, context, layout):        
+         self.draw_file_path(layout)
 
     
 # Mini
@@ -128,18 +298,25 @@ class HayStackLoadMiniNode(HayStackBaseNode):
 
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore    
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore      
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
-        self.output_data = str(self.file_path)
+        self.output_data = self.get_file_path()
 
-    def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+    def draw_buttons(self, context, layout):        
+         self.draw_file_path(layout)
 
 
 #spheres://1@/cluster/priya/105000.p4:format=xyzi:radius=1
@@ -151,13 +328,22 @@ class HayStackLoadSpheresNode(HayStackBaseNode):
 
     num_parts: bpy.props.IntProperty(
         name="Parts",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore 
 
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore     
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore    
 
     format_items = [
         ('XYZ', "xyz", "Format without type specifier"),
@@ -169,12 +355,14 @@ class HayStackLoadSpheresNode(HayStackBaseNode):
         name="Format",
         description="Choose the format",
         items=format_items,
-        default='XYZ',  # Default value
+        default='XYZ',
+        update = update_property
     ) # type: ignore
 
     radius: bpy.props.FloatProperty(
         name="Radius",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore     
     
     def initNode(self, context):
@@ -183,7 +371,7 @@ class HayStackLoadSpheresNode(HayStackBaseNode):
     def updateNode(self):
         self.output_data = "spheres://" + \
             "" + str(self.num_parts) + "@" + \
-            "" + str(self.file_path) + \
+            "" + self.get_file_path() + \
             ":format=" + str(self.format.lower()) + \
             ":radius=" + str(self.radius)
         
@@ -194,9 +382,10 @@ class HayStackLoadSpheresNode(HayStackBaseNode):
         # layout.use_property_split = True
         # layout.use_property_decorate = False  # No animation.
 
+        self.draw_file_path(layout)
+        
         row = layout.column(align=True)
         row.prop(self, "num_parts")
-        row.prop(self, "file_path")
         row.prop(self, "format")
         row.prop(self, "radius")
 
@@ -209,19 +398,26 @@ class HayStackLoadTSTriNode(HayStackBaseNode):
     
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore    
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore          
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
         self.output_data = "ts.tri://" + \
-            "" + str(self.file_path)
+            "" + self.get_file_path()
 
     def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+        self.draw_file_path(layout)
 
 #raw://4@/home/wald/models/magnetic-512-volume/magnetic-512-volume.raw:format=float:dims=512,512,512
 # RAWVolume
@@ -232,13 +428,22 @@ class HayStackLoadRAWVolumeNode(HayStackBaseNode):
     
     num_parts: bpy.props.IntProperty(
         name="Parts",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore 
 
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
-    ) # type: ignore     
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore           
 
     format_items = [
         ('UINT8', "uint8", "Format uint8"),
@@ -252,41 +457,48 @@ class HayStackLoadRAWVolumeNode(HayStackBaseNode):
         name="Format",
         description="Choose the format",
         items=format_items,
-        default='FLOAT',  # Default value
+        default='FLOAT',
+        update = update_property
     ) # type: ignore
 
     dims: bpy.props.IntVectorProperty(
         name="Dims",
         size=3,
         subtype='XYZ_LENGTH',
-        default=(1, 1, 1)
+        default=(1, 1, 1),
+        update = update_property
     ) # type: ignore
 
     channels: bpy.props.IntProperty(
         name="Channels",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore
 
     extractEnable: bpy.props.BoolProperty(
         name="Extract",
-        default=False
+        default=False,
+        update = update_property
     ) # type: ignore   
 
     extract: bpy.props.IntVectorProperty(
         name="Extract",
         size=3,
         subtype='XYZ_LENGTH',
-        default=(0, 0, 0)
+        default=(0, 0, 0),
+        update = update_property
     ) # type: ignore
 
     isoValueEnable: bpy.props.BoolProperty(
         name="IsoValue",
-        default=False
+        default=False,
+        update = update_property
     ) # type: ignore    
 
     isoValue: bpy.props.FloatProperty(
         name="IsoValue",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore    
 
        
@@ -298,7 +510,7 @@ class HayStackLoadRAWVolumeNode(HayStackBaseNode):
     def updateNode(self):
         self.output_data = "raw://" + \
             "" + str(self.num_parts) + "@" + \
-            "" + str(self.file_path) + \
+            "" + self.get_file_path() + \
             ":format=" + str(self.format.lower()) + \
             ":dims=" + str(self.dims[0]) + "," +str(self.dims[1]) + "," +str(self.dims[2]) + \
             ":channels=" + str(self.channels)
@@ -318,9 +530,10 @@ class HayStackLoadRAWVolumeNode(HayStackBaseNode):
         # layout.use_property_split = True
         # layout.use_property_decorate = False  # No animation.
 
+        self.draw_file_path(layout)
+
         row = layout.column(align=True)
-        row.prop(self, "num_parts")
-        row.prop(self, "file_path")
+        row.prop(self, "num_parts")        
         row.prop(self, "format")
         row.prop(self, "dims")
         row.prop(self, "channels") 
@@ -341,19 +554,26 @@ class HayStackLoadBoxesNode(HayStackBaseNode):
     
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
     ) # type: ignore    
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore      
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
         self.output_data = "boxes://" + \
-            "" + str(self.file_path)
+            "" + self.get_file_path()
 
     def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+        self.draw_file_path(layout)
 
 # Cylinders
 class HayStackLoadCylindersNode(HayStackBaseNode):
@@ -363,19 +583,26 @@ class HayStackLoadCylindersNode(HayStackBaseNode):
     
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
     ) # type: ignore    
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore      
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
         self.output_data = "cylinders://" + \
-            "" + str(self.file_path)
+            "" + self.get_file_path()
 
     def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+        self.draw_file_path(layout)
 
 # SpatiallyPartitionedUMesh
 class HayStackLoadSpatiallyPartitionedUMeshNode(HayStackBaseNode):
@@ -385,19 +612,26 @@ class HayStackLoadSpatiallyPartitionedUMeshNode(HayStackBaseNode):
     
     file_path: bpy.props.StringProperty(
         name="File",
-        default=""
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
     ) # type: ignore    
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore      
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
     
     def updateNode(self):
         self.output_data = "spumesh://" + \
-            "" + str(self.file_path)
+            "" + self.get_file_path()
 
     def draw_buttons(self, context, layout):
-        row = layout.column(align=True)
-        row.prop(self, "file_path")
+        self.draw_file_path(layout)
 
 ##################################################Scene###################################################################
 def camera_poll(self, object):
@@ -426,32 +660,37 @@ class HayStackCameraNode(HayStackBaseNode):
         name="Camera",
         type=bpy.types.Object,
         poll=camera_poll,
+        update = update_property
     ) # type: ignore
 
     vp: bpy.props.FloatVectorProperty(
         name="vp",
         size=3,
         subtype='XYZ',
-        default=(0.0, 0.0, 0.0)
+        default=(0.0, 0.0, 0.0),
+        update = update_property
     ) # type: ignore
 
     vi: bpy.props.FloatVectorProperty(
         name="vi",
         size=3,
         subtype='XYZ',
-        default=(0.0, 0.0, 0.0)
+        default=(0.0, 0.0, 0.0),
+        update = update_property
     ) # type: ignore    
 
     vu: bpy.props.FloatVectorProperty(
         name="vu",
         size=3,
         subtype='XYZ',
-        default=(0.0, 1.0, 0.0)
+        default=(0.0, 1.0, 0.0),
+        update = update_property
     ) # type: ignore   
 
     fovy: bpy.props.FloatProperty(
         name="fovy",
-        default=60.0
+        default=60.0,
+        update = update_property
     ) # type: ignore
     
     def initNode(self, context):
@@ -475,106 +714,192 @@ class HayStackCameraNode(HayStackBaseNode):
             " " +  str(self.vp[0]) + " " + str(self.vp[1]) + " " +  str(self.vp[2]) + \
             " " +  str(self.vi[0]) + " " + str(self.vi[1]) + " " +  str(self.vi[2]) + \
             " " +  str(self.vu[0]) + " " + str(self.vu[1]) + " " +  str(self.vu[2]) + \
-            " -fovy " + str(self.fovy)    
+            " -fovy " + str(round(self.fovy, 3))
+
+
+#TransferFunction
+class HayStackTransferFunctionNode(HayStackBaseNode):
+    bl_idname = 'HayStackTransferFunctionNodeType'
+    bl_label = 'TransferFunction'
+    bl_description = 'TransferFunction'
+
+    # Define the PointerProperty for selecting camera objects
+    material: bpy.props.PointerProperty(
+        name="Material",
+        type=bpy.types.Material,
+        update = update_property
+    ) # type: ignore
+
+    file_path: bpy.props.StringProperty(
+        name="XF",
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore      
+    
+    def initNode(self, context):
+        self.outputs.new('HayStackDataSocketType', 'Data')
+        self.width = 200
+            
+    def draw_buttons(self, context, layout):
+        self.draw_file_path(layout)
+
+        col = layout.column()
+        col.prop(self, "material")        
+
+    def updateNode(self):
+        self.output_data = "-xf " + self.get_file_path()
 
 ##################################################Utility###################################################################
-class HayStackMergeNode(HayStackBaseNode):
-    bl_idname = 'HayStackMergeNodeType'
-    bl_label = 'Merge'
-    bl_description = 'Merge'
-
-    # Integer property to specify the number of inputs
-    num_inputs: bpy.props.IntProperty(
-        name="Inputs",
-        default=2,
-        min=2,  # Minimum value to ensure there's at least one input
-        max=10, # Maximum value for practicality, adjust as needed
-        update=lambda self, context: self.adjust_inputs(),
-    ) # type: ignore   
-    
-    # def init(self, context):
-    #     self.inputs.new('HayStackDataSocketType', 'Data 1')
-    #     self.inputs.new('HayStackDataSocketType', 'Data 2')
-    #     self.outputs.new('HayStackDataSocketType', 'Data')
-    
-    def initNode(self, context):
-        self.adjust_inputs()
+class HayStackMerge2Node(HayStackBaseNode):
+    bl_idname = 'HayStackMerge2NodeType'
+    bl_label = 'Merge2'
+    bl_description = 'Merge2'
+   
+    def init(self, context):
+        self.inputs.new('HayStackDataSocketType', 'Data 1')
+        self.inputs.new('HayStackDataSocketType', 'Data 2')
         self.outputs.new('HayStackDataSocketType', 'Data')
-
-    def adjust_inputs(self):
-        # Adjust the number of inputs to match num_inputs
-        current_inputs = len(self.inputs)
         
-        while current_inputs < self.num_inputs:
-            current_inputs += 1
-            self.inputs.new('HayStackDataSocketType', f"Data {current_inputs}")
-
-        while current_inputs > self.num_inputs:
-            self.inputs.remove(self.inputs[-1])
-            current_inputs -= 1
-
-    def draw_buttons(self, context, layout):
-        col = layout.column()
-        col.prop(self, "num_inputs")       
-    
     def updateNode(self):
-        output = ""
-        for current_inputs in range(self.num_inputs):
-            output = output + self.inputs[current_inputs].value
-            
-            if current_inputs < self.num_inputs - 1:
-                output = output + " "
+        self.output_data = str(self.inputs['Data 1'].value) + " " + str(self.inputs['Data 2'].value)
 
-        self.output_data = output
-
-        # for link in self.outputs['Data'].links:
-        #     link.to_socket.value = output
-        #     link.to_node.update()
-##################################################Render###################################################################    
-class HayStackRenderInteractiveNode(HayStackBaseNode):
-    bl_idname = 'HayStackRenderInteractiveNodeType'
-    bl_label = 'Interactive'
-    bl_description = 'HayStack Render Interactive'
-    
-    def initNode(self, context):
-        self.inputs.new('HayStackDataSocketType', 'Data')
-    
+class HayStackMerge4Node(HayStackBaseNode):
+    bl_idname = 'HayStackMerge4NodeType'
+    bl_label = 'Merge4'
+    bl_description = 'Merge4'
+   
+    def init(self, context):
+        self.inputs.new('HayStackDataSocketType', 'Data 1')
+        self.inputs.new('HayStackDataSocketType', 'Data 2')
+        self.inputs.new('HayStackDataSocketType', 'Data 3')
+        self.inputs.new('HayStackDataSocketType', 'Data 4')
+        self.outputs.new('HayStackDataSocketType', 'Data')
+        
     def updateNode(self):
-        command_arg = str(self.inputs['Data'].value)
-        print('Interactive', command_arg)
+        self.output_data = str(self.inputs['Data 1'].value) + " " + str(self.inputs['Data 2'].value)  + " " + \
+            str(self.inputs['Data 3'].value) + " " + str(self.inputs['Data 4'].value)
+        
+##########################################Output#################################################
+class HayStackOutputImageNode(HayStackBaseNode):
+    bl_idname = 'HayStackOutputImageNodeType'
+    bl_label = 'Output Image'
+    bl_description = 'HayStack Output Image'
 
-class HayStackRenderOfflineNode(HayStackBaseNode):
-    bl_idname = 'HayStackRenderOfflineNodeType'
-    bl_label = 'Offline'
-    bl_description = 'HayStack Render Offline'
-
-    image_path: bpy.props.StringProperty(
-        name="Image",
-        default=""
+    image_file_name: bpy.props.StringProperty(
+        name="Name",
+        default="output.png",
+        subtype="FILE_NAME",
+        update = update_property
     ) # type: ignore
+
+    dir_path: bpy.props.StringProperty(
+        name="Path",
+        default="",
+        subtype="DIR_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    dir_path_remote: bpy.props.StringProperty(
+        name="Path",
+        default="",
+        update = update_property
+    ) # type: ignore        
 
     resolution: bpy.props.IntVectorProperty(
         name="Resolution",
         size=2,
         subtype='XYZ',
-        default=(800, 600)
+        default=(800, 600),
+        update = update_property
     ) # type: ignore            
     
     def initNode(self, context):
-        self.inputs.new('HayStackDataSocketType', 'Data')
-        #self.width = 300
+        self.outputs.new('HayStackDataSocketType', 'Data')  
     
     def updateNode(self):
-        command_arg = str(self.inputs['Data'].value) + \
-            " -o " + str(self.image_path) + \
-            " -res " + str(self.resolution[0]) + " " + str(self.resolution[1])
-
-        print('Offline', command_arg)
+        self.output_data = "" + \
+            " -o " + self.get_dir_path() + "/" + str(self.image_file_name)  + \
+            " -res " + str(self.resolution[0]) + " " + str(self.resolution[1])        
 
     def draw_buttons(self, context, layout):
         col = layout.column()
-        col.prop(self, "image_path")
-        col.prop(self, "resolution")
+        col.prop(self, "image_file_name")
+
+        self.draw_dir_path(layout)
+
+        col = layout.column()
+        col.prop(self, "resolution")                
+##################################################Render###################################################################
+class HayStackRenderBaseNode(HayStackBaseNode):
+    bl_idname = 'HayStackRenderBaseNodeType'
+    bl_label = 'RenderBase'
+    bl_description = 'HayStack Render'
+    
+    file_path: bpy.props.StringProperty(
+        name="Path",
+        default="",
+        subtype="DIR_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="Path",
+        default="",
+        update = update_property
+    ) # type: ignore        
+    
+    def initNode(self, context):
+        self.inputs.new('HayStackDataSocketType', 'Data')
+    
+    def updateNode(self):
+        haystack_path = self.get_file_path() + " "        
+        command_arg = haystack_path + str(self.inputs['Data'].value)
+        print(command_arg)
+
+        text_block_name = self.bl_label + ".txt"
+
+        # Check if the text block already exists
+        if text_block_name in bpy.data.texts:
+            # If it exists, just update its content
+            text_block = bpy.data.texts[text_block_name]
+            text_block.clear()  # Clear existing content
+        else:
+            # If it does not exist, create a new text block
+            text_block = bpy.data.texts.new(name=text_block_name)
+
+        # Write the content to the text block
+        text_block.write(command_arg)        
+
+    def draw_buttons(self, context, layout):
+        self.draw_file_path(layout)  
+
+class HayStackRenderBlenderNode(HayStackRenderBaseNode):
+    bl_idname = 'HayStackRenderBlenderNodeType'
+    bl_label = 'hsBlender'
+    bl_description = 'HayStack Render Blender'
+
+class HayStackRenderViewerNode(HayStackRenderBaseNode):
+    bl_idname = 'HayStackRenderViewerNodeType'
+    bl_label = 'hsViewer'
+    bl_description = 'HayStack Render hsViewer'
+    
+class HayStackRenderViewerQTNode(HayStackRenderBaseNode):
+    bl_idname = 'HayStackRenderViewerQTNodeType'
+    bl_label = 'hsViewerQT'
+    bl_description = 'HayStack Render hsViewerQT'
+
+class HayStackRenderOfflineNode(HayStackRenderBaseNode):
+    bl_idname = 'HayStackRenderOfflineNodeType'
+    bl_label = 'hsOffline'
+    bl_description = 'HayStack Render hsOffline'
+
 ##################################################Property###################################################################    
 class HayStackPropertiesNode(HayStackBaseNode):
     bl_idname = 'HayStackPropertiesNodeType'
@@ -586,14 +911,16 @@ class HayStackPropertiesNode(HayStackBaseNode):
     #   fromCL.numFramesAccum = std::stoi(av[++i]);
     num_frames: bpy.props.IntProperty(
         name="Num. frames",
-        default=1024
+        default=1024,
+        update = update_property
     ) # type: ignore  
 
     # } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
     #   fromCL.spp = std::stoi(av[++i]);
     paths_per_pixel: bpy.props.IntProperty(
         name="Paths per pixel",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore     
     # } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
     #   fromCL.mergeUnstructuredMeshes = true; 
@@ -601,19 +928,22 @@ class HayStackPropertiesNode(HayStackBaseNode):
     #   fromCL.mergeUnstructuredMeshes = false;
     merge_umeshes: bpy.props.BoolProperty(
         name="Merge umeshes",
-        default=False
+        default=False,
+        update = update_property
     ) # type: ignore       
     # } else if (arg == "--default-radius") {
     #   loader.defaultRadius = std::stof(av[++i]);
     default_radius: bpy.props.FloatProperty(
         name="Default Radius",
-        default=0.1
+        default=0.1,
+        update = update_property,
     ) # type: ignore      
     # } else if (arg == "--measure") {
     #   fromCL.measure = true;
     measure: bpy.props.BoolProperty(
         name="Measure",
-        default=False
+        default=False,
+        update = update_property
     ) # type: ignore      
     # } else if (arg == "-o") {
     #   fromCL.outFileName = av[++i];
@@ -639,14 +969,16 @@ class HayStackPropertiesNode(HayStackBaseNode):
     ndg: bpy.props.IntProperty(
         name="ndg",
         description="Num data groups",
-        default=1
+        default=1,
+        update = update_property
     ) # type: ignore     
     # } else if (arg == "-dpr") {
     #   fromCL.dpr = std::stoi(av[++i]);
     dpr: bpy.props.IntProperty(
         name="dpr",
         description="Data groups per rank",
-        default=0
+        default=0,
+        update = update_property
     ) # type: ignore
     # } else if (arg == "-nhn" || arg == "--no-head-node") {
     #   fromCL.createHeadNode = false; 
@@ -655,7 +987,8 @@ class HayStackPropertiesNode(HayStackBaseNode):
     #   fromCL.createHeadNode = true; 
     create_head_node: bpy.props.BoolProperty(
         name="Head node",
-        default=False
+        default=False,
+        update = update_property
     ) # type: ignore           
     
     def initNode(self, context):
@@ -665,7 +998,7 @@ class HayStackPropertiesNode(HayStackBaseNode):
         self.output_data = "" + \
             " --num-frames " + str(self.num_frames) + \
             " --paths-per-pixel " + str(self.paths_per_pixel) + \
-            " --default-radius " + str(self.default_radius) + \
+            " --default-radius " + str(round(self.default_radius, 7)) + \
             " -ndg " + str(self.ndg) + \
             " -dpr " + str(self.dpr)
         
@@ -712,6 +1045,11 @@ class HayStackPropertyCategory(NodeCategory):
     def poll(cls, context):
         return context.space_data.tree_type == 'HayStackTreeType'
     
+class HayStackOutputCategory(NodeCategory):
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.tree_type == 'HayStackTreeType'    
+    
 class HayStackRenderCategory(NodeCategory):
     @classmethod
     def poll(cls, context):
@@ -733,18 +1071,26 @@ haystack_node_categories = [
 
     HayStackSceneCategory("HAYSTACK_SCENE_NODES", "Scene", items=[
         NodeItem("HayStackCameraNodeType"),
+        NodeItem("HayStackTransferFunctionNodeType"),        
     ]),
 
     HayStackUtilityCategory("HAYSTACK_UTILITY_NODES", "Utility", items=[
-        NodeItem("HayStackMergeNodeType"),
+        NodeItem("HayStackMerge2NodeType"),
+        NodeItem("HayStackMerge4NodeType"),
     ]),
     
     HayStackPropertyCategory("HAYSTACK_PROPERTY_NODES", "Property", items=[
         NodeItem("HayStackPropertiesNodeType"),
     ]),
 
+    HayStackOutputCategory("HAYSTACK_OUTPUT_NODES", "Output", items=[
+        NodeItem("HayStackOutputImageNodeType"),
+    ]),    
+
     HayStackRenderCategory("HAYSTACK_RENDER_NODES", "Render", items=[
-        NodeItem("HayStackRenderInteractiveNodeType"),
+        NodeItem("HayStackRenderBlenderNodeType"),
+        NodeItem("HayStackRenderViewerNodeType"),
+        NodeItem("HayStackRenderViewerQTNodeType"),
         NodeItem("HayStackRenderOfflineNodeType"),
     ]),    
 ]
@@ -769,17 +1115,30 @@ classes = [
     HayStackLoadSpatiallyPartitionedUMeshNode,
 
     #Render
-    HayStackRenderInteractiveNode,
+    HayStackRenderBlenderNode,
+    HayStackRenderViewerNode,
+    HayStackRenderViewerQTNode,
     HayStackRenderOfflineNode,
 
     #Property
     HayStackPropertiesNode,
 
     #Utility
-    HayStackMergeNode,
+    HayStackMerge2Node,
+    HayStackMerge4Node,
 
     #Scene
-    HayStackCameraNode,    
+    HayStackCameraNode,
+    HayStackTransferFunctionNode,
+
+    #Output
+    HayStackOutputImageNode,
+
+    #Other
+    HAYSTACK_OT_update_remote_files,
+    HAYSTACK_PG_remote_files,
+    HAYSTACK_UL_remote_files,
+    HAYSTACK_PT_remote_file_path_node,
     ]
 
 def register():
@@ -788,7 +1147,11 @@ def register():
     bpy.types.Scene.haystack_tree = bpy.props.PointerProperty(type=HayStackNodeTree)
 
     # Register the node categories
-    register_node_categories("HAYSTACK_CATEGORIES", haystack_node_categories)    
+    register_node_categories("HAYSTACK_CATEGORIES", haystack_node_categories)
+
+    bpy.types.Scene.haystack_remote_list = bpy.props.CollectionProperty(type=HAYSTACK_PG_remote_files)
+    bpy.types.Scene.haystack_remote_list_index = bpy.props.IntProperty(default=-1)
+    bpy.types.Scene.haystack_remote_path = bpy.props.StringProperty(name="Remote path", default="/")
 
 def unregister():
     # Unregister the node categories first
@@ -797,3 +1160,7 @@ def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.haystack_tree
+
+    del bpy.types.Scene.haystack_remote_list
+    del bpy.types.Scene.haystack_remote_list_index    
+    del bpy.types.Scene.haystack_remote_path

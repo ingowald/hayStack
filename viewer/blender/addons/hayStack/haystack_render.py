@@ -40,6 +40,8 @@ from math import radians
 from mathutils import Matrix
 
 from ctypes import Array, cdll, c_void_p, c_char, c_char_p, c_int, c_int32, c_uint32, c_float, c_bool, c_ulong, POINTER
+
+from . import haystack_pref
 #####################################################################################################################
 bl_info = {
     "name": "hayStack",
@@ -143,72 +145,55 @@ def check_gl_error():
 
 
 class HayStackServerSettings(bpy.types.PropertyGroup):
-    port_cam: bpy.props.IntProperty(
-        name="Port Cam",
-        min=0,
-        max=65565,
-        default=6004
-    )
-
-    port_data: bpy.props.IntProperty(
-        name="Port Data",
-        min=0,
-        max=65565,
-        default=6005
-    )
-
-    server_name: bpy.props.StringProperty(
-        name="Server",
-        default="localhost"
-    )
-
     width: bpy.props.IntProperty(
         name="Width",
         default=0
-    )
+    ) # type: ignore
 
     height: bpy.props.IntProperty(
         name="Height",
         default=0
-    )
+    ) # type: ignore
 
     step_samples: bpy.props.IntProperty(
         name="Step Samples",
         min=0,
         max=100,
         default=1
-    )
+    ) # type: ignore
 
     filename: bpy.props.StringProperty(
         name="Filename",
         default=""
-    )
+    ) # type: ignore
 
     cam_rotation_X: bpy.props.FloatProperty(
         name="Cam Rotation X",
         default=0.0,
         subtype="ANGLE"
-    )
+    ) # type: ignore
 
     timesteps: bpy.props.IntProperty(
         name="Time Steps",
         min=1,
         max=100,
         default=1
-    )
+    ) # type: ignore
 
     save_to_file: bpy.props.BoolProperty(
         name="Save To File",
         default=False
-    )      
+    ) # type: ignore      
 
     mat_volume: bpy.props.PointerProperty(
         type=bpy.types.Material
-    )
+    ) # type: ignore
 
 
 class HayStackRenderSettings(bpy.types.PropertyGroup):
-    server_settings: bpy.props.PointerProperty(type=HayStackServerSettings)
+    server_settings: bpy.props.PointerProperty(
+        type=HayStackServerSettings
+        ) # type: ignore
 
 
 class HayStackData:
@@ -1164,11 +1149,11 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         scene = context.scene
         server_settings = scene.haystack.server_settings
 
-        box = layout.box()
-        col = box.column()
-        col.prop(server_settings, "server_name", text="Server")
-        col.prop(server_settings, "port_cam", text="Port Cam")
-        col.prop(server_settings, "port_data", text="Port Data")
+        # box = layout.box()
+        # col = box.column()
+        # col.prop(server_settings, "server_name", text="Server")
+        # col.prop(server_settings, "port_cam", text="Port Cam")
+        # col.prop(server_settings, "port_data", text="Port Data")
         #col.prop(server_settings, "filename", text="Filename")
 
         # box = layout.box()
