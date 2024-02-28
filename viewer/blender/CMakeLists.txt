@@ -29,6 +29,20 @@ if(NOT BLENDER_SUBDIRECTORY)
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
         cmake_policy(SET CMP0104 NEW)
     endif()
+
+    if(WIN32)
+        set(GLAD_SOURCES
+          ../external/glad/glad.cpp
+          ../external/glad/glad.h
+          ../external/glad/khrplatform.h
+        )
+        set(GLAD_INCLUDE_DIR
+           ../external
+        )
+    endif()
+
+    find_package(CUDA REQUIRED)
+    find_package(OpenGL REQUIRED)
 endif()
 
 if(WITH_CLIENT_GPUJPEG)
@@ -40,7 +54,10 @@ endif()
 
 set(INC
 	 .
+     ${GLAD_INCLUDE_DIR}
      ${GPUJPEG_INCLUDE_DIR}
+     ${CUDA_INCLUDE_DIRS}
+     ${OPENGL_INCLUDE_DIR}
 )
 
 set(SRC
@@ -56,11 +73,19 @@ set(SRC_HEADERS
 )
 
 include_directories(${INC})
-add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS})
+add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS} ${GLAD_SOURCES})
 #target_link_libraries(hayStack-renderengine stb_image)
 
+target_link_libraries(hayStack-renderengine 
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUDA_LIBRARY} # For CUDA Driver API
+    ${OPENGL_LIBRARIES}
+)
+
 if(WITH_CLIENT_GPUJPEG)
-    target_link_libraries(hayStack-renderengine ${GPUJPEG_LIBRARIES})
+    target_link_libraries(hayStack-renderengine 
+        ${GPUJPEG_LIBRARIES}
+    )
 endif()
   
 install (TARGETS hayStack-renderengine DESTINATION addons/hayStack)

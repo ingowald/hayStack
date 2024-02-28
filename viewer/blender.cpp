@@ -508,12 +508,13 @@ int main(int ac, char** av)
 			total_samples++;
 
 			cudaDeviceSynchronize();
-			char* pixels_buf = (char*)fbPointer; //renderer->getBuffer();
-			((int*)pixels_buf)[0] = total_samples; //renderer->getTotalSamples();
 
 #ifdef WITH_CLIENT_GPUJPEG     
 			send_gpujpeg((char*)fbPointer, pixels_buf_empty.data(), fromCL.fbSize.x, fromCL.fbSize.y);
 #else
+			char* pixels_buf = (char*)fbPointer; //renderer->getBuffer();
+			((int*)pixels_buf)[0] = total_samples; //renderer->getTotalSamples();
+
 			send_data_data((char*)fbPointer, pixels_buf_empty.size());
 #endif
 

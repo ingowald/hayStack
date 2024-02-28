@@ -25,6 +25,8 @@ from mathutils import Matrix
 
 from pathlib import Path
 import os
+import platform
+import re
 
 from . import haystack_pref
 from . import haystack_remote
@@ -837,6 +839,24 @@ class HayStackOutputImageNode(HayStackBaseNode):
         col = layout.column()
         col.prop(self, "resolution")                
 ##################################################Render###################################################################
+def replace_drive_substrings(input_string):
+    if platform.system() == 'Windows':
+        # Define a regular expression pattern that matches any letter followed by a colon
+        pattern = r"@([a-zA-Z]):"
+        
+        # Function to construct the replacement string
+        def repl_func(match):
+            # match.group(1) is the letter matched inside the parentheses in the pattern
+            # Return the letter followed by a dollar sign
+            return f"@{match.group(1)}$"
+        
+        # Use re.sub with the pattern, replacement function, and input string
+        result_string = re.sub(pattern, repl_func, input_string)
+        
+        return result_string
+    else:
+        return input_string
+        
 class HayStackRenderBaseNode(HayStackBaseNode):
     bl_idname = 'HayStackRenderBaseNodeType'
     bl_label = 'RenderBase'
@@ -845,7 +865,7 @@ class HayStackRenderBaseNode(HayStackBaseNode):
     file_path: bpy.props.StringProperty(
         name="Path",
         default="",
-        subtype="DIR_PATH",        
+        subtype="FILE_PATH",        
         update = update_property
     ) # type: ignore
 
@@ -859,9 +879,12 @@ class HayStackRenderBaseNode(HayStackBaseNode):
         self.inputs.new('HayStackDataSocketType', 'Data')
     
     def updateNode(self):
-        haystack_path = self.get_file_path() + " "        
-        command_arg = haystack_path + str(self.inputs['Data'].value)
+        input_value = replace_drive_substrings(self.inputs['Data'].value)
+        haystack_path = self.get_file_path() + " "
+        command_arg = haystack_path + str(input_value)
+
         print(command_arg)
+        self.output_data = command_arg
 
         text_block_name = self.bl_label + ".txt"
 

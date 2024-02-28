@@ -62,9 +62,12 @@ set(TFE_SOURCES
 
 if(WIN32)
   set(GLAD_SOURCES
-    external/glad/glad.cpp
-    external/glad/glad.h
-    external/glad/khrplatform.h
+    ${PROJECT_SOURCE_DIR}/viewer/external/glad/glad.cpp
+    ${PROJECT_SOURCE_DIR}/viewer/external/glad/glad.h
+    ${PROJECT_SOURCE_DIR}/viewer/external/glad/khrplatform.h
+  )
+  set(GLAD_INCLUDE_DIR
+    ${PROJECT_SOURCE_DIR}/viewer/external
   )
 endif()
 
@@ -126,8 +129,8 @@ endif()
 # ------------------------------------------------------------------
 # blender
 # ------------------------------------------------------------------
-set(BLENDER_SUBDIRECTORY ON)
-add_subdirectory(blender)
+#set(BLENDER_SUBDIRECTORY ON)
+#add_subdirectory(blender)
 
 add_executable(hsBlender
   blender.cpp

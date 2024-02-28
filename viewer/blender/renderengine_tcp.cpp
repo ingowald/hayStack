@@ -1115,9 +1115,9 @@ int gpujpeg_encode(int width,
 	gpujpeg_image_set_default_parameters(&param_image);
 	param_image.width = width;
 	param_image.height = height;
-	param_image.comp_count = 3;
-	param_image.color_space = GPUJPEG_YCBCR_BT709;     // GPUJPEG_RGB;
-	param_image.pixel_format = GPUJPEG_444_U8_P0P1P2;  // GPUJPEG_420_U8_P0P1P2;
+	param_image.comp_count = 4;
+	param_image.color_space = GPUJPEG_RGB; // GPUJPEG_YCBCR_BT709;     // GPUJPEG_RGB;
+	param_image.pixel_format = GPUJPEG_444_U8_P012A; // GPUJPEG_444_U8_P0P1P2;  // GPUJPEG_420_U8_P0P1P2; GPUJPEG_RGB, GPUJPEG_444_U8_P012A
 
 	// create encoder
 	if (g_encoder == NULL) {
@@ -1157,12 +1157,11 @@ int gpujpeg_decode(int width,
 		}
 	}
 
-#  ifdef WITH_VRCLIENT
-	gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_U8_P012Z);
-#  else
-	gpujpeg_decoder_set_output_format(
-		g_decoder, GPUJPEG_RGB, GPUJPEG_444_U16_P012O /* GPUJPEG_444_U8_P012Z*/);
-#  endif
+	//gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_U8_P012Z);
+	gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_U8_P012A); //GPUJPEG_444_U8_P012Z
+	//gpujpeg_decoder_set_output_format(
+	//	g_decoder, GPUJPEG_RGB, GPUJPEG_444_U16_P012O /* GPUJPEG_444_U8_P012Z*/);
+
 	// set decoder default output destination
 	gpujpeg_decoder_output decoder_output;
 	// gpujpeg_decoder_output_set_default(&decoder_output);

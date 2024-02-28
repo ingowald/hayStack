@@ -33,6 +33,9 @@ import numpy as np
 import bgl
 import math
 
+import gpu
+#from gpu_extras.presets import draw_texture_2d
+
 import ctypes
 from dataclasses import dataclass
 
@@ -42,20 +45,21 @@ from mathutils import Matrix
 from ctypes import Array, cdll, c_void_p, c_char, c_char_p, c_int, c_int32, c_uint32, c_float, c_bool, c_ulong, POINTER
 
 from . import haystack_pref
+from . import haystack_nodes
 
 #####################################################################################################################
-if platform.system() == 'Windows':
-    gl = ctypes.windll.opengl32
-elif platform.system() == 'Linux':
-    gl = cdll.LoadLibrary('libGL.so')
-elif platform.system() == 'Darwin':
-    gl = cdll.LoadLibrary(
-        '/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib')
-else:
-    raise ValueError(
-        "Libraries not available for this platform: " + platform.system())
+# if platform.system() == 'Windows':
+#     gl = ctypes.windll.opengl32
+# elif platform.system() == 'Linux':
+#     gl = cdll.LoadLibrary('libGL.so')
+# elif platform.system() == 'Darwin':
+#     gl = cdll.LoadLibrary(
+#         '/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib')
+# else:
+#     raise ValueError(
+#         "Libraries not available for this platform: " + platform.system())
 
-gl.glViewport.argtypes = [c_int32, c_int32, c_uint32, c_uint32]
+# gl.glViewport.argtypes = [c_int32, c_int32, c_uint32, c_uint32]
 
 #####################################################################################################################
 # platform specific library loading
@@ -89,7 +93,7 @@ try:
     #HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_timestep(int timestep);
     _renderengine_dll.set_timestep.argtypes = [c_int32]
 
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char* server, int port_cam, int port_data, int w, int h, int step_samples, const char* filename);
+    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char *server, int port_cam, int port_data, int w, int h, int step_samples, const char *filename);
     _renderengine_dll.client_init.argtypes = [
         c_char_p, c_int32, c_int32, c_int32, c_int32, c_int32, c_char_p]
 
@@ -113,7 +117,8 @@ try:
 
 
     # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD get_pixels(void* pixels);
-    _renderengine_dll.get_pixels.argtypes = [c_void_p]
+    #_renderengine_dll.get_pixels.argtypes = [c_void_p]
+    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD draw_texture();
 
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();
@@ -124,19 +129,27 @@ try:
     # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_haystack_data(void* values, int size);
     _renderengine_dll.set_haystack_data.argtypes = [c_void_p, c_int32]
 
+    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
+    _renderengine_dll.get_texture_id.restype = c_int32
+
+
 except:
     print("Missing: ", _renderengine_dll_name)
 
 #####################################################################################################################
 
 
-def check_gl_error():
-    error = bgl.glGetError()
-    if error != bgl.GL_NO_ERROR:
-        raise Exception(error)
-#####################################################################################################################
+# def check_gl_error():
+#     error = bgl.glGetError()
+#     if error != bgl.GL_NO_ERROR:
+#         raise Exception(error)
+    
+#####################################################################################################################    
+# def node_tree_poll(self, object):
+#     return isinstance(object, haystack_nodes.HayStackNodeTree)
 
-
+# def node_poll(self, object):
+#     return isinstance(object, haystack_nodes.HayStackRenderBaseNode)
 class HayStackServerSettings(bpy.types.PropertyGroup):
     width: bpy.props.IntProperty(
         name="Width",
@@ -182,6 +195,19 @@ class HayStackServerSettings(bpy.types.PropertyGroup):
         type=bpy.types.Material
     ) # type: ignore
 
+    # node_tree: bpy.props.PointerProperty(
+    #     type=bpy.types.NodeTree,
+    #     poll=node_tree_poll,
+    # ) # type: ignore    
+
+    # node: bpy.props.PointerProperty(
+    #     type=bpy.types.Node,
+    #     poll=node_poll,
+    # ) # type: ignore   
+
+    command: bpy.props.PointerProperty(
+        type=bpy.types.Text,
+    ) # type: ignore    
 
 class HayStackRenderSettings(bpy.types.PropertyGroup):
     server_settings: bpy.props.PointerProperty(
@@ -192,50 +218,51 @@ class HayStackRenderSettings(bpy.types.PropertyGroup):
 class HayStackData:
     def __init__(self):
         self.haystack_context = None
+        self.haystack_process = None
 
 #####################################################################################################################
 
 
-class GLTexture:
-    channels = 4
+# class GLTexture:
+#     channels = 4
 
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
+#     def __init__(self, width, height):
+#         self.width = width
+#         self.height = height
 
-        textures = bgl.Buffer(bgl.GL_INT, [1,])
-        bgl.glGenTextures(1, textures)
-        self.texture_id = textures[0]
+#         textures = bgl.Buffer(bgl.GL_INT, [1,])
+#         bgl.glGenTextures(1, textures)
+#         self.texture_id = textures[0]
 
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, self.texture_id)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
-                            bgl.GL_TEXTURE_MIN_FILTER, bgl.GL_LINEAR)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
-                            bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_LINEAR)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
-                            bgl.GL_TEXTURE_WRAP_S, bgl.GL_REPEAT)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
-                            bgl.GL_TEXTURE_WRAP_T, bgl.GL_REPEAT)
+#         bgl.glBindTexture(bgl.GL_TEXTURE_2D, self.texture_id)
+#         bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
+#                             bgl.GL_TEXTURE_MIN_FILTER, bgl.GL_LINEAR)
+#         bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
+#                             bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_LINEAR)
+#         bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
+#                             bgl.GL_TEXTURE_WRAP_S, bgl.GL_REPEAT)
+#         bgl.glTexParameteri(bgl.GL_TEXTURE_2D,
+#                             bgl.GL_TEXTURE_WRAP_T, bgl.GL_REPEAT)
 
-        bgl.glTexImage2D(
-            bgl.GL_TEXTURE_2D, 0, bgl.GL_RGBA,
-            self.width, self.height, 0,
-            bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE,
-            bgl.Buffer(bgl.GL_BYTE, [self.width, self.height, self.channels])
-        )
+#         bgl.glTexImage2D(
+#             bgl.GL_TEXTURE_2D, 0, bgl.GL_RGBA,
+#             self.width, self.height, 0,
+#             bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE,
+#             bgl.Buffer(bgl.GL_BYTE, [self.width, self.height, self.channels])
+#         )
 
-    def __del__(self):
-        textures = bgl.Buffer(bgl.GL_INT, [1, ], [self.texture_id, ])
-        bgl.glDeleteTextures(1, textures)
+#     def __del__(self):
+#         textures = bgl.Buffer(bgl.GL_INT, [1, ], [self.texture_id, ])
+#         bgl.glDeleteTextures(1, textures)
 
-    def set_image(self, im: np.array):
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, self.texture_id)
-        gl.glTexSubImage2D(
-            bgl.GL_TEXTURE_2D, 0,
-            0, 0, self.width, self.height,
-            bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE,
-            ctypes.c_void_p(im.ctypes.data)
-        )
+#     def set_image(self, im: np.array):
+#         bgl.glBindTexture(bgl.GL_TEXTURE_2D, self.texture_id)
+#         gl.glTexSubImage2D(
+#             bgl.GL_TEXTURE_2D, 0,
+#             0, 0, self.width, self.height,
+#             bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE,
+#             ctypes.c_void_p(im.ctypes.data)
+#         )
 
 #####################################################################################################################
 
@@ -254,7 +281,7 @@ class HayStackContext:
         self.filename = None
 
         self.data = None
-        # self.data_right = None
+        # self.data_right = None        
 
     def init(self, context, server, port_cam, port_data, width, height, step_samples, filename):
 
@@ -279,7 +306,7 @@ class HayStackContext:
         self.g_width = self.width
         self.g_height = self.height
 
-        check_gl_error()
+        #check_gl_error()
 
     def client_close_connection(self):
         _renderengine_dll.reset()
@@ -370,84 +397,95 @@ class HayStackContext:
                                      camera_data.shift_y)
         
 
-    def get_image(self):
-        _renderengine_dll.get_pixels(ctypes.c_void_p(self.data.ctypes.data))
-        return self.data
+    # def get_image(self):
+    #     _renderengine_dll.get_pixels(ctypes.c_void_p(self.data.ctypes.data))
+    #     return self.data
+    
+    def draw_texture(self):
+        _renderengine_dll.draw_texture()
 
     def get_current_samples(self):
         return _renderengine_dll.get_current_samples()
+    
+    def get_texture_id(self):
+        return _renderengine_dll.get_texture_id()
 
-    @staticmethod
-    def _draw_texture(texture_id, x, y, width, height):
-        # INITIALIZATION
+    def resize(self, width, height):
+        self.width = width
+        self.height = height
+        _renderengine_dll.resize( width, height)
 
-        # Getting shader program
-        shader_program = bgl.Buffer(bgl.GL_INT, 1)
-        bgl.glGetIntegerv(bgl.GL_CURRENT_PROGRAM, shader_program)
+    # @staticmethod
+    # def _draw_texture(texture_id, x, y, width, height):
+    #     # INITIALIZATION
 
-        # Generate vertex array
-        vertex_array = bgl.Buffer(bgl.GL_INT, 1)
-        bgl.glGenVertexArrays(1, vertex_array)
+    #     # Getting shader program
+    #     shader_program = bgl.Buffer(bgl.GL_INT, 1)
+    #     bgl.glGetIntegerv(bgl.GL_CURRENT_PROGRAM, shader_program)
 
-        texturecoord_location = bgl.glGetAttribLocation(
-            shader_program[0], "texCoord")
-        position_location = bgl.glGetAttribLocation(shader_program[0], "pos")
+    #     # Generate vertex array
+    #     vertex_array = bgl.Buffer(bgl.GL_INT, 1)
+    #     bgl.glGenVertexArrays(1, vertex_array)
 
-        # hsViewer
-        # glTexCoord2f(0.f, 0.f);
-        # glVertex3f(0.f, 0.f, 0.f);
+    #     texturecoord_location = bgl.glGetAttribLocation(
+    #         shader_program[0], "texCoord")
+    #     position_location = bgl.glGetAttribLocation(shader_program[0], "pos")
 
-        # glTexCoord2f(0.f, 1.f);
-        # glVertex3f(0.f, (float)fbSize.y, 0.f);
+    #     # hsViewer
+    #     # glTexCoord2f(0.f, 0.f);
+    #     # glVertex3f(0.f, 0.f, 0.f);
 
-        # glTexCoord2f(1.f, 1.f);
-        # glVertex3f((float)fbSize.x, (float)fbSize.y, 0.f);
+    #     # glTexCoord2f(0.f, 1.f);
+    #     # glVertex3f(0.f, (float)fbSize.y, 0.f);
 
-        # glTexCoord2f(1.f, 0.f);
-        # glVertex3f((float)fbSize.x, 0.f, 0.f);
+    #     # glTexCoord2f(1.f, 1.f);
+    #     # glVertex3f((float)fbSize.x, (float)fbSize.y, 0.f);
 
-        # Generate geometry buffers for drawing textured quad
-        position = [x, y, x + width, y, x + width, y + height, x, y + height]
-        position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
-        texcoord = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-        texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
-        # position = [x, y, x, y + height, x + width, y + height, x + width, y]
-        # position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
-        # texcoord = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-        # texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
+    #     # glTexCoord2f(1.f, 0.f);
+    #     # glVertex3f((float)fbSize.x, 0.f, 0.f);
 
-        vertex_buffer = bgl.Buffer(bgl.GL_INT, 2)
-        bgl.glGenBuffers(2, vertex_buffer)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
-        bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, position, bgl.GL_STATIC_DRAW)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
-        bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, texcoord, bgl.GL_STATIC_DRAW)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
+    #     # Generate geometry buffers for drawing textured quad
+    #     position = [x, y, x + width, y, x + width, y + height, x, y + height]
+    #     position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
+    #     texcoord = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
+    #     texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
+    #     # position = [x, y, x, y + height, x + width, y + height, x + width, y]
+    #     # position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
+    #     # texcoord = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+    #     # texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
 
-        # DRAWING
-        bgl.glActiveTexture(bgl.GL_TEXTURE0)
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, texture_id)
+    #     vertex_buffer = bgl.Buffer(bgl.GL_INT, 2)
+    #     bgl.glGenBuffers(2, vertex_buffer)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
+    #     bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, position, bgl.GL_STATIC_DRAW)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
+    #     bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, texcoord, bgl.GL_STATIC_DRAW)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
 
-        bgl.glBindVertexArray(vertex_array[0])
-        bgl.glEnableVertexAttribArray(texturecoord_location)
-        bgl.glEnableVertexAttribArray(position_location)
+    #     # DRAWING
+    #     bgl.glActiveTexture(bgl.GL_TEXTURE0)
+    #     bgl.glBindTexture(bgl.GL_TEXTURE_2D, texture_id)
 
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
-        bgl.glVertexAttribPointer(
-            position_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
-        bgl.glVertexAttribPointer(
-            texturecoord_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
+    #     bgl.glBindVertexArray(vertex_array[0])
+    #     bgl.glEnableVertexAttribArray(texturecoord_location)
+    #     bgl.glEnableVertexAttribArray(position_location)
 
-        bgl.glDrawArrays(bgl.GL_TRIANGLE_FAN, 0, 4)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
+    #     bgl.glVertexAttribPointer(
+    #         position_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
+    #     bgl.glVertexAttribPointer(
+    #         texturecoord_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
 
-        bgl.glBindVertexArray(0)
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, 0)
+    #     bgl.glDrawArrays(bgl.GL_TRIANGLE_FAN, 0, 4)
 
-        # DELETING
-        bgl.glDeleteBuffers(2, vertex_buffer)
-        bgl.glDeleteVertexArrays(1, vertex_array)
+    #     bgl.glBindVertexArray(0)
+    #     bgl.glBindTexture(bgl.GL_TEXTURE_2D, 0)
+
+    #     # DELETING
+    #     bgl.glDeleteBuffers(2, vertex_buffer)
+    #     bgl.glDeleteVertexArrays(1, vertex_array)
 
 
 #####################################################################################################################
@@ -744,7 +782,7 @@ class ViewportEngine(Engine):
     def __init__(self, haystack_engine):
         super().__init__(haystack_engine)
 
-        self.gl_texture: GLTexture = None
+        #self.gl_texture = None #GLTexture = None
         self.viewport_settings: ViewportSettings = None
 
         self.sync_render_thread: threading.Thread = None
@@ -894,16 +932,18 @@ class ViewportEngine(Engine):
         scene.haystack.server_settings.width = width
         scene.haystack.server_settings.height = height
 
+        pref = haystack_pref.preferences()
+
         # client_init(const char *server, int port_cam, int port_data, int w, int h, int step_samples)
-        self.haystack_context.init(context, scene.haystack.server_settings.server_name,
-                                  scene.haystack.server_settings.port_cam,
-                                  scene.haystack.server_settings.port_data,
+        self.haystack_context.init(context, pref.haystack_server_name,
+                                  pref.haystack_port_cam,
+                                  pref.haystack_port_data,
                                   scene.haystack.server_settings.width,
                                   scene.haystack.server_settings.height,
                                   scene.haystack.server_settings.step_samples,
                                   scene.haystack.server_settings.filename)
         # if not self.haystack_context.gl_interop:
-        self.gl_texture = GLTexture(width, height)
+        #self.gl_texture = GLTexture(width, height)
         self.haystack_context.client_init()
 
         # reset scene
@@ -924,69 +964,69 @@ class ViewportEngine(Engine):
 
         print('Finish sync')
 
-    @staticmethod
-    def _draw_texture(texture_id, x, y, width, height):
-        # INITIALIZATION
+    # @staticmethod
+    # def _draw_texture(texture_id, x, y, width, height):
+    #     # INITIALIZATION
 
-        # Getting shader program
-        shader_program = bgl.Buffer(bgl.GL_INT, 1)
-        bgl.glGetIntegerv(bgl.GL_CURRENT_PROGRAM, shader_program)
+    #     # Getting shader program
+    #     shader_program = bgl.Buffer(bgl.GL_INT, 1)
+    #     bgl.glGetIntegerv(bgl.GL_CURRENT_PROGRAM, shader_program)
 
-        # Generate vertex array
-        vertex_array = bgl.Buffer(bgl.GL_INT, 1)
-        bgl.glGenVertexArrays(1, vertex_array)
+    #     # Generate vertex array
+    #     vertex_array = bgl.Buffer(bgl.GL_INT, 1)
+    #     bgl.glGenVertexArrays(1, vertex_array)
 
-        texturecoord_location = bgl.glGetAttribLocation(
-            shader_program[0], "texCoord")
-        position_location = bgl.glGetAttribLocation(shader_program[0], "pos")
+    #     texturecoord_location = bgl.glGetAttribLocation(
+    #         shader_program[0], "texCoord")
+    #     position_location = bgl.glGetAttribLocation(shader_program[0], "pos")
 
-        # Generate geometry buffers for drawing textured quad
-        position = [x, y, x + width, y, x + width, y + height, x, y + height]
-        position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
-        texcoord = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-        texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
+    #     # Generate geometry buffers for drawing textured quad
+    #     position = [x, y, x + width, y, x + width, y + height, x, y + height]
+    #     position = bgl.Buffer(bgl.GL_FLOAT, len(position), position)
+    #     texcoord = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
+    #     texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
 
-        vertex_buffer = bgl.Buffer(bgl.GL_INT, 2)
-        bgl.glGenBuffers(2, vertex_buffer)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
-        bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, position, bgl.GL_STATIC_DRAW)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
-        bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, texcoord, bgl.GL_STATIC_DRAW)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
+    #     vertex_buffer = bgl.Buffer(bgl.GL_INT, 2)
+    #     bgl.glGenBuffers(2, vertex_buffer)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
+    #     bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, position, bgl.GL_STATIC_DRAW)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
+    #     bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, texcoord, bgl.GL_STATIC_DRAW)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
 
-        # DRAWING
-        bgl.glActiveTexture(bgl.GL_TEXTURE0)
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, texture_id)
+    #     # DRAWING
+    #     bgl.glActiveTexture(bgl.GL_TEXTURE0)
+    #     bgl.glBindTexture(bgl.GL_TEXTURE_2D, texture_id)
 
-        bgl.glBindVertexArray(vertex_array[0])
-        bgl.glEnableVertexAttribArray(texturecoord_location)
-        bgl.glEnableVertexAttribArray(position_location)
+    #     bgl.glBindVertexArray(vertex_array[0])
+    #     bgl.glEnableVertexAttribArray(texturecoord_location)
+    #     bgl.glEnableVertexAttribArray(position_location)
 
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
-        bgl.glVertexAttribPointer(
-            position_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
-        bgl.glVertexAttribPointer(
-            texturecoord_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
-        bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
+    #     bgl.glVertexAttribPointer(
+    #         position_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
+    #     bgl.glVertexAttribPointer(
+    #         texturecoord_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
+    #     bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, 0)
 
-        bgl.glDrawArrays(bgl.GL_TRIANGLE_FAN, 0, 4)
+    #     bgl.glDrawArrays(bgl.GL_TRIANGLE_FAN, 0, 4)
 
-        bgl.glBindVertexArray(0)
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, 0)
+    #     bgl.glBindVertexArray(0)
+    #     bgl.glBindTexture(bgl.GL_TEXTURE_2D, 0)
 
-        # DELETING
-        bgl.glDeleteBuffers(2, vertex_buffer)
-        bgl.glDeleteVertexArrays(1, vertex_array)
+    #     # DELETING
+    #     bgl.glDeleteBuffers(2, vertex_buffer)
+    #     bgl.glDeleteVertexArrays(1, vertex_array)
 
-    def _get_render_image(self):
-        ''' This is only called for non-GL interop image gets '''
-        # if utils.IS_MAC:
-        #     with self.render_lock:
-        #         return self.haystack_context.get_image()
-        # else:
-        # , self.haystack_context.get_image_right()
-        return self.haystack_context.get_image()
+    # def _get_render_image(self):
+    #     ''' This is only called for non-GL interop image gets '''
+    #     # if utils.IS_MAC:
+    #     #     with self.render_lock:
+    #     #         return self.haystack_context.get_image()
+    #     # else:
+    #     # , self.haystack_context.get_image_right()
+    #     return self.haystack_context.get_image()
 
     def draw(self, context):
         # log("Draw")
@@ -1021,8 +1061,8 @@ class ViewportEngine(Engine):
                     with self.resolve_lock:
                         self.haystack_context.resize(*resolution)
 
-                    if self.gl_texture:
-                        self.gl_texture = GLTexture(*resolution)
+                    # if self.gl_texture:
+                    #     self.gl_texture = GLTexture(*resolution)
 
                     self.is_resized = True
 
@@ -1032,27 +1072,38 @@ class ViewportEngine(Engine):
         if self.is_resized or not self.is_rendered:
             return
 
-        def draw_(texture_id):
-            # Bind shader that converts from scene linear to display space,
-            bgl.glEnable(bgl.GL_BLEND)
-            bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
-            self.haystack_engine.bind_display_space_shader(scene)
+        # def draw_(texture_id):
+        #     # Bind shader that converts from scene linear to display space,
+        #     bgl.glEnable(bgl.GL_BLEND)
+        #     bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
+        #     self.haystack_engine.bind_display_space_shader(scene)
 
-            # note this has to draw to region size, not scaled down size
-            self._draw_texture(
-                texture_id, *self.viewport_settings.border[0], *self.viewport_settings.border[1])
+        #     # note this has to draw to region size, not scaled down size
+        #     self._draw_texture(
+        #         texture_id, *self.viewport_settings.border[0], *self.viewport_settings.border[1])
 
-            self.haystack_engine.unbind_display_space_shader()
-            bgl.glDisable(bgl.GL_BLEND)
+        #     self.haystack_engine.unbind_display_space_shader()
+        #     bgl.glDisable(bgl.GL_BLEND)
 
-        with self.resolve_lock:
-            im = self._get_render_image()
+        # with self.resolve_lock:
+        #     #im = self._get_render_image()
+        #     self.haystack_context.bind_texture()
 
-        self.gl_texture.set_image(im)
+        # self.gl_texture.set_image(im)
 
-        draw_(self.gl_texture.texture_id)
+        #texture_id = self.haystack_context.get_texture_id()
+        # draw_(self.gl_texture.texture_id)
+        #draw_(texture_id)
+        
+        # present
+        gpu.state.blend_set('ALPHA_PREMULT')
+        self.haystack_engine.bind_display_space_shader(scene)
+        # draw_texture_2d(texture_id, self.viewport_settings.border[0], self.viewport_settings.border[1][0], self.viewport_settings.border[1][1])
+        self.haystack_context.draw_texture()
+        self.haystack_engine.unbind_display_space_shader()
+        gpu.state.blend_set('NONE')            
 
-        check_gl_error()
+        # check_gl_error()
 
 #####################################################################################################################
 
@@ -1072,7 +1123,9 @@ class HayStackRenderEngine(bpy.types.RenderEngine):
     # render.
     def __init__(self):
         self.engine = None
-        pass
+
+        dummy = gpu.types.GPUFrameBuffer()
+        dummy.bind()
 
     # When the render engine instance is destroy, this is called. Clean up any
     # render engine data here, for example stopping running render threads.
@@ -1142,6 +1195,17 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         scene = context.scene
         server_settings = scene.haystack.server_settings
 
+        box = layout.box()
+        col = box.column()
+        #col.prop(server_settings, "node_tree", text="Node Tree")  
+        #col.prop(server_settings, "node", text="Node")
+        col.prop(server_settings, "command", text="Command")
+
+        if context.scene.haystack_data.haystack_process is None:
+            col.operator("haystack.start_process")
+        else:
+            col.operator("haystack.stop_process")
+
         # box = layout.box()
         # col = box.column()
         # col.prop(server_settings, "server_name", text="Server")
@@ -1153,21 +1217,21 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         # col = box.column()
         # col.prop(server_settings, "cam_rotation_X", text="Cam Rotation X")
 
-        box = layout.box()
-        col = box.column()
-        col.prop(server_settings, "timesteps", text="Time Steps")
-        col.prop(server_settings, "save_to_file", text="Save To File")                        
+        #box = layout.box()
+        #col = box.column()
+        #col.prop(server_settings, "timesteps", text="Time Steps")
+        #col.prop(server_settings, "save_to_file", text="Save To File")                        
 
         box = layout.box()
         col = box.column()
         col.enabled = False
         col.prop(server_settings, "width", text="Width")
         col.prop(server_settings, "height", text="Height")
-        col.prop(server_settings, "step_samples", text="Step samples")
+        #col.prop(server_settings, "step_samples", text="Step samples")
 
-        box = layout.box()
-        col = box.column()
-        col.prop(server_settings, "mat_volume", text="Volume Material")  
+        # box = layout.box()
+        # col = box.column()
+        # col.prop(server_settings, "mat_volume", text="Volume Material")  
         
 ###################################################################################
 
