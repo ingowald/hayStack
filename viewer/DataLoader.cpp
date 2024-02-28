@@ -17,6 +17,7 @@
 #include "viewer/DataLoader.h"
 #include "viewer/content/TSTris.h"
 #include "viewer/content/RAWVolumeContent.h"
+#include "viewer/content/NanoVDBVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/BoxesFromFile.h"
@@ -298,6 +299,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+      else if (url.type == "nvdb") 
+        NanoVDBVolumeContent::create(this,url);
       else if (url.type == "boxes") 
         BoxesFromFile::create(this,url/*contentDescriptor*/);
       else if (url.type == "cylinders") 

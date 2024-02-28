@@ -7,3 +7,6 @@
 [submodule "submodules/cuteeOWL"]
 	path = submodules/cuteeOWL
 	url = https://github.com/owl-project/cuteeOWL
+[submodule "submodules/openvdb"]
+	path = submodules/openvdb
+	url = https://github.com/AcademySoftwareFoundation/openvdb.git
