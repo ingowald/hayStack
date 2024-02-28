@@ -266,6 +266,26 @@ namespace hs {
 
 #if HANARI
 #else
+  struct MaterialLibrary {
+    MaterialLibrary(BNModel model,int slot)
+      : model(model), slot(slot)
+    {}
+    ~MaterialLibrary()
+    {
+      for (auto it : alreadyCreated)
+        bnRelease(it->second);
+    }
+    
+    BNMaterial getOrCreate(mini::Material::SP miniMat)
+    {
+      if (alreadyCreated.find(miniMat))
+        return alreadyCreated[miniMat];
+    }
+    
+    std::map<mini::Material::SP,BNMaterial> alreadyCreated;
+  };
+  
+
   struct TextureLibrary
   {
     TextureLibrary(BNModel model, int slot)
@@ -580,31 +600,53 @@ namespace hs {
             
             auto geom = surface;
 #else
-            BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
-            mini::Material::SP miniMat = miniMesh->material;
-            material.baseColor = (const float3&)miniMat->baseColor;
-            material.transmission = miniMat->transmission;
-            material.metallic     = miniMat->metallic;
-            material.roughness    = miniMat->roughness;
-            material.ior          = miniMat->ior;
-            material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
-            material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
-            // some of our test mini files have a texture, but basecolor isn't set - fix this here.
-            if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
-              (vec3f&)material.baseColor = vec3f(1.f);
-              
-            BNGeom geom 
-              = bnTriangleMeshCreate
-              (model,slot,&material,
-               (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
-               (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
-               miniMesh->normals.empty()
-               ? nullptr
-               : (float3*)miniMesh->normals.data(),
-               miniMesh->texcoords.empty()
-               ? nullptr
-               : (float2*)miniMesh->texcoords.data()
-               );
+            BNMaterial mat = createMaterial(model,slot,miniMesh->material);
+            // BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
+            // mini::Material::SP miniMat = miniMesh->material;
+            // material.baseColor = (const float3&)miniMat->baseColor;
+            // material.transmission = miniMat->transmission;
+            // material.metallic     = miniMat->metallic;
+            // material.roughness    = miniMat->roughness;
+            // material.ior          = miniMat->ior;
+            // material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
+            // material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
+            // // some of our test mini files have a texture, but basecolor isn't set - fix this here.
+            // if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
+            //   (vec3f&)material.baseColor = vec3f(1.f);
+
+            BNGeom geom = bnGeometryCreate(model,slot,"triangles");
+    
+            BNData _vertices = bnDataCreate(model,slot,BN_FLOAT3,numVertices,vertices);
+            bnSetAndRelease(geom,"vertices",_vertices);
+    
+            BNData _indices  = bnDataCreate(model,slot,BN_INT3,numIndices,indices);
+            bnSetAndRelease(geom,"indices",_indices);
+    
+            if (normals) {
+              BNData _normals  = bnDataCreate(model,slot,BN_FLOAT3,normals?numVertices:0,normals);
+              bnSetAndRelease(geom,"normals",_normals);
+            }
+    
+            if (texcoords) {
+              BNData _texcoords  = bnDataCreate(model,slot,BN_FLOAT2,texcoords?numVertices:0,texcoords);
+              bnSetAndRelease(geom,"texcoords",_texcoords);
+            }
+            bnSetAndRelease(geom,"material",material);
+            // bnAssignMaterial(geom,material);
+            bnCommit(geom);
+            
+            // BNGeom geom 
+            //   = bnTriangleMeshCreate
+            //   (model,slot,&material,
+            //    (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
+            //    (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
+            //    miniMesh->normals.empty()
+            //    ? nullptr
+            //    : (float3*)miniMesh->normals.data(),
+            //    miniMesh->texcoords.empty()
+            //    ? nullptr
+            //    : (float2*)miniMesh->texcoords.data()
+            //    );
 #endif
             geoms.push_back(geom);
           }
