@@ -278,11 +278,28 @@ namespace hs {
     
     BNMaterial getOrCreate(mini::Material::SP miniMat)
     {
-      if (alreadyCreated.find(miniMat))
+      if (alreadyCreated.find(miniMat) != alreadyCreated.end())
         return alreadyCreated[miniMat];
+
+      BNMaterial mat = create(miniMat);
+      alreadyCreated[miniMat] = mat;
+      return mat;
+    }
+  private:
+    BNMaterial create(mini::Plastic::SP plastic)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
+    }
+    BNMaterial create(mini::Material::SP miniMat)
+    {
+      if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+        return create(plastic);
+      throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
     }
     
     std::map<mini::Material::SP,BNMaterial> alreadyCreated;
+    BNModel model;
+    int slot;
   };
   
 
