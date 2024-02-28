@@ -421,6 +421,35 @@ class HayStackLoadTSTriNode(HayStackBaseNode):
     def draw_buttons(self, context, layout):
         self.draw_file_path(layout)
 
+# NanoVDB
+class HayStackLoadNanoVDBNode(HayStackBaseNode):
+    bl_idname = 'HayStackLoadNanoVDBNodeType'
+    bl_label = 'NanoVDB'
+    bl_description = 'NanoVDB files'
+    
+    file_path: bpy.props.StringProperty(
+        name="File",
+        default="",
+        subtype="FILE_PATH",        
+        update = update_property
+    ) # type: ignore
+
+    file_path_remote: bpy.props.StringProperty(
+        name="File",
+        default="",
+        update = update_property
+    ) # type: ignore          
+    
+    def initNode(self, context):
+        self.outputs.new('HayStackDataSocketType', 'Data')        
+    
+    def updateNode(self):
+        self.output_data = "nvdb://" + \
+            "" + self.get_file_path()
+
+    def draw_buttons(self, context, layout):
+        self.draw_file_path(layout)        
+
 #raw://4@/home/wald/models/magnetic-512-volume/magnetic-512-volume.raw:format=float:dims=512,512,512
 # RAWVolume
 class HayStackLoadRAWVolumeNode(HayStackBaseNode):
@@ -1086,7 +1115,8 @@ haystack_node_categories = [
         NodeItem("HayStackLoadMiniNodeType"),
         NodeItem("HayStackLoadSpheresNodeType"),
         NodeItem("HayStackLoadTSTriNodeType"),
-        NodeItem("HayStackLoadRAWVolumeNodeType"),
+        NodeItem("HayStackLoadNanoVDBNodeType"),
+        NodeItem("HayStackLoadRAWVolumeNodeType"),        
         NodeItem("HayStackLoadBoxesNodeType"),
         NodeItem("HayStackLoadCylindersNodeType"),
         NodeItem("HayStackLoadSpatiallyPartitionedUMeshNodeType"),
@@ -1132,6 +1162,7 @@ classes = [
     HayStackLoadMiniNode,
     HayStackLoadSpheresNode,
     HayStackLoadTSTriNode,
+    HayStackLoadNanoVDBNode,
     HayStackLoadRAWVolumeNode,
     HayStackLoadBoxesNode,
     HayStackLoadCylindersNode,
