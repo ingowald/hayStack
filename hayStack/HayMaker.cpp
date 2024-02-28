@@ -729,9 +729,9 @@ namespace hs {
 #else
       if (vol->texelFormat == BN_TEXEL_FORMAT_NANOVDB_FLOAT) {
         BNScalarField sf
-          = bnScalarFieldCreate(barney,"nanovdb");
+          = bnScalarFieldCreate(model,slot,"nanovdb");
         BNTextureNanoVDB texture
-          = bnTextureNanoVDBCreate(barney,
+          = bnTextureNanoVDBCreate(model,slot,
                               vol->texelFormat,vol->rawData.size(),
                               vol->rawData.data());
         bnSetObject(sf,"texture",texture);
@@ -740,7 +740,7 @@ namespace hs {
         bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
         bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
         bnCommit(sf);
-        dg.createdVolumes.push_back(bnVolumeCreate(barney,sf));
+        dg.createdVolumes.push_back(bnVolumeCreate(model,slot,sf));
         bnRelease(sf);
       } 
       else {
