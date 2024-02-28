@@ -280,7 +280,7 @@ class HayStackContext:
         self.step_samples = None
         self.filename = None
 
-        self.data = None
+        #self.data = None
         # self.data_right = None        
 
     def init(self, context, server, port_cam, port_data, width, height, step_samples, filename):
@@ -293,7 +293,7 @@ class HayStackContext:
         self.step_samples = step_samples
         self.filename = filename
 
-        self.data = np.empty((height, width, self.channels), dtype=np.uint8)
+        #self.data = np.empty((height, width, self.channels), dtype=np.uint8)
         # self.data_right = np.empty((height, width, self.channels), dtype=np.uint8)
 
         print(self.server.encode(), self.port_cam, self.port_data, self.width,
@@ -913,13 +913,17 @@ class ViewportEngine(Engine):
             # notifying viewport about error
             #notify_status(f"{e}.\nPlease see logs for more details.", "ERROR")
 
-        print('Finish _do_sync_render')
+        bpy.ops.haystack.stop_process()
+        print('Finish _do_sync_render')        
 
     def sync(self, context, depsgraph):
         print('Start sync')
+        bpy.ops.haystack.start_process()
 
         scene = depsgraph.scene
         view_layer = depsgraph.view_layer
+
+        scene.view_settings.view_transform = 'Raw'
 
         # getting initial render resolution
         # if scene.haystack.server_settings.use_viewport == True:
