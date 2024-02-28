@@ -51,8 +51,11 @@ namespace hs {
         int hash = 0;
         for (auto c : fileName) hash = hash * 13 + c;
         PING; PRINT(hash);
-        for (auto mesh : ms->instances[0]->object->meshes)
-          mesh->material->baseColor = 0.7f*randomColor(hash);
+        for (auto mesh : ms->instances[0]->object->meshes) {
+          mini::DisneyMaterial::SP asDisney = mesh->material->as<mini::DisneyMaterial>();
+          if (asDisney)
+            asDisney->baseColor = 0.7f*randomColor(hash);
+        }
       }
 #endif
     }

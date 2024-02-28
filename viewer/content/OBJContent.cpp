@@ -210,13 +210,13 @@ namespace mini {
                 << "WARNING: NO MATERIALS (could not find/parse mtl file!?)"
                 << MINI_TERMINAL_DEFAULT << std::endl;
 
-    Material::SP dummyMaterial = std::make_shared<Material>();
+    DisneyMaterial::SP dummyMaterial = std::make_shared<mini::DisneyMaterial>();
     // dummyMaterial->baseColor = randomColor(size_t(dummyMaterial.get()));
 
-    std::vector<Material::SP> baseMaterials;
+    std::vector<DisneyMaterial::SP> baseMaterials;
     tinyobj::material_t *objDefaultMaterial = 0;
     for (auto &objMat : materials) {
-      Material::SP baseMaterial = std::make_shared<Material>();
+      DisneyMaterial::SP baseMaterial = std::make_shared<DisneyMaterial>();
       baseMaterial->baseColor =
         { float(objMat.diffuse[0]),
           float(objMat.diffuse[1]),
@@ -277,7 +277,7 @@ namespace mini {
           mesh->indices.push_back(idx);
         }
         Texture::SP diffuseTexture = {};
-        Material::SP baseMaterial  = {};
+        DisneyMaterial::SP baseMaterial  = {};
         if (materialID >= 0 && materialID < materials.size()) {
           baseMaterial = baseMaterials[materialID];
           diffuseTexture = loadTexture(knownTextures,
@@ -291,12 +291,15 @@ namespace mini {
         } else {
           baseMaterial = dummyMaterial;
         }
-        std::pair<Material::SP,Texture::SP> tuple = { baseMaterial,diffuseTexture };
+        std::pair<DisneyMaterial::SP,Texture::SP> tuple = { baseMaterial,diffuseTexture };
         if (texturedMaterials.find(tuple) == texturedMaterials.end()) {
-          mesh->material = std::make_shared<Material>();
-          *mesh->material = *baseMaterial;
-          mesh->material->colorTexture = diffuseTexture;
-          texturedMaterials[tuple] = mesh->material;
+          DisneyMaterial::SP texturedMaterial
+            = baseMaterial->clone()->as<DisneyMaterial>();
+          texturedMaterial->colorTexture = diffuseTexture;
+          texturedMaterials[tuple] = texturedMaterial;
+            // = std::make_shared<DisneyMaterial>();
+          mesh->material = texturedMaterial;
+          // *texturedMaterial = *baseMaterial;
         } else
           mesh->material = texturedMaterials[tuple];
           

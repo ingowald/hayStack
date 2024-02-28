@@ -273,7 +273,7 @@ namespace hs {
     ~MaterialLibrary()
     {
       for (auto it : alreadyCreated)
-        bnRelease(it->second);
+        bnRelease(it.second);
     }
     
     BNMaterial getOrCreate(mini::Material::SP miniMat)
@@ -289,6 +289,15 @@ namespace hs {
     BNMaterial create(mini::Plastic::SP plastic)
     {
       BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
+      // vec3f Ks = { 1.f, 1.f, 1.f };
+      // float eta = 1.5f;
+      // vec3f pigmentColor { 0.05f, 0.05f, 0.05f };
+      // float roughness = 0.001f;
+      bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
+      bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
+      bnSet1f(mat,"roughness",plastic->roughness);
+      bnSet1f(mat,"eta",plastic->eta);
+      return mat;
     }
     BNMaterial create(mini::Material::SP miniMat)
     {
@@ -577,6 +586,7 @@ namespace hs {
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
       TextureLibrary textureLibrary(model,slot);
+      MaterialLibrary materialLib(model,slot);
 #endif
 
       
@@ -617,7 +627,7 @@ namespace hs {
             
             auto geom = surface;
 #else
-            BNMaterial mat = createMaterial(model,slot,miniMesh->material);
+            BNMaterial mat = materialLib.getOrCreate(miniMesh->material);
             // BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
             // mini::Material::SP miniMat = miniMesh->material;
             // material.baseColor = (const float3&)miniMat->baseColor;
@@ -632,7 +642,13 @@ namespace hs {
             //   (vec3f&)material.baseColor = vec3f(1.f);
 
             BNGeom geom = bnGeometryCreate(model,slot,"triangles");
-    
+
+            int numVertices = miniMesh->vertices.size();
+            int numIndices = miniMesh->indices.size();
+            const float2 *texcoords = (const float2*)miniMesh->texcoords.data();
+            const float3 *vertices = (const float3*)miniMesh->vertices.data();
+            const float3 *normals = (const float3*)miniMesh->normals.data();
+            const int3 *indices = (const int3*)miniMesh->indices.data();
             BNData _vertices = bnDataCreate(model,slot,BN_FLOAT3,numVertices,vertices);
             bnSetAndRelease(geom,"vertices",_vertices);
     
@@ -648,7 +664,7 @@ namespace hs {
               BNData _texcoords  = bnDataCreate(model,slot,BN_FLOAT2,texcoords?numVertices:0,texcoords);
               bnSetAndRelease(geom,"texcoords",_texcoords);
             }
-            bnSetAndRelease(geom,"material",material);
+            bnSetObject(geom,"material",mat);
             // bnAssignMaterial(geom,material);
             bnCommit(geom);
             
