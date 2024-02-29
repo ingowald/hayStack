@@ -90,13 +90,12 @@ void displayFPS(int type, int tot_samples = 0)
 		{
 			char sTemp[1024];
 
-			int* samples = (int*)&g_renderengine_data.step_samples;
+			//int* samples = (int*)&g_renderengine_data.step_samples;
 
 			sprintf(sTemp,
-				"FPS: %.2f, Total Samples: %d, Samples: : %d, Res: %d x %d",
+				"FPS: %.2f, Total Samples: %d, Res: %d x %d",
 				fps,
 				tot_samples,
-				samples[0],
 				g_width,
 				g_height);
 			printf("%s\n", sTemp);
@@ -261,7 +260,7 @@ void draw_texture()
 	//	vertex_array = bgl.Buffer(bgl.GL_INT, 1)
 	//	bgl.glGenVertexArrays(1, vertex_array)
 	GLuint vertexArray[1];
-	glGenVertexArrays(1, vertexArray);	
+	glGenVertexArrays(1, vertexArray);
 
 	//	texturecoord_location = bgl.glGetAttribLocation(
 	//		shader_program[0], "texCoord")
@@ -276,8 +275,8 @@ void draw_texture()
 	//	texcoord = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
 	//	texcoord = bgl.Buffer(bgl.GL_FLOAT, len(texcoord), texcoord)
 
-	float positions[8] = {x, y, x + width, y, x + width, y + height, x, y + height};
-	float texCoords[8] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
+	float positions[8] = { x, y, x + width, y, x + width, y + height, x, y + height };
+	float texCoords[8] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f };
 
 	//	vertex_buffer = bgl.Buffer(bgl.GL_INT, 2)
 	//	bgl.glGenBuffers(2, vertex_buffer)
@@ -285,13 +284,13 @@ void draw_texture()
 	glGenBuffers(2, vertex_buffer);
 	//	bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[0])
 	//	bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, position, bgl.GL_STATIC_DRAW)
-	 
+
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[0]);
 	glBufferData(GL_ARRAY_BUFFER, 32, positions, GL_STATIC_DRAW);
 
 	//	bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
 	//	bgl.glBufferData(bgl.GL_ARRAY_BUFFER, 32, texcoord, bgl.GL_STATIC_DRAW)
-	 
+
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
 	glBufferData(GL_ARRAY_BUFFER, 32, texCoords, GL_STATIC_DRAW);
 
@@ -318,7 +317,7 @@ void draw_texture()
 	//	bgl.glVertexAttribPointer(
 	//		position_location, 2, bgl.GL_FLOAT, bgl.GL_FALSE, 0, None)
 	glVertexAttribPointer(positionLocation, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-	
+
 	//	bgl.glBindBuffer(bgl.GL_ARRAY_BUFFER, vertex_buffer[1])
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer[1]);
 	//	bgl.glVertexAttribPointer(
@@ -356,7 +355,7 @@ void resize(int width, int height)
 	if (g_pixels_buf)
 	{
 		cuda_set_device();
-		free_texture();		
+		free_texture();
 		cudaFreeHost(g_pixels_buf);
 	}
 
@@ -408,9 +407,35 @@ void reset()
 	send_data_cam((char*)&rd, sizeof(renderengine_data));
 }
 
-void set_haystack_data(void* values, int size)
+void send_haystack_data_render(void* colorMap, int colorMapSize, void* domain, void* baseDensity)
 {
-	send_data_cam((char*)values, /*sizeof(float) * 4 * 129*/ size);
+	//struct HsDataRender {
+	//	vec4f colorMap[128];
+	//	float domain[2];
+	//	float baseDensity;
+	//};
+	send_data_cam((char*)colorMap, colorMapSize * sizeof(float) * 4, false);
+	send_data_cam((char*)domain, sizeof(float) * 2, false);
+	send_data_cam((char*)baseDensity, sizeof(float) * 1);
+}
+
+void rcv_haystack_data_init(const char* server,
+	int port_cam,
+	int port_data,
+	void* world_bounds_spatial_lower,
+	void* world_bounds_spatial_upper,
+	void* scalars_range)
+{
+	//struct HsDataInit {
+	//	float world_bounds_spatial_lower[3];
+	//	float world_bounds_spatial_upper[3];
+	//	float scalars_range[2];
+	//};
+
+	init_sockets_cam(server, port_cam, port_data);
+	recv_data_cam((char*)world_bounds_spatial_lower, sizeof(float) * 3, false);
+	recv_data_cam((char*)world_bounds_spatial_upper, sizeof(float) * 3, false);
+	recv_data_cam((char*)scalars_range, sizeof(float) * 2);
 }
 
 void set_timestep(int timestep)
@@ -422,23 +447,22 @@ void client_init(const char* server,
 	int port_cam,
 	int port_data,
 	int w,
-	int h,
-	int step_samples,
-	const char* filename)
+	int h)
 {
 	//init_sockets_cam(server, port_cam, port_data);
-	setenv("SOCKET_SERVER_NAME_CAM", server, 1);
-	setenv("SOCKET_SERVER_NAME_DATA", server, 1);
+	//setenv("SOCKET_SERVER_NAME_CAM", server, 1);
+	//setenv("SOCKET_SERVER_NAME_DATA", server, 1);
 
-	char stemp[128];
-	sprintf(stemp, "%d", port_cam);
-	setenv("SOCKET_SERVER_PORT_CAM", stemp, 1);
-	sprintf(stemp, "%d", port_data);
-	setenv("SOCKET_SERVER_PORT_DATA", stemp, 1);
+	//char stemp[128];
+	//sprintf(stemp, "%d", port_cam);
+	//setenv("SOCKET_SERVER_PORT_CAM", stemp, 1);
+	//sprintf(stemp, "%d", port_data);
+	//setenv("SOCKET_SERVER_PORT_DATA", stemp, 1);
 
-	g_renderengine_data.step_samples = step_samples;
-	strcpy(g_renderengine_data.filename, filename);
+	//g_renderengine_data.step_samples = step_samples;
+	//strcpy(g_renderengine_data.filename, filename);
 
+	init_sockets_cam(server, port_cam, port_data);
 	gladLoadGL();
 
 	resize(w, h);
@@ -483,11 +507,11 @@ void set_camera(void* view_martix,
 	g_renderengine_data.cam.shift_y = shift_y;
 }
 
-int get_samples()
-{
-	int* samples = (int*)&g_renderengine_data.step_samples;
-	return samples[0];
-}
+//int get_samples()
+//{
+//	int* samples = (int*)&g_renderengine_data.step_samples;
+//	return samples[0];
+//}
 
 int get_current_samples()
 {

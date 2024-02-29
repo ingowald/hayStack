@@ -40,7 +40,7 @@ extern "C"
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD send_cam_data();
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_timestep(int timestep);
 
-	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char *server, int port_cam, int port_data, int w, int h, int step_samples, const char *filename);
+	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char *server, int port_cam, int port_data, int w, int h/*, int step_samples, const char* filename*/);
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_close_connection();
 
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_camera(void *view_martix,
@@ -60,12 +60,19 @@ extern "C"
 	//HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD get_pixels(void *pixels);
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD draw_texture();
 
-	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
+	//HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();
 
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
 
-	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_haystack_data(void* values, int size);
+	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD send_haystack_data_render(void* colorMap, int colorMapSize, void* domain, void* baseDensity);
+	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD rcv_haystack_data_init(const char* server,
+		int port_cam,
+		int port_data, 
+		void* world_bounds_spatial_lower, 
+		void* world_bounds_spatial_upper, 
+		void* scalars_range);
+
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
 	
 

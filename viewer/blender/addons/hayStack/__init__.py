@@ -31,26 +31,34 @@ bl_info = {
 def register():
     from . import haystack_pref
     from . import haystack_process_handler    
+    from . import haystack_dll
     from . import haystack_render
     from . import haystack_nodes
+    from . import haystack_scene
 
     haystack_pref.register()
     haystack_process_handler.register()
+    haystack_dll.register()
     haystack_render.register()
     haystack_nodes.register()
+    haystack_scene.register()
     
 
 def unregister():
     from . import haystack_pref
     from . import haystack_process_handler    
+    from . import haystack_dll
     from . import haystack_render
     from . import haystack_nodes
+    from . import haystack_scene
     
     try:        
         haystack_pref.unregister()
         haystack_process_handler.unregister()
+        haystack_dll.unregister()
         haystack_render.unregister()
         haystack_nodes.unregister()
+        haystack_scene.unregister()
 
     except RuntimeError:
         pass 

@@ -41,9 +41,9 @@ typedef struct renderengine_cam {
 }renderengine_cam;
 
 typedef struct renderengine_data {
-	char filename[1024];
+	//char filename[1024];
 	int width, height;
-	int step_samples;
+	//int step_samples;
 	int reset;
 
 	struct renderengine_cam cam;

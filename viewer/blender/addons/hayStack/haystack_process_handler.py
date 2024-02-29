@@ -22,6 +22,7 @@ import sys
 import os
 
 from . import haystack_pref
+from . import haystack_dll
 
 def start_process(context):
     # Specify the process's executable path
@@ -37,11 +38,11 @@ def start_process(context):
         context.scene.haystack_data.haystack_process.terminate()
 
     # set env
-    pref = haystack_pref.preferences()
-    os.environ['SOCKET_SERVER_PORT_CAM'] = str(pref.haystack_port_cam)
-    os.environ['SOCKET_SERVER_PORT_DATA'] = str(pref.haystack_port_data)
-    os.environ['SOCKET_SERVER_NAME_CAM'] = str(pref.haystack_server_name)
-    os.environ['SOCKET_SERVER_NAME_DATA'] = str(pref.haystack_server_name)        
+    # pref = haystack_pref.preferences()
+    # os.environ['SOCKET_SERVER_PORT_CAM'] = str(pref.haystack_port_cam)
+    # os.environ['SOCKET_SERVER_PORT_DATA'] = str(pref.haystack_port_data)
+    # os.environ['SOCKET_SERVER_NAME_CAM'] = str(pref.haystack_server_name)
+    # os.environ['SOCKET_SERVER_NAME_DATA'] = str(pref.haystack_server_name)        
     
     # Start the process in a new thread to avoid blocking Blender's UI
     def run():
@@ -73,6 +74,8 @@ class HayStackStartProcessOperator(bpy.types.Operator):
 
     def execute(self, context):
         start_process(context)
+        bpy.ops.haystack.create_bbox()
+
         return {'FINISHED'}
 
 class HayStackStopProcessOperator(bpy.types.Operator):
@@ -81,6 +84,9 @@ class HayStackStopProcessOperator(bpy.types.Operator):
     bl_label = "Stop Process"
 
     def execute(self, context):
+        #haystack_dll._renderengine_dll.reset()
+        #haystack_dll._renderengine_dll.client_close_connection()
+
         stop_process(context)
         return {'FINISHED'}
 

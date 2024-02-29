@@ -388,6 +388,9 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 
 //#  ifndef WITH_SOCKET_UDP
 
+	int connect_count = 0;
+	g_connection_error = 0;
+
 	while (true) {
 #    ifdef _WIN32
 		Sleep(2);
@@ -401,8 +404,10 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 			return false;
 		}
 
-		if (err_connect == -1) {
-			// printf("wait on server %s:%d\n", server_name, port);
+		connect_count++;
+
+		if (connect_count < 2 && err_connect == -1) {
+			printf("%d: wait on server %s:%d\n", connect_count, server_name, port);
 
 			//#      ifdef _WIN32
 			//      Sleep(2);
@@ -411,15 +416,14 @@ bool client_create(const char* server_name, int port, int& client_id, sockaddr_i
 			//#      endif
 			continue;
 		}
+		g_connection_error = err_connect;
 		break;
 	}
 //#  endif
 
 	// printf("connect\n");
 	printf("connect to %s:%d\n", server_name, port);
-	fflush(0);
-
-	g_connection_error = 0;
+	fflush(0);	
 
 	return true;
 }

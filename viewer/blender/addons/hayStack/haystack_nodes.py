@@ -749,6 +749,55 @@ class HayStackCameraNode(HayStackBaseNode):
 
 
 #TransferFunction
+class HAYSTACK_OT_tf_create_material(bpy.types.Operator):
+    bl_idname = 'haystack.tf_create_material'
+    bl_label = 'Create Material'
+
+    def execute(self, context):        
+        # Create a new material
+        material = bpy.data.materials.new(name="TFMaterial")
+        material.use_nodes = True
+        nodes = material.node_tree.nodes
+
+        # Clear default nodes
+        for node in nodes:
+            nodes.remove(node)
+
+        # Create Color Ramp node
+        color_ramp = nodes.new(type="ShaderNodeValToRGB")
+        color_ramp.location = (0, 200)
+
+        # Create Float Curve node
+        float_curve = nodes.new(type="ShaderNodeFloatCurve")
+        float_curve.location = (200, 200)
+
+        # Create Value node for DomainX
+        value_domain_x = nodes.new(type="ShaderNodeValue")
+        value_domain_x.location = (-200, 0)
+        value_domain_x.name = "DomainX"
+        value_domain_x.label = "DomainX"
+        value_domain_x.outputs[0].default_value = 0.0
+
+        # Create Value node for DomainY
+        value_domain_y = nodes.new(type="ShaderNodeValue")
+        value_domain_y.location = (-200, -200)
+        value_domain_y.name = "DomainY"
+        value_domain_y.label = "DomainY"
+        value_domain_y.outputs[0].default_value = 1.0
+
+        # Create Value node for Base Density
+        value_base_density = nodes.new(type="ShaderNodeValue")
+        value_base_density.location = (-400, 0)
+        value_base_density.name = "Base Density"
+        value_base_density.label = "Base Density"
+        value_base_density.outputs[0].default_value = 1.0
+
+        context.node.material = material
+        context.node.file_path = material.name + ".xf"
+        context.node.file_path_remote = material.name + ".xf"
+
+        return {"FINISHED"}
+
 class HayStackTransferFunctionNode(HayStackBaseNode):
     bl_idname = 'HayStackTransferFunctionNodeType'
     bl_label = 'TransferFunction'
@@ -783,9 +832,11 @@ class HayStackTransferFunctionNode(HayStackBaseNode):
 
         col = layout.column()
         col.prop(self, "material")        
+        col.operator("haystack.tf_create_material")
 
     def updateNode(self):
         self.output_data = "-xf " + self.get_file_path()
+        bpy.context.scene.haystack.server_settings.mat_volume = self.material
 
 ##################################################Utility###################################################################
 class HayStackMerge2Node(HayStackBaseNode):
@@ -906,12 +957,8 @@ class HayStackRenderBaseNode(HayStackBaseNode):
     
     def initNode(self, context):
         self.inputs.new('HayStackDataSocketType', 'Data')
-    
-    def updateNode(self):
-        input_value = replace_drive_substrings(self.inputs['Data'].value)
-        haystack_path = self.get_file_path() + " "
-        command_arg = haystack_path + str(input_value)
 
+    def updateCommand(self, command_arg):
         print(command_arg)
         self.output_data = command_arg
 
@@ -927,7 +974,14 @@ class HayStackRenderBaseNode(HayStackBaseNode):
             text_block = bpy.data.texts.new(name=text_block_name)
 
         # Write the content to the text block
-        text_block.write(command_arg)        
+        text_block.write(command_arg)           
+    
+    def updateNode(self):
+        input_value = replace_drive_substrings(self.inputs['Data'].value)
+        haystack_path = self.get_file_path() + " "
+        command_arg = haystack_path + str(input_value)
+
+        self.updateCommand(command_arg)
 
     def draw_buttons(self, context, layout):
         self.draw_file_path(layout)  
@@ -936,6 +990,16 @@ class HayStackRenderBlenderNode(HayStackRenderBaseNode):
     bl_idname = 'HayStackRenderBlenderNodeType'
     bl_label = 'hsBlender'
     bl_description = 'HayStack Render Blender'
+
+    def updateNode(self):
+        input_value = replace_drive_substrings(self.inputs['Data'].value)
+        haystack_path = self.get_file_path() + " "
+
+        pref = haystack_pref.preferences()
+        client_arg = " -server " + str(pref.haystack_server_name) + " -port-cam " + str(pref.haystack_port_cam) + " -port-data " + str(pref.haystack_port_data)
+        command_arg = haystack_path + str(input_value) + str(client_arg)
+
+        self.updateCommand(command_arg)
 
 class HayStackRenderViewerNode(HayStackRenderBaseNode):
     bl_idname = 'HayStackRenderViewerNodeType'
@@ -1193,6 +1257,7 @@ classes = [
     HAYSTACK_PG_remote_files,
     HAYSTACK_UL_remote_files,
     HAYSTACK_PT_remote_file_path_node,
+    HAYSTACK_OT_tf_create_material,
     ]
 
 def register():

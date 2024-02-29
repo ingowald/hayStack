@@ -58,6 +58,10 @@ namespace hs {
 			float fovy = 60.f;
 		} camera;
 		bool measure = 0;
+
+		std::string server = "localhost";
+		int port_cam = 7000;
+		int port_data = 7001;
 	};
 	FromCL fromCL;
 
@@ -214,6 +218,15 @@ int main(int ac, char** av)
 			arg == "--head-node" || arg == "--create-head-node") {
 			fromCL.createHeadNode = true;
 		}
+		else if (arg == "-server") {
+			fromCL.server = av[++i];
+		}
+		else if (arg == "-port-cam") {
+			fromCL.port_cam = std::stoi(av[++i]);
+		}
+		else if (arg == "-port-data") {
+			fromCL.port_data = std::stoi(av[++i]);
+		}
 		else if (arg == "-h" || arg == "--help") {
 			usage();
 		}
@@ -291,7 +304,7 @@ int main(int ac, char** av)
 		exit(0);
 	}
 
- ////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
 	fromCL.camera.vp.x = 0;
 	fromCL.camera.vp.y = 0;
 	fromCL.camera.vp.z = 0;
@@ -313,17 +326,48 @@ int main(int ac, char** av)
 	//float fix_fov = 1.0f;
 	std::vector<char> pixels_buf_empty;
 
-	std::vector<vec4f> haystack_data(128 + 1);
-	std::vector<vec4f> haystack_data_rcv(128 + 1);
+	//std::vector<vec4f> haystack_data(128 + 1);
+	//std::vector<vec4f> haystack_data_rcv(128 + 1);
+
+	const int colorMapCount = 1024;
+
+	struct HsDataRender {
+		vec4f colorMap[colorMapCount];
+		float domain[2];
+		float baseDensity;
+	};
+	HsDataRender hsDataRender, hsDataRenderRcv;
 
 	TransferFunction xf;
-	xf.colorMap.resize(128);
+	xf.colorMap.resize(colorMapCount);
 	xf.domain = range1f(0.f, 1.0f);
 
 	int total_samples = 0;
 	hs::Camera camera;
 
 	double t2 = getCurrentTime();
+
+	/////////
+	struct HsDataInit {
+		float world_bounds_spatial_lower[3];
+		float world_bounds_spatial_upper[3];
+		float scalars_range[2];
+	};
+
+	HsDataInit hsDataInit;
+	hsDataInit.world_bounds_spatial_lower[0] = worldBounds.spatial.lower[0];
+	hsDataInit.world_bounds_spatial_lower[1] = worldBounds.spatial.lower[1];
+	hsDataInit.world_bounds_spatial_lower[2] = worldBounds.spatial.lower[2];
+	hsDataInit.world_bounds_spatial_upper[0] = worldBounds.spatial.upper[0];
+	hsDataInit.world_bounds_spatial_upper[1] = worldBounds.spatial.upper[1];
+	hsDataInit.world_bounds_spatial_upper[2] = worldBounds.spatial.upper[2];
+
+	hsDataInit.scalars_range[0] = worldBounds.scalars.lo;
+	hsDataInit.scalars_range[1] = worldBounds.scalars.hi;
+
+	init_sockets_cam(fromCL.server.c_str(), fromCL.port_cam, fromCL.port_data);
+	send_data_cam((char*)&hsDataInit, sizeof(HsDataInit));
+	/////////
 
 	while (true) {
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
@@ -344,7 +388,7 @@ int main(int ac, char** av)
 			continue;
 		}
 
-		recv_data_cam((char*)haystack_data_rcv.data(), sizeof(vec4f) * haystack_data_rcv.size());
+		recv_data_cam((char*)&hsDataRenderRcv, sizeof(HsDataRender));
 		if (is_error()) {
 			std::cerr << "TCP Error!";
 			exit(-1);
@@ -407,16 +451,12 @@ int main(int ac, char** av)
 			// 	continue;
 			// }
 
-			if (memcmp(haystack_data.data(), haystack_data_rcv.data(), sizeof(vec4f) * haystack_data.size())) {
-				memcpy(xf.colorMap.data(), haystack_data_rcv.data(), sizeof(vec4f) * xf.colorMap.size());
-				memcpy(haystack_data.data(), haystack_data_rcv.data(), sizeof(vec4f) * haystack_data.size());
+			if (memcmp(&hsDataRender, &hsDataRenderRcv, sizeof(HsDataRender))) {
+				memcpy(&hsDataRender, &hsDataRenderRcv, sizeof(HsDataRender));
 
-				//  29     range1f domain = { 0.f, 0.f };                                                        
-				//  30     float   baseDensity = 1.f;                                                            
-				//  31   };
-
-				xf.domain = range1f(haystack_data[128].x, haystack_data[128].y);
-				xf.baseDensity = haystack_data[128].z;
+				memcpy(xf.colorMap.data(), hsDataRender.colorMap, sizeof(vec4f) * xf.colorMap.size());
+				xf.domain = range1f(hsDataRender.domain[0], hsDataRender.domain[1]);
+				xf.baseDensity = hsDataRender.baseDensity;
 
 				//renderer->setColorMap(haystack_data);
 				renderer->setTransferFunction(xf);
@@ -424,64 +464,64 @@ int main(int ac, char** av)
 				total_samples = 0;
 
 				/////////////////////////////////////////////////////////////////////////
-				int save_to_file = haystack_data[128].w;
-				if (save_to_file == 1) {
-					/////XF
-					if (fromCL.xfFileName.length() > 0) {
-						const char* fname = fromCL.xfFileName.c_str();
-						std::ofstream ofs(fname, std::ios::binary);
+				//int save_to_file = haystack_data[128].w;
+				//if (save_to_file == 1) {
+				//	/////XF
+				//	if (fromCL.xfFileName.length() > 0) {
+				//		const char* fname = fromCL.xfFileName.c_str();
+				//		std::ofstream ofs(fname, std::ios::binary);
 
-						if (!ofs.good())
-							std::cerr << "Cannot save tf at " << fname << "\n";
+				//		if (!ofs.good())
+				//			std::cerr << "Cannot save tf at " << fname << "\n";
 
-						static const size_t xfFileFormatMagic = 0x1235abc000;
-						ofs.write((char*)&xfFileFormatMagic, sizeof(xfFileFormatMagic));
+				//		static const size_t xfFileFormatMagic = 0x1235abc000;
+				//		ofs.write((char*)&xfFileFormatMagic, sizeof(xfFileFormatMagic));
 
-						float opacityScale = log(xf.baseDensity) / log(1.1f) + 100.f;
-						ofs.write((char*)&opacityScale, sizeof(opacityScale));
+				//		float opacityScale = log(xf.baseDensity) / log(1.1f) + 100.f;
+				//		ofs.write((char*)&opacityScale, sizeof(opacityScale));
 
-						const auto range = xf.domain;
-						ofs.write((char*)&range.lower, sizeof(range.lower));
-						ofs.write((char*)&range.upper, sizeof(range.upper));
+				//		const auto range = xf.domain;
+				//		ofs.write((char*)&range.lower, sizeof(range.lower));
+				//		ofs.write((char*)&range.upper, sizeof(range.upper));
 
-						owl::interval<float> relDomain = { 0.f, 100.f };
-						ofs.write((char*)&relDomain, sizeof(relDomain));
+				//		owl::interval<float> relDomain = { 0.f, 100.f };
+				//		ofs.write((char*)&relDomain, sizeof(relDomain));
 
-						const auto cmap = xf.colorMap;
-						const int numColorMapValues = cmap.size();
+				//		const auto cmap = xf.colorMap;
+				//		const int numColorMapValues = cmap.size();
 
-						ofs.write((char*)&numColorMapValues, sizeof(numColorMapValues));
-						ofs.write((char*)&cmap[0], numColorMapValues * sizeof(vec4f));
+				//		ofs.write((char*)&numColorMapValues, sizeof(numColorMapValues));
+				//		ofs.write((char*)&cmap[0], numColorMapValues * sizeof(vec4f));
 
-						ofs.close();
+				//		ofs.close();
 
-						std::cout << "TFE saved to " << fname << "\n";
+				//		std::cout << "TFE saved to " << fname << "\n";
 
-						////Camera
-						std::string fname_cam = fromCL.xfFileName + ".cam";
-						std::ofstream ofs_cam(fname_cam.c_str());
-						if (!ofs_cam.good())
-							std::cerr << "Cannot save tf at " << fname_cam << "\n";
+				//		////Camera
+				//		std::string fname_cam = fromCL.xfFileName + ".cam";
+				//		std::ofstream ofs_cam(fname_cam.c_str());
+				//		if (!ofs_cam.good())
+				//			std::cerr << "Cannot save tf at " << fname_cam << "\n";
 
-						ofs_cam << "--camera" << " ";
+				//		ofs_cam << "--camera" << " ";
 
-						ofs_cam << camera.vp.x << " ";
-						ofs_cam << camera.vp.y << " ";
-						ofs_cam << camera.vp.z << " ";
-						ofs_cam << camera.vi.x << " ";
-						ofs_cam << camera.vi.y << " ";
-						ofs_cam << camera.vi.z << " ";
-						ofs_cam << camera.vu.x << " ";
-						ofs_cam << camera.vu.y << " ";
-						ofs_cam << camera.vu.z << " ";
+				//		ofs_cam << camera.vp.x << " ";
+				//		ofs_cam << camera.vp.y << " ";
+				//		ofs_cam << camera.vp.z << " ";
+				//		ofs_cam << camera.vi.x << " ";
+				//		ofs_cam << camera.vi.y << " ";
+				//		ofs_cam << camera.vi.z << " ";
+				//		ofs_cam << camera.vu.x << " ";
+				//		ofs_cam << camera.vu.y << " ";
+				//		ofs_cam << camera.vu.z << " ";
 
-						ofs_cam << "-fovy" << " ";
-						ofs_cam << camera.fovy << " ";
-						ofs_cam.close();
+				//		ofs_cam << "-fovy" << " ";
+				//		ofs_cam << camera.fovy << " ";
+				//		ofs_cam.close();
 
-						std::cout << "Camera saved to " << fname_cam << "\n";
-					}
-				}
+				//		std::cout << "Camera saved to " << fname_cam << "\n";
+				//	}
+				//}
 				/////////////////////////////////////////////////////////////////////////
 			}
 
@@ -522,7 +562,7 @@ int main(int ac, char** av)
 				std::cerr << "TCP Error!";
 				exit(-1);
 			}
-		}
+			}
 		catch (const std::exception& ex)
 		{
 			std::cerr << ex.what();

@@ -42,9 +42,8 @@ from dataclasses import dataclass
 from math import radians
 from mathutils import Matrix
 
-from ctypes import Array, cdll, c_void_p, c_char, c_char_p, c_int, c_int32, c_uint32, c_float, c_bool, c_ulong, POINTER
-
 from . import haystack_pref
+from . import haystack_dll
 from . import haystack_nodes
 
 #####################################################################################################################
@@ -62,87 +61,32 @@ from . import haystack_nodes
 # gl.glViewport.argtypes = [c_int32, c_int32, c_uint32, c_uint32]
 
 #####################################################################################################################
-# platform specific library loading
-if platform.system() == 'Windows':
-    _renderengine_dll_name = "hayStack-renderengine.dll"
-elif platform.system() == 'Linux':
-    _renderengine_dll_name = "libhayStack-renderengine.so"
-elif platform.system() == 'Darwin':
-    _renderengine_dll_name = "libhayStack-renderengine.dylib"
-else:
-    raise ValueError(
-        "Libraries not available for this platform: " + platform.system())
-
-#####################################################################################################################
-try:
-    # Load library
-    _renderengine_dll_name = os.path.join(
-        os.path.dirname(__file__), _renderengine_dll_name)
-    _renderengine_dll = cdll.LoadLibrary(_renderengine_dll_name)
-
-    #####################################################################################################################
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD resize(int width, int height);
-    _renderengine_dll.resize.argtypes = [c_int32, c_int32]
-
-    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD recv_pixels_data();
-    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD send_cam_data();
-    _renderengine_dll.recv_pixels_data.restype = c_int32
-    _renderengine_dll.send_cam_data.restype = c_int32
-
-    #HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_timestep(int timestep);
-    _renderengine_dll.set_timestep.argtypes = [c_int32]
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_init(const char *server, int port_cam, int port_data, int w, int h, int step_samples, const char *filename);
-    _renderengine_dll.client_init.argtypes = [
-        c_char_p, c_int32, c_int32, c_int32, c_int32, c_int32, c_char_p]
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD client_close_connection();
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_camera(void* view_martix,
-    # 	float lens,
-    # 	float nearclip,
-    # 	float farclip,
-    # 	float sensor_width,
-    # 	float sensor_height,
-    # 	int sensor_fit,
-    # 	float view_camera_zoom,
-    # 	float view_camera_offset0,
-    # 	float view_camera_offset1,
-    # 	int use_view_camera,
-    # 	float shift_x,
-    # 	float shift_y);
-    _renderengine_dll.set_camera.argtypes = [c_void_p, c_float, c_float, c_float,
-                                            c_float, c_float, c_int, c_float, c_float, c_float, c_int, c_float, c_float]
-
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD get_pixels(void* pixels);
-    #_renderengine_dll.get_pixels.argtypes = [c_void_p]
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD draw_texture();
-
-    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
-    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();
-    _renderengine_dll.get_samples.restype = c_int32
-    _renderengine_dll.get_current_samples.restype = c_int32
-
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD set_haystack_data(void* values, int size);
-    _renderengine_dll.set_haystack_data.argtypes = [c_void_p, c_int32]
-
-    # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
-    _renderengine_dll.get_texture_id.restype = c_int32
-
-
-except:
-    print("Missing: ", _renderengine_dll_name)
-
-#####################################################################################################################
 
 
 # def check_gl_error():
 #     error = bgl.glGetError()
 #     if error != bgl.GL_NO_ERROR:
 #         raise Exception(error)
+
+class HayStackShowPopupErrorMessage(bpy.types.Operator):
+    """Show Popup Error Message"""
+    bl_idname = "haystack.error_message"
+    bl_label = "Error Message"
+    #bl_options = {'REGISTER', 'INTERNAL'}
+    
+    message: bpy.props.StringProperty(
+        name="Message",
+        description="The message to display",
+        default='An error has occurred'
+    ) # type: ignore
+
+    def execute(self, context):
+        self.report({'ERROR'}, self.message)
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
     
 #####################################################################################################################    
 # def node_tree_poll(self, object):
@@ -265,7 +209,17 @@ class HayStackData:
 #         )
 
 #####################################################################################################################
-
+# struct HsDataRender {
+#     vec4f colorMap[128];
+#     float domain[2];
+#     float baseDensity;
+# };
+class HsDataRender:
+    def __init__(self):
+        self.colorMapCount = 1024
+        self.colorMap = np.zeros((self.colorMapCount * 4), dtype=np.float32)
+        self.domain = np.zeros((2), dtype=np.float32)
+        self.baseDensity = np.zeros((1), dtype=np.float32)          
 
 class HayStackContext:
     channels = 4
@@ -300,8 +254,8 @@ class HayStackContext:
               self.height, self.step_samples, self.filename.encode())
 
     def client_init(self):
-        _renderengine_dll.client_init(self.server.encode(), self.port_cam, self.port_data,
-                                      self.width, self.height, self.step_samples, self.filename.encode())
+        haystack_dll._renderengine_dll.client_init(self.server.encode(), self.port_cam, self.port_data,
+                                      self.width, self.height) #, self.step_samples, self.filename.encode()
 
         self.g_width = self.width
         self.g_height = self.height
@@ -309,19 +263,19 @@ class HayStackContext:
         #check_gl_error()
 
     def client_close_connection(self):
-        _renderengine_dll.reset()
-        _renderengine_dll.client_close_connection()
+        haystack_dll._renderengine_dll.reset()
+        haystack_dll._renderengine_dll.client_close_connection()      
 
     def render(self, restart=False, tile=None):
         # cam
         if bpy.context.scene.haystack.server_settings.timesteps > 1:
-            _renderengine_dll.set_timestep(bpy.context.scene.frame_current % bpy.context.scene.haystack.server_settings.timesteps)
+            haystack_dll._renderengine_dll.set_timestep(bpy.context.scene.frame_current % bpy.context.scene.haystack.server_settings.timesteps)
 
-        _renderengine_dll.send_cam_data()
+        haystack_dll._renderengine_dll.send_cam_data()
 
-        # volume
-        haystack_data = np.zeros((129 * 4), dtype=np.float32)
-        haystack_data_size = int(129 * 4 * 4)
+        # volume       
+        haystack_data = HsDataRender()
+        #haystack_data_size = int(129 * 4 * 4)
 
         mat = bpy.context.scene.haystack.server_settings.mat_volume
 
@@ -336,21 +290,21 @@ class HayStackContext:
                 node_float_curve = mat.node_tree.nodes['Float Curve']
                 curve_map = node_float_curve.mapping.curves[0]
             
-            for v in range(128):
+            for v in range(haystack_data.colorMapCount):
                 color_rgba = (1.0,0.0,0.0,1.0)
                 density = 1.0
 
                 if node_color_ramp:
-                    color_rgba = node_color_ramp.color_ramp.evaluate(float(v) / 128.0)
+                    color_rgba = node_color_ramp.color_ramp.evaluate(float(v) / float(haystack_data.colorMapCount))
                     density = color_rgba[3]
                 
                 if node_float_curve:
-                    density = node_float_curve.mapping.evaluate(curve_map, float(v) / 128.0)
+                    density = node_float_curve.mapping.evaluate(curve_map, float(v) / float(haystack_data.colorMapCount))
 
-                haystack_data[0 + v * 4] = color_rgba[0]
-                haystack_data[1 + v * 4] = color_rgba[1]
-                haystack_data[2 + v * 4] = color_rgba[2]
-                haystack_data[3 + v * 4] = density
+                haystack_data.colorMap[0 + v * 4] = color_rgba[0]
+                haystack_data.colorMap[1 + v * 4] = color_rgba[1]
+                haystack_data.colorMap[2 + v * 4] = color_rgba[2]
+                haystack_data.colorMap[3 + v * 4] = density
 
             domain = [float(0.0), float(1.0)]
             if 'DomainX' in mat.node_tree.nodes:
@@ -358,31 +312,31 @@ class HayStackContext:
             if 'DomainY' in mat.node_tree.nodes:
                 domain[1] = mat.node_tree.nodes['DomainY'].outputs[0].default_value                
             
-            haystack_data[0 + 128 * 4] = domain[0]
-            haystack_data[1 + 128 * 4] = domain[1]
+            haystack_data.domain[0] = domain[0]
+            haystack_data.domain[1] = domain[1]
 
             baseDensity = float(1.0)
             if 'Base Density' in mat.node_tree.nodes:
                 baseDensity = mat.node_tree.nodes['Base Density'].outputs[0].default_value
 
-            haystack_data[2 + 128 * 4] = baseDensity
+            haystack_data.baseDensity[0] = baseDensity
 
-            if bpy.context.scene.haystack.server_settings.save_to_file == True:
-                haystack_data[3 + 128 * 4] = 1
-            else:
-                haystack_data[3 + 128 * 4] = 0
+            # if bpy.context.scene.haystack.server_settings.save_to_file == True:
+            #     haystack_data[3 + 128 * 4] = 1
+            # else:
+            #     haystack_data[3 + 128 * 4] = 0
         
-        _renderengine_dll.set_haystack_data(haystack_data.ctypes.data, haystack_data_size)
+        haystack_dll._renderengine_dll.send_haystack_data_render(haystack_data.colorMap.ctypes.data, haystack_data.colorMapCount, haystack_data.domain.ctypes.data, haystack_data.baseDensity.ctypes.data)
 
         # image
-        _renderengine_dll.recv_pixels_data()
+        haystack_dll._renderengine_dll.recv_pixels_data()
 
         return 1
 
     def set_camera(self, camera_data):
         transformL = np.array(camera_data.transform, dtype=np.float32)
 
-        _renderengine_dll.set_camera(transformL.ctypes.data,
+        haystack_dll._renderengine_dll.set_camera(transformL.ctypes.data,
                                      camera_data.focal_length,
                                      camera_data.clip_plane[0],
                                      camera_data.clip_plane[1],
@@ -398,22 +352,24 @@ class HayStackContext:
         
 
     # def get_image(self):
-    #     _renderengine_dll.get_pixels(ctypes.c_void_p(self.data.ctypes.data))
+    #     haystack_dll._renderengine_dll.get_pixels(ctypes.c_void_p(self.data.ctypes.data))
     #     return self.data
     
     def draw_texture(self):
-        _renderengine_dll.draw_texture()
+        haystack_dll._renderengine_dll.draw_texture()
 
     def get_current_samples(self):
-        return _renderengine_dll.get_current_samples()
+        return haystack_dll._renderengine_dll.get_current_samples()
     
     def get_texture_id(self):
-        return _renderengine_dll.get_texture_id()
+        return haystack_dll._renderengine_dll.get_texture_id()
 
     def resize(self, width, height):
         self.width = width
         self.height = height
-        _renderengine_dll.resize( width, height)
+        haystack_dll._renderengine_dll.resize( width, height)
+
+        #return hsDataInit
 
     # @staticmethod
     # def _draw_texture(texture_id, x, y, width, height):
@@ -744,7 +700,7 @@ class ViewportSettings:
 
     def __init__(self, context: bpy.types.Context):
         """Initializes settings from Blender's context"""
-        # if _renderengine_dll.get_renderengine_type() == 1:
+        # if haystack_dll._renderengine_dll.get_renderengine_type() == 1:
         #     self.camera_data,self.camera_dataR = CameraData.init_from_context_openvr(context)
         #     self.screen_height = context.scene.openvr_user_prop.openVrGlRenderer.getHeight()
         #     self.screen_width = context.scene.openvr_user_prop.openVrGlRenderer.getWidth()
@@ -917,8 +873,14 @@ class ViewportEngine(Engine):
         print('Finish _do_sync_render')        
 
     def sync(self, context, depsgraph):
+        
+        if context.scene.haystack_data.haystack_process is None:
+            message = "Haystack process is not started"
+            bpy.ops.haystack.error_message('INVOKE_DEFAULT', message=message)
+            raise Exception(message)
+    
         print('Start sync')
-        bpy.ops.haystack.start_process()
+        #bpy.ops.haystack.start_process()
 
         scene = depsgraph.scene
         view_layer = depsgraph.view_layer
@@ -948,14 +910,15 @@ class ViewportEngine(Engine):
                                   scene.haystack.server_settings.filename)
         # if not self.haystack_context.gl_interop:
         #self.gl_texture = GLTexture(width, height)
-        self.haystack_context.client_init()
+        self.haystack_context.client_init()     
+        #################################
 
         # reset scene
-        # _renderengine_dll.reset()
+        # haystack_dll._renderengine_dll.reset()
 
         self.is_finished = False
 
-        # if _renderengine_dll.get_renderengine_type() == 2:
+        # if haystack_dll._renderengine_dll.get_renderengine_type() == 2:
         #     self.is_synced = True
         #     self.is_rendered = True
         #     self.haystack_context.register_render_callback(self.render_callback)
@@ -1070,7 +1033,7 @@ class ViewportEngine(Engine):
 
                     self.is_resized = True
 
-                # if _renderengine_dll.get_renderengine_type() != 2:
+                # if haystack_dll._renderengine_dll.get_renderengine_type() != 2:
                 self.restart_render_event.set()
 
         if self.is_resized or not self.is_rendered:
@@ -1209,6 +1172,7 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
             col.operator("haystack.start_process")
         else:
             col.operator("haystack.stop_process")
+            #col.operator("haystack.create_bbox")
 
         # box = layout.box()
         # col = box.column()
@@ -1233,9 +1197,9 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         col.prop(server_settings, "height", text="Height")
         #col.prop(server_settings, "step_samples", text="Step samples")
 
-        # box = layout.box()
-        # col = box.column()
-        # col.prop(server_settings, "mat_volume", text="Volume Material")  
+        box = layout.box()
+        col = box.column()
+        col.prop(server_settings, "mat_volume", text="Volume Material")  
         
 ###################################################################################
 
@@ -1291,6 +1255,7 @@ def register():
     bpy.utils.register_class(HayStackServerSettings)
     bpy.utils.register_class(HayStackRenderSettings)
     bpy.utils.register_class(RENDER_PT_haystack_server)
+    bpy.utils.register_class(HayStackShowPopupErrorMessage)
 
     bpy.types.Scene.haystack = bpy.props.PointerProperty(
         name="HayStack Render Settings",
@@ -1309,6 +1274,7 @@ def unregister():
     bpy.utils.unregister_class(HayStackServerSettings)
     bpy.utils.unregister_class(HayStackRenderSettings)
     bpy.utils.unregister_class(RENDER_PT_haystack_server)
+    bpy.utils.unregister_class(HayStackShowPopupErrorMessage)
 
     delattr(bpy.types.Scene, 'haystack')
     delattr(bpy.types.Scene, 'haystack_data')
