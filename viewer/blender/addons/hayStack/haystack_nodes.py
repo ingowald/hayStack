@@ -438,7 +438,21 @@ class HayStackLoadNanoVDBNode(HayStackBaseNode):
         name="File",
         default="",
         update = update_property
-    ) # type: ignore          
+    ) # type: ignore
+
+    spacing: bpy.props.FloatVectorProperty(
+        name="Spacing",
+        size=3,
+        subtype='XYZ_LENGTH',
+        default=(1, 1, 1),
+        update = update_property
+    ) # type: ignore
+
+    spacingEnable: bpy.props.BoolProperty(
+        name="Spacing",
+        default=False,
+        update = update_property
+    ) # type: ignore                
     
     def initNode(self, context):
         self.outputs.new('HayStackDataSocketType', 'Data')        
@@ -446,9 +460,18 @@ class HayStackLoadNanoVDBNode(HayStackBaseNode):
     def updateNode(self):
         self.output_data = "nvdb://" + \
             "" + self.get_file_path()
+        
+        if self.spacingEnable:
+            self.output_data = self.output_data + \
+                ":spacing=" + str(self.spacing[0]) + "," +str(self.spacing[1]) + "," +str(self.spacing[2])       
 
     def draw_buttons(self, context, layout):
-        self.draw_file_path(layout)        
+        self.draw_file_path(layout)
+
+        row = layout.column(align=True)
+        row.prop(self, "spacingEnable")
+        if self.spacingEnable:
+            row.prop(self, "spacing")
 
 #raw://4@/home/wald/models/magnetic-512-volume/magnetic-512-volume.raw:format=float:dims=512,512,512
 # RAWVolume

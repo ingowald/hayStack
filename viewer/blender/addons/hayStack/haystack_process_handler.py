@@ -85,7 +85,7 @@ class HayStackStopProcessOperator(bpy.types.Operator):
 
     def execute(self, context):
         #haystack_dll._renderengine_dll.reset()
-        #haystack_dll._renderengine_dll.client_close_connection()
+        haystack_dll._renderengine_dll.client_close_connection()
 
         stop_process(context)
         return {'FINISHED'}
