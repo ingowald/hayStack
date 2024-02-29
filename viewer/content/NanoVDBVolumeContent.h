@@ -17,7 +17,7 @@
 #pragma once
 
 #include "viewer/DataLoader.h"
-#include "hayStack/StructuredVolume.h"
+#include "hayStack/NanoVDBVolume.h"
 
 namespace hs {
   

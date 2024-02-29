@@ -16,11 +16,12 @@
 
 /*! a hay-*stack* is a description of data-parallel data */
 
-#include "hayStack/StructuredVolume.h"
+#include "hayStack/NanoVDBVolume.h"
+#include <nanovdb/NanoVDB.h>
 
 namespace hs {
 
-  box3f StructuredVolume::getBounds() const
+  box3f NanoVDBVolume::getBounds() const
   {
     box3f bb;
     bb.lower = gridOrigin;
@@ -28,23 +29,18 @@ namespace hs {
     return bb;
   }
 
-  range1f StructuredVolume::getValueRange() const
+  range1f NanoVDBVolume::getValueRange() const
   {
     size_t numScalars = dims.x*(size_t)dims.y*dims.z;
     range1f range;
     switch (texelFormat) {
-    case BN_TEXEL_FORMAT_R32F:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(((const float *)rawData.data())[i]);
-      break;
-    case BN_TEXEL_FORMAT_R8:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
-      break;
-    case BN_TEXEL_FORMAT_R16:
-      for (size_t i=0;i<numScalars;i++)
-        range.extend(1.f/((1<<16)-1)*((const uint16_t *)rawData.data())[i]);
-      break;
+    case BN_TEXEL_FORMAT_NANOVDB_FLOAT:
+    {
+        nanovdb::NanoGrid<float>* const grid = (nanovdb::NanoGrid<float> *)rawData.data();        
+        range.extend(grid->tree().root().data()->getMin());
+        range.extend(grid->tree().root().data()->getMax());
+    }
+    break;
     default:
       HAYSTACK_NYI();
     }

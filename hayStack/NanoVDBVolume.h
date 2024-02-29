@@ -26,22 +26,17 @@ namespace hs {
   /*! like all other things in haystack, this is designed to be able
       to store *ONE RANK'S PART* of what may - across all ranks - be a
       logically much larger volume */
-  struct StructuredVolume {
-    typedef std::shared_ptr<StructuredVolume> SP;
-    
-    //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
+  struct NanoVDBVolume {
+    typedef std::shared_ptr<NanoVDBVolume> SP;
 
-    StructuredVolume(vec3i dims,
+    NanoVDBVolume(vec3i dims,
                      BNTexelFormat texelFormat,
-                     // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
-                     std::vector<uint8_t> &rawDataRGB,
                      const vec3f &gridOrigin,
                      const vec3f &gridSpacing)
       : dims(dims),
-        texelFormat(texelFormat),//scalarType(scalarType),
+        texelFormat(texelFormat),
         rawData(std::move(rawData)),
-        rawDataRGB(std::move(rawDataRGB)),
         gridOrigin(gridOrigin),
         gridSpacing(gridSpacing)
     {}
@@ -49,28 +44,19 @@ namespace hs {
     box3f getBounds() const;
     range1f getValueRange() const;
 
-    /*! dimensions of grid of scalars in rawData */
+    /*! dimensions of grid of scalars in NanoVDB */
     vec3i      dims;
     std::vector<uint8_t> rawData;
-    /*! either empty, or 3xuint8_t (RGB) for each voxel */
-    std::vector<uint8_t> rawDataRGB;
     // ScalarType scalarType;
     const BNTexelFormat texelFormat;
     vec3f gridOrigin, gridSpacing;
   };
 
-  inline size_t sizeOf(BNTexelFormat type)
+  inline size_t sizeOfNanoVDBTexel(BNTexelFormat type)
   {
     switch(type) {
-    case BN_TEXEL_FORMAT_R32F:
-      return sizeof(float); 
-    case BN_TEXEL_FORMAT_R16:
-      return sizeof(uint16_t);
-    case BN_TEXEL_FORMAT_R8:
-      return sizeof(uint8_t);
-    // case StructuredVolume::FLOAT: return sizeof(float); 
-    // case StructuredVolume::UINT16: return sizeof(uint8_t);
-    // case StructuredVolume::UINT8: return sizeof(uint8_t);
+    case BN_TEXEL_FORMAT_NANOVDB_FLOAT:
+      return sizeof(float);
     default: throw std::runtime_error("un-handled scalar type");
     };
   }
