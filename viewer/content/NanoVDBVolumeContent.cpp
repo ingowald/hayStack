@@ -95,10 +95,18 @@ namespace hs {
 
 		auto vdb_dims = nanogrid.gridMetaData()->worldBBox().dim();
 		auto vdb_spacing = nanogrid.gridMetaData()->voxelSize();
+		vec3f gridSpacing(vdb_spacing[0], vdb_spacing[1], vdb_spacing[2]);
+
+		std::string spacingString = dataURL.get("spacing", "");
+		if (!spacingString.empty()) {
+			int n = sscanf(spacingString.c_str(), "%f,%f,%f", &gridSpacing[0], &gridSpacing[1], &gridSpacing[2]);
+			if (n != 3) throw std::runtime_error("NanoVDBVolumeContent:: could not parse spacing from '" + spacingString + "'");
+		}
+
 		vec3i dims;
-		dims.x = (int)(vdb_dims[0] / vdb_spacing[0]);
-		dims.y = (int)(vdb_dims[1] / vdb_spacing[1]);
-		dims.z = (int)(vdb_dims[2] / vdb_spacing[2]);
+		dims.x = (int)(vdb_dims[0] / gridSpacing[0]);
+		dims.y = (int)(vdb_dims[1] / gridSpacing[1]);
+		dims.z = (int)(vdb_dims[2] / gridSpacing[2]);
 
 		box3i initRegion = { vec3i(0), dims - 1 };
 		std::string extractString = dataURL.get("extract");
@@ -137,7 +145,7 @@ namespace hs {
 	size_t NanoVDBVolumeContent::projectedSize()
 	{
 		vec3i numVoxels = cellRange.size() + 1;
-		return numVoxels.x * size_t(numVoxels.y) * numVoxels.z * numChannels * sizeOf(texelFormat);
+		return numVoxels.x * size_t(numVoxels.y) * numVoxels.z * numChannels * sizeOfNanoVDBTexel(texelFormat);
 	}
 
 	void NanoVDBVolumeContent::executeLoad(DataGroup& dataGroup, bool verbose)
@@ -148,16 +156,13 @@ namespace hs {
 		nanovdb::GridHandle<> nanogrid = nanovdb::io::readGrid<>(fileName);
 		std::cout << "Loaded NanoVDB grid[" << nanogrid.gridMetaData()->shortGridName() << "]...\n";
 
-		auto vdb_spacing = nanogrid.gridMetaData()->voxelSize();
 		vec3f gridSpacing(1.0f, 1.0f, 1.0f);
 
 		std::vector<uint8_t> rawData(nanogrid.size());
 		memcpy(rawData.data(), nanogrid.data(), rawData.size());
 
-		std::vector<uint8_t> rawDataRGB;
-
-		dataGroup.structuredVolumes.push_back
-		(std::make_shared<StructuredVolume>(numVoxels, texelFormat, rawData, rawDataRGB,
+		dataGroup.nanoVDBVolumes.push_back
+		(std::make_shared<NanoVDBVolume>(numVoxels, texelFormat, rawData,
 			gridOrigin, gridSpacing));
 	}
 

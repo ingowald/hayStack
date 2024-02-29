@@ -37,6 +37,8 @@ add_library(hayStack
   Spheres.cpp
   StructuredVolume.h
   StructuredVolume.cpp
+  NanoVDBVolume.h
+  NanoVDBVolume.cpp  
 
   Renderer.h
   MPIRenderer.h

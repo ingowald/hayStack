@@ -73,6 +73,10 @@ namespace hs {
       bounds.spatial.extend(volume->getBounds());
       bounds.scalars.extend(volume->getValueRange());
     }
+    for (auto &volume : nanoVDBVolumes) {
+      bounds.spatial.extend(volume->getBounds());
+      bounds.scalars.extend(volume->getValueRange());
+    }    
     return bounds;
   }
 

@@ -683,7 +683,7 @@ namespace hs {
     
 
     // ------------------------------------------------------------------
-    // render all UMeshes
+    // render all Volumes
     // ------------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
 #if HANARI
@@ -725,24 +725,6 @@ namespace hs {
       anari::setAndReleaseParameter(device, volume, "field", field);
       dg.createdVolumes.push_back(volume);
 #else
-      if (vol->texelFormat == BN_TEXEL_FORMAT_NANOVDB_FLOAT) {
-        BNScalarField sf
-          = bnScalarFieldCreate(model,slot,"nanovdb");
-        BNTextureNanoVDB texture
-          = bnTextureNanoVDBCreate(model,slot,
-                              vol->texelFormat,vol->rawData.size(),
-                              vol->rawData.data());
-        bnSetObject(sf,"texture",texture);
-        bnRelease(texture);
-        bnSet3ic(sf,"dims",(const int3&)vol->dims);
-        bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
-        bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
-        bnCommit(sf);
-        dg.createdVolumes.push_back(bnVolumeCreate(model,slot,sf));
-        bnRelease(sf);
-      } 
-      else {
-
       BNScalarField sf
         = bnScalarFieldCreate(model,slot,"structured");
       BNTexture3D texture
@@ -765,10 +747,28 @@ namespace hs {
       bnCommit(sf);
       dg.createdVolumes.push_back(bnVolumeCreate(model,slot,sf));
       bnRelease(sf);
-      }
 #endif
     }
-    
+
+    for (auto vol : myData.nanoVDBVolumes) {
+#if HANARI
+#else
+        BNScalarField sf
+          = bnScalarFieldCreate(model,slot,"nanovdb");
+        BNTextureNanoVDB texture
+          = bnTextureNanoVDBCreate(model,slot,
+                              vol->texelFormat,vol->rawData.size(),
+                              vol->rawData.data());
+        bnSetObject(sf,"texture",texture);
+        bnRelease(texture);
+        bnSet3ic(sf,"dims",(const int3&)vol->dims);
+        bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
+        bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
+        bnCommit(sf);
+        dg.createdVolumes.push_back(bnVolumeCreate(model,slot,sf));
+        bnRelease(sf);
+#endif
+    }    
 
     // ------------------------------------------------------------------
     // create a single instance for all 'root' geometry that isn't
