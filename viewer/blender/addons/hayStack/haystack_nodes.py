@@ -870,17 +870,17 @@ class HayStackOutputImageNode(HayStackBaseNode):
 ##################################################Render###################################################################
 def replace_drive_substrings(input_string):
     if platform.system() == 'Windows':
-        # Define a regular expression pattern that matches any letter followed by a colon
-        pattern = r"@([a-zA-Z]):"
-        
-        # Function to construct the replacement string
-        def repl_func(match):
-            # match.group(1) is the letter matched inside the parentheses in the pattern
-            # Return the letter followed by a dollar sign
-            return f"@{match.group(1)}$"
-        
-        # Use re.sub with the pattern, replacement function, and input string
-        result_string = re.sub(pattern, repl_func, input_string)
+        ## pattern @
+        pattern1 = r"@([a-zA-Z]):"
+        def repl_func1(match):
+            return f"@{match.group(1)}$"        
+        result_string = re.sub(pattern1, repl_func1, input_string)
+
+        ## pattern /
+        pattern2 = r"/([a-zA-Z]):"
+        def repl_func2(match):
+            return f"/{match.group(1)}$"        
+        result_string = re.sub(pattern2, repl_func2, result_string)
         
         return result_string
     else:

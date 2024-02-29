@@ -157,7 +157,9 @@ add_executable(hsBlender
   content/TSTris.h
   content/TSTris.cpp
   content/RAWVolumeContent.h
-  content/RAWVolumeContent.cpp  
+  content/RAWVolumeContent.cpp
+  content/NanoVDBVolumeContent.h
+  content/NanoVDBVolumeContent.cpp
   )
 
 target_compile_definitions(hsBlender PUBLIC -DBLENDER_CLIENT)
