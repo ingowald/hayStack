@@ -17,6 +17,9 @@
 #include "hayStack/HayMaker.h"
 #include "viewer/DataLoader.h"
 #if HS_VIEWER
+#ifdef _WIN32 
+#  include "glad.h"
+#endif
 # include "samples/common/owlViewer/InspectMode.h"
 # include "samples/common/owlViewer/OWLViewer.h"
 #define STB_IMAGE_IMPLEMENTATION 1
@@ -337,7 +340,7 @@ using namespace hs;
 
 int main(int ac, char **av)
 {
-  hs::mpi::init(ac,av);
+  hs::mpi::init(ac, av);
 #if HS_FAKE_MPI
   hs::mpi::Comm world;
 #else
@@ -469,6 +472,7 @@ int main(int ac, char **av)
     MPIRenderer::runWorker(world,&hayMaker);
     world.barrier();
     hs::mpi::finalize();
+
     exit(0);
   }
 
@@ -542,9 +546,11 @@ int main(int ac, char **av)
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
 
-  hs::TransferFunction xf;
-  xf.load(fromCL.xfFileName);
-  renderer->setTransferFunction(xf);
+  if (fromCL.xfFileName.length() > 0) {
+      hs::TransferFunction xf;
+      xf.load(fromCL.xfFileName);
+      renderer->setTransferFunction(xf);
+  }
 
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame(fromCL.spp);
@@ -557,6 +563,8 @@ int main(int ac, char **av)
 #endif
 
   world.barrier();
+
   hs::mpi::finalize();
+
   return 0;
 }

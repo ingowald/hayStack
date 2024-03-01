@@ -24,9 +24,16 @@
 #endif
 #include <stdexcept>
 
+#if HS_FAKE_MPI
+#define HS_MPI_CALL(fctCall)  
+#define MPI_Comm int
+#define MPI_COMM_NULL 0
+#define MPI_Request int
+#else
 #define HS_MPI_CALL(fctCall)                                                 \
     { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
-    
+#endif
+
 namespace hs {
   namespace mpi {
 #if HS_FAKE_MPI
@@ -51,11 +58,7 @@ namespace hs {
     void finalize();
     
     struct Comm {
-#if HS_FAKE_MPI
-        Comm();
-#else   
       Comm(MPI_Comm comm=MPI_COMM_NULL);
-#endif
 
       /*! equivalent of MPI_Comm_split - splits this comm into
           possibly multiple comms, each one containing exactly those
@@ -65,10 +68,7 @@ namespace hs {
           other former ranks */
       Comm split(int color);
       
-#if HS_FAKE_MPI
-#else
       inline operator MPI_Comm() { return comm; }
-#endif
 
       void  assertValid() const;
       int   allReduceMax(int value) const;
@@ -100,8 +100,6 @@ namespace hs {
       void masterGather(// what we're sending (this rank's data only)
                         const T *sendBuffer, int numItemsSentOnEachRank);
 
-#if HS_FAKE_MPI
-#else
       template<typename T>
       void recv(int fromRank, int tag,
                 T *buffer, int numItems, MPI_Request &req);
@@ -114,7 +112,7 @@ namespace hs {
       {
         HS_MPI_CALL(Wait(&req,MPI_STATUS_IGNORE));
       }
-#endif
+
       /*! master's send side of broadcast - must be done on rank 0,
           and matched by bc_recv on all workers */
       void bc_send(const void *ptr, size_t numBytes);
@@ -124,14 +122,10 @@ namespace hs {
       void bc_recv(void *ptr, size_t numBytes);
 
       int rank = -1, size = -1;
-#if HS_FAKE_MPI
-#else
+
       MPI_Comm comm = MPI_COMM_NULL;
-#endif  
     };
     
-#if HS_FAKE_MPI
-#else
     template<typename T>
     inline void Comm::recv(int fromRank, int tag,
                                   T *buffer, int numItems, MPI_Request &req)
@@ -156,7 +150,6 @@ namespace hs {
                         // 1,MPI_INT,
                         toRank,0x123+tag,comm,&req));
     }
-#endif
 
     /*! master-side of a gather where clietn gathers a fixed number
       of itmes from each rank */
@@ -166,13 +159,9 @@ namespace hs {
                                    // what we're sending (this rank's data only)
                                    const T *sendBuffer, int numItemsSentOnEachRank)
     {
-#if HS_FAKE_MPI
-        // nothing to do - it's a single rank anyway
-#else
       HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           recvBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           0,comm));
-#endif
     }
     
     /*! client-side of a gather where each client send a fixed number
@@ -181,13 +170,9 @@ namespace hs {
     inline void Comm::masterGather(// what we're sending (this rank's data only)
                                    const T *sendBuffer, int numItemsSentOnEachRank)
     {
-#if HS_FAKE_MPI
-        // nothing to do - it's a single rank anyway
-#else
         HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                           0,comm));
-#endif
     }
     
 
