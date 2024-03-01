@@ -266,52 +266,6 @@ namespace hs {
 
 #if HANARI
 #else
-  struct MaterialLibrary {
-    MaterialLibrary(BNModel model,int slot)
-      : model(model), slot(slot)
-    {}
-    ~MaterialLibrary()
-    {
-      for (auto it : alreadyCreated)
-        bnRelease(it.second);
-    }
-    
-    BNMaterial getOrCreate(mini::Material::SP miniMat)
-    {
-      if (alreadyCreated.find(miniMat) != alreadyCreated.end())
-        return alreadyCreated[miniMat];
-
-      BNMaterial mat = create(miniMat);
-      alreadyCreated[miniMat] = mat;
-      return mat;
-    }
-  private:
-    BNMaterial create(mini::Plastic::SP plastic)
-    {
-      BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
-      // vec3f Ks = { 1.f, 1.f, 1.f };
-      // float eta = 1.5f;
-      // vec3f pigmentColor { 0.05f, 0.05f, 0.05f };
-      // float roughness = 0.001f;
-      bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
-      bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
-      bnSet1f(mat,"roughness",plastic->roughness);
-      bnSet1f(mat,"eta",plastic->eta);
-      return mat;
-    }
-    BNMaterial create(mini::Material::SP miniMat)
-    {
-      if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
-        return create(plastic);
-      throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
-    }
-    
-    std::map<mini::Material::SP,BNMaterial> alreadyCreated;
-    BNModel model;
-    int slot;
-  };
-  
-
   struct TextureLibrary
   {
     TextureLibrary(BNModel model, int slot)
@@ -377,6 +331,73 @@ namespace hs {
     BNModel const model;
     int     const slot;
   };
+
+
+  struct MaterialLibrary {
+    MaterialLibrary(BNModel model,int slot,
+                    TextureLibrary &textureLibrary)
+      : model(model), slot(slot), textureLibrary(textureLibrary)
+    {}
+    ~MaterialLibrary()
+    {
+      for (auto it : alreadyCreated)
+        bnRelease(it.second);
+    }
+    
+    BNMaterial getOrCreate(mini::Material::SP miniMat)
+    {
+      if (alreadyCreated.find(miniMat) != alreadyCreated.end())
+        return alreadyCreated[miniMat];
+
+      BNMaterial mat = create(miniMat);
+      alreadyCreated[miniMat] = mat;
+      return mat;
+    }
+  private:
+    BNMaterial create(mini::Plastic::SP plastic)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
+      // vec3f Ks = { 1.f, 1.f, 1.f };
+      // float eta = 1.5f;
+      // vec3f pigmentColor { 0.05f, 0.05f, 0.05f };
+      // float roughness = 0.001f;
+      bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
+      bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
+      bnSet1f(mat,"roughness",plastic->roughness);
+      bnSet1f(mat,"eta",plastic->eta);
+      return mat;
+    }
+    BNMaterial create(mini::DisneyMaterial::SP disney)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"mini");
+      bnSet3fc(mat,"emission",(const float3&)disney->emission);
+      bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
+      bnSet1f(mat,"roughness",   disney->roughness);
+      bnSet1f(mat,"metallic",    disney->metallic);
+      bnSet1f(mat,"transmission",disney->transmission);
+      bnSet1f(mat,"ior",         disney->ior);
+      if (disney->colorTexture)
+        bnSetObject(mat,"colorTexture",textureLibrary.getOrCreate(disney->colorTexture));
+      if (disney->alphaTexture)
+        bnSetObject(mat,"alphaTexture",textureLibrary.getOrCreate(disney->alphaTexture));
+      return mat;
+    }
+    BNMaterial create(mini::Material::SP miniMat)
+    {
+      if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+        return create(plastic);
+      if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
+        return create(disney);
+      throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
+    }
+
+    TextureLibrary &textureLibrary;
+    std::map<mini::Material::SP,BNMaterial> alreadyCreated;
+    BNModel model;
+    int slot;
+  };
+  
+
 #endif
   
   void HayMaker::buildDataGroup(int slot)
@@ -586,7 +607,7 @@ namespace hs {
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
       TextureLibrary textureLibrary(model,slot);
-      MaterialLibrary materialLib(model,slot);
+      MaterialLibrary materialLib(model,slot,textureLibrary);
 #endif
 
       
