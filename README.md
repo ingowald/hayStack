@@ -250,3 +250,17 @@ then run as follows:
 # camera and xf file checked into this repo, under `data/`
 
 
+
+
+
+## (internal) quick tests to run before committing
+
+``` bash
+./hsViewer ~/mini/ls.mini 
+
+BARNEY_RENDER=pt ./hsViewer ~/mini/ls.mini `cat data/ls.cam`
+
+BARNEY_RENDER=pt ./hsViewer ~/mini/rungholt.mini `cat data/rungholt.cam`
+
+./hsViewerQT raw:///cluster/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 `cat data/kingsnake.cam` -xf data/kingsnake.xf
+```
