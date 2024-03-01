@@ -177,7 +177,12 @@ class HayStackPreferences(bpy.types.AddonPreferences):
     ssh_server_name: bpy.props.StringProperty(
         name="Server for SSH",
         default="karolina"
-    ) # type: ignore           
+    ) # type: ignore
+
+    ssh_server_node_name: bpy.props.StringProperty(
+        name="Server Node for SSH",
+        default="localhost"
+    ) # type: ignore
 
     def draw(self, context):
         layout = self.layout
@@ -189,11 +194,12 @@ class HayStackPreferences(bpy.types.AddonPreferences):
         if self.haystack_remote:
             #col.prop(self, 'haystack_dir_remote')
             col.prop(self, 'ssh_server_name')
+            col.prop(self, 'ssh_server_node_name')
         #else:
         #    col.prop(self, 'haystack_dir')
 
         box = layout.box()
-        box.label(text='Haystack:')
+        box.label(text='Haystack TCP Server:')
         col = box.column()
         col.prop(self, "haystack_server_name", text="Server")
         col.prop(self, "haystack_port_cam", text="Port Cam")

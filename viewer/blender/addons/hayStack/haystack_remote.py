@@ -106,7 +106,37 @@ def _ssh_sync(key_file, server, username, command):
 
         raise Exception("ssh command failed: %s" % cmd)
 
-    return str(stdout.decode())    
+    return str(stdout.decode())
+
+def _ssh_sync_sh(hostname, command):
+    """ Execute an ssh command """
+
+    # Using echo and properly escaping the script content for the remote shell
+    # The command is constructed as a single string
+    ssh_command = ['ssh', '-T', f'{hostname}']
+
+    # Encode the command to bytes
+    #encoded_command = ssh_command #.encode('utf-8')
+
+    # Execute the SSH command using subprocess.Popen, passing the encoded command
+    import subprocess
+    process = subprocess.Popen(ssh_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process.stdin.write(command)
+    process.stdin.close()  # Close stdin to indicate that we're done sending commands    
+
+    # Wait for the command to complete and capture the output
+    stdout, stderr = process.communicate()
+
+    # Check for errors
+    if process.returncode == 0:
+        print("Script created successfully.")
+        print(stdout)
+    else:
+        print("Failed to create script.")
+        print(stderr)
+        raise Exception("ssh command failed: %s" % command)
+
+    return str(stdout)  
 
 def _paramiko_ssh(key_file, server, username, password, command):
         """ Execute an paramiko ssh command """
@@ -154,6 +184,13 @@ def ssh_command_sync(server, command):
         
     #return _paramiko_ssh(key_file, server, username, password, command)
     return _ssh_sync(None, server, None, command)
+
+def ssh_command_sync_sh(server, command):
+    if command  is None:
+        return None
+        
+    #return _paramiko_ssh(key_file, server, username, password, command)
+    return _ssh_sync_sh(server, command)
                   
 async def _scp_async(key_file, source, destination):
         """ Execute an scp command """

@@ -149,9 +149,13 @@ class HayStackServerSettings(bpy.types.PropertyGroup):
     #     poll=node_poll,
     # ) # type: ignore   
 
-    command: bpy.props.PointerProperty(
+    haystack_command: bpy.props.PointerProperty(
         type=bpy.types.Text,
-    ) # type: ignore    
+    ) # type: ignore
+
+    job_command: bpy.props.PointerProperty(
+        type=bpy.types.Text,
+    ) # type: ignore           
 
 class HayStackRenderSettings(bpy.types.PropertyGroup):
     server_settings: bpy.props.PointerProperty(
@@ -163,6 +167,7 @@ class HayStackData:
     def __init__(self):
         self.haystack_context = None
         self.haystack_process = None
+        self.haystack_tunnel = None
 
 #####################################################################################################################
 
@@ -1162,17 +1167,41 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         scene = context.scene
         server_settings = scene.haystack.server_settings
 
+        pref = haystack_pref.preferences()
+        box = layout.box()
+        box.label(text='Remote/Local:')
+        col = box.column()
+        col.prop(pref, 'haystack_remote')              
+        if pref.haystack_remote:
+            col.prop(pref, 'ssh_server_name')
+            col.prop(pref, 'ssh_server_node_name')
+
+        box = layout.box()
+        box.label(text='Haystack TCP Server:')
+        col = box.column()
+        col.prop(pref, "haystack_server_name", text="Server")
+        col.prop(pref, "haystack_port_cam", text="Port Cam")
+        col.prop(pref, "haystack_port_data", text="Port Data")             
+
         box = layout.box()
         col = box.column()
         #col.prop(server_settings, "node_tree", text="Node Tree")  
-        #col.prop(server_settings, "node", text="Node")
-        col.prop(server_settings, "command", text="Command")
+        #col.prop(server_settings, "node", text="Node")        
+        if pref.haystack_remote:
+            col.prop(server_settings, "job_command", text="Job Command")
+
+        col.prop(server_settings, "haystack_command", text="HayStack Command")
 
         if context.scene.haystack_data.haystack_process is None:
             col.operator("haystack.start_process")
         else:
             col.operator("haystack.stop_process")
-            #col.operator("haystack.create_bbox")
+
+            if context.scene.haystack_data.haystack_tunnel is None:
+                col.operator("haystack.start_ssh_tunnel")
+            else:
+                col.operator("haystack.stop_ssh_tunnel")
+                col.operator("haystack.create_bbox")
 
         # box = layout.box()
         # col = box.column()

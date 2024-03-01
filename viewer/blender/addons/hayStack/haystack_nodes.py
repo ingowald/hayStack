@@ -985,7 +985,7 @@ class HayStackRenderBaseNode(HayStackBaseNode):
         print(command_arg)
         self.output_data = command_arg
 
-        text_block_name = self.bl_label + ".txt"
+        text_block_name = self.bl_label + ".cmd"
 
         # Check if the text block already exists
         if text_block_name in bpy.data.texts:
