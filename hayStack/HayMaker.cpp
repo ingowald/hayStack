@@ -689,6 +689,7 @@ namespace hs {
             // bnAssignMaterial(geom,material);
             bnCommit(geom);
             
+            
             // BNGeom geom 
             //   = bnTriangleMeshCreate
             //   (model,slot,&material,
