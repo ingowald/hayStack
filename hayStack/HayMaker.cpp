@@ -357,14 +357,19 @@ namespace hs {
     BNMaterial create(mini::Plastic::SP plastic)
     {
       BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
-      // vec3f Ks = { 1.f, 1.f, 1.f };
-      // float eta = 1.5f;
-      // vec3f pigmentColor { 0.05f, 0.05f, 0.05f };
-      // float roughness = 0.001f;
       bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
       bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
       bnSet1f(mat,"roughness",plastic->roughness);
       bnSet1f(mat,"eta",plastic->eta);
+      return mat;
+    }
+    BNMaterial create(mini::Velvet::SP velvet)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"velvet");
+      bnSet3fc(mat,"reflectance",(const float3&)velvet->reflectance);
+      bnSet3fc(mat,"horizonScatteringColor",(const float3&)velvet->horizonScatteringColor);
+      bnSet1f(mat,"horizonScatteringFallOff",velvet->horizonScatteringFallOff);
+      bnSet1f(mat,"backScattering",velvet->backScattering);
       return mat;
     }
     BNMaterial create(mini::DisneyMaterial::SP disney)
@@ -384,10 +389,13 @@ namespace hs {
     }
     BNMaterial create(mini::Material::SP miniMat)
     {
+      PRINT(miniMat->toString());
       if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
         return create(plastic);
       if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
         return create(disney);
+      if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
+        return create(velvet);
       throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
     }
 
