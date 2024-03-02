@@ -372,6 +372,25 @@ namespace hs {
       bnSet1f(mat,"backScattering",velvet->backScattering);
       return mat;
     }
+    BNMaterial create(mini::Matte::SP matte)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      bnSet3fc(mat,"reflectance",(const float3&)matte->reflectance);
+      return mat;
+    }
+    BNMaterial create(mini::MetallicPaint::SP metallicPaint)
+    {
+    // float eta = 1.45f;
+    // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
+    // float glitterSpread = 0.025f;
+    // vec3f shadeColor { 0.f, 0.03f, 0.07f };
+      BNMaterial mat = bnMaterialCreate(model,slot,"metallicPaint");
+      bnSet3fc(mat,"shadeColor",(const float3&)metallicPaint->shadeColor);
+      bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
+      bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
+      bnSet1f(mat,"eta",metallicPaint->eta);
+      return mat;
+    }
     BNMaterial create(mini::DisneyMaterial::SP disney)
     {
       BNMaterial mat = bnMaterialCreate(model,slot,"mini");
@@ -396,6 +415,10 @@ namespace hs {
         return create(disney);
       if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
         return create(velvet);
+      if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
+        return create(metallicPaint);
+      if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
+        return create(matte);
       throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
     }
 
