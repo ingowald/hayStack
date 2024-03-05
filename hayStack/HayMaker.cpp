@@ -384,7 +384,7 @@ namespace hs {
     // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
     // float glitterSpread = 0.025f;
     // vec3f shadeColor { 0.f, 0.03f, 0.07f };
-      BNMaterial mat = bnMaterialCreate(model,slot,"metallicPaint");
+      BNMaterial mat = bnMaterialCreate(model,slot,"metallic_paint");
       bnSet3fc(mat,"shadeColor",(const float3&)metallicPaint->shadeColor);
       bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
       bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
