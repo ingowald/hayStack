@@ -169,6 +169,7 @@ class HayStackData:
         self.haystack_context = None
         self.haystack_process = None
         self.haystack_tunnel = None
+        self.haystack_engine = None
         self.is_rendered = False
 
 #####################################################################################################################
@@ -745,6 +746,7 @@ class Engine:
         self.haystack_engine = weakref.proxy(haystack_engine)
         self.haystack_context = HayStackContext()
         bpy.context.scene.haystack_data.haystack_context = self.haystack_context
+        bpy.context.scene.haystack_data.haystack_engine = self.haystack_engine
 
 #####################################################################################################################
 

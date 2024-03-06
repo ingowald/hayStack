@@ -141,6 +141,8 @@ class HayStackStopProcessOperator(bpy.types.Operator):
     bl_label = "Stop Process"
 
     def execute(self, context):
+        context.scene.haystack_data.haystack_engine.engine.stop_render()
+
         haystack_dll._renderengine_dll.reset()
         haystack_dll._renderengine_dll.client_close_connection()
 
