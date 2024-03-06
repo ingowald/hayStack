@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #define TCP_OPTIMIZATION
+//#define TCP_FLOAT
 
 #ifdef __cplusplus
 extern "C" {

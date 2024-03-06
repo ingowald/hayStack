@@ -222,7 +222,7 @@ class HayStackData:
 # };
 class HsDataRender:
     def __init__(self):
-        self.colorMapCount = 1024
+        self.colorMapCount = 128
         self.colorMap = np.zeros((self.colorMapCount * 4), dtype=np.float32)
         self.domain = np.zeros((2), dtype=np.float32)
         self.baseDensity = np.zeros((1), dtype=np.float32)          
@@ -366,6 +366,9 @@ class HayStackContext:
 
     def get_current_samples(self):
         return haystack_dll._renderengine_dll.get_current_samples()
+    
+    def get_fps(self):
+        return haystack_dll._renderengine_dll.get_remote_fps(), haystack_dll._renderengine_dll.get_local_fps()    
     
     def get_texture_id(self):
         return haystack_dll._renderengine_dll.get_texture_id()
@@ -829,7 +832,7 @@ class ViewportEngine(Engine):
                     raise FinishRender
 
                 # preparations to start rendering
-                iteration = 0
+                #iteration = 0
                 time_begin = 0.0
                 # if is_adaptive:
                 #     all_pixels = active_pixels = self.haystack_context.width * self.haystack_context.height
@@ -843,7 +846,7 @@ class ViewportEngine(Engine):
                     if self.restart_render_event.is_set():
                         # clears restart_render_event, prepares to start rendering
                         self.restart_render_event.clear()
-                        iteration = 0
+                        #iteration = 0
 
                         # if self.is_resized:
                         #     # if not self.haystack_context.gl_interop:
@@ -861,16 +864,18 @@ class ViewportEngine(Engine):
                     #     if self.restart_render_event.is_set():
                     #         break
 
-                    self.haystack_context.render(restart=(iteration == 0))
+                    #self.haystack_context.render(restart=(iteration == 0))
+                    self.haystack_context.render()
 
                     self.is_rendered = True
                     current_samples = self.haystack_context.get_current_samples()
 
                     time_render = time.perf_counter() - time_begin
-                    fps = current_samples / time_render
+                    rfps, lfps = self.haystack_context.get_fps() #current_samples / time_render
                     info_str = f"Time: {time_render:.1f} sec"\
                             f" | Samples: {current_samples}" \
-                            f" | FPS: {fps:.1f}"
+                            f" | FPS (r): {rfps:.1f}" \
+                            f" | FPS: {lfps:.1f}"
 
                     notify_status(info_str, "Render")
 

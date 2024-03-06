@@ -1162,7 +1162,11 @@ int gpujpeg_decode(int width,
 	}
 
 	//gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_U8_P012Z);
+#ifdef TCP_FLOAT
+	gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_F32_P012O); //GPUJPEG_444_U8_P012Z
+#else
 	gpujpeg_decoder_set_output_format(g_decoder, GPUJPEG_RGB, GPUJPEG_444_U8_P012A); //GPUJPEG_444_U8_P012Z
+#endif
 	//gpujpeg_decoder_set_output_format(
 	//	g_decoder, GPUJPEG_RGB, GPUJPEG_444_U16_P012O /* GPUJPEG_444_U8_P012Z*/);
 

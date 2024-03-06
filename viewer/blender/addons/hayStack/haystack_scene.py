@@ -55,9 +55,9 @@ class HayStackScene:
         # os.environ['SOCKET_SERVER_NAME_DATA'] = str(pref.haystack_server_name) 
                 
         hsDataInit = HsDataInit()
-        haystack_dll._renderengine_dll.rcv_haystack_data_init(str(pref.haystack_server_name).encode(),
-                                                              pref.haystack_port_cam,
-                                                              pref.haystack_port_data,
+        haystack_dll._renderengine_dll.get_haystack_range(#str(pref.haystack_server_name).encode(),
+                                                           #   pref.haystack_port_cam,
+                                                           #   pref.haystack_port_data,
                                                               hsDataInit.world_bounds_spatial_lower.ctypes.data, 
                                                               hsDataInit.world_bounds_spatial_upper.ctypes.data, 
                                                               hsDataInit.scalars_range.ctypes.data)

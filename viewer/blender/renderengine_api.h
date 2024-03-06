@@ -62,15 +62,26 @@ extern "C"
 
 	//HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();
+	HAYSTACK_EXPORT_DLL float HAYSTACK_EXPORT_STD get_remote_fps();
+	HAYSTACK_EXPORT_DLL float HAYSTACK_EXPORT_STD get_local_fps();
 
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
 
 	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD send_haystack_data_render(void* colorMap, int colorMapSize, void* domain, void* baseDensity);
-	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD rcv_haystack_data_init(const char* server,
-		int port_cam,
-		int port_data, 
-		void* world_bounds_spatial_lower, 
-		void* world_bounds_spatial_upper, 
+	//HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD rcv_haystack_data_init(const char* server,
+	//	int port_cam,
+	//	int port_data, 
+	//	void* world_bounds_spatial_lower, 
+	//	void* world_bounds_spatial_upper, 
+	//	void* scalars_range);
+
+	//HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD  haystack_init(const char* server,
+	//	int port_cam,
+	//	int port_data);
+
+	HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD  get_haystack_range(
+		void* world_bounds_spatial_lower,
+		void* world_bounds_spatial_upper,
 		void* scalars_range);
 
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();

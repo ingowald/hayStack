@@ -329,17 +329,11 @@ int main(int ac, char** av)
 	//std::vector<vec4f> haystack_data(128 + 1);
 	//std::vector<vec4f> haystack_data_rcv(128 + 1);
 
-	const int colorMapCount = 1024;
-
-	struct HsDataRender {
-		vec4f colorMap[colorMapCount];
-		float domain[2];
-		float baseDensity;
-	};
+	//const int colorMapCount = 128;
 	HsDataRender hsDataRender, hsDataRenderRcv;
 
 	TransferFunction xf;
-	xf.colorMap.resize(colorMapCount);
+	xf.colorMap.resize(sizeof(hsDataRender.colorMap) / sizeof(vec4f));
 	xf.domain = range1f(0.f, 1.0f);
 
 	int total_samples = 0;
@@ -348,25 +342,21 @@ int main(int ac, char** av)
 	double t2 = getCurrentTime();
 
 	/////////
-	struct HsDataInit {
-		float world_bounds_spatial_lower[3];
-		float world_bounds_spatial_upper[3];
-		float scalars_range[2];
-	};
 
-	HsDataInit hsDataInit;
-	hsDataInit.world_bounds_spatial_lower[0] = worldBounds.spatial.lower[0];
-	hsDataInit.world_bounds_spatial_lower[1] = worldBounds.spatial.lower[1];
-	hsDataInit.world_bounds_spatial_lower[2] = worldBounds.spatial.lower[2];
-	hsDataInit.world_bounds_spatial_upper[0] = worldBounds.spatial.upper[0];
-	hsDataInit.world_bounds_spatial_upper[1] = worldBounds.spatial.upper[1];
-	hsDataInit.world_bounds_spatial_upper[2] = worldBounds.spatial.upper[2];
+	HsDataState hsDataState;
+	memset(&hsDataState, 0, sizeof(hsDataState));
+	hsDataState.world_bounds_spatial_lower[0] = worldBounds.spatial.lower[0];
+	hsDataState.world_bounds_spatial_lower[1] = worldBounds.spatial.lower[1];
+	hsDataState.world_bounds_spatial_lower[2] = worldBounds.spatial.lower[2];
+	hsDataState.world_bounds_spatial_upper[0] = worldBounds.spatial.upper[0];
+	hsDataState.world_bounds_spatial_upper[1] = worldBounds.spatial.upper[1];
+	hsDataState.world_bounds_spatial_upper[2] = worldBounds.spatial.upper[2];
 
-	hsDataInit.scalars_range[0] = worldBounds.scalars.lo;
-	hsDataInit.scalars_range[1] = worldBounds.scalars.hi;
+	hsDataState.scalars_range[0] = worldBounds.scalars.lo;
+	hsDataState.scalars_range[1] = worldBounds.scalars.hi;
 
 	init_sockets_cam(fromCL.server.c_str(), fromCL.port_cam, fromCL.port_data);
-	send_data_cam((char*)&hsDataInit, sizeof(HsDataInit));
+	//send_data_cam((char*)&hsDataState, sizeof(hsDataState));
 	/////////
 
 	while (true) {
@@ -537,10 +527,10 @@ int main(int ac, char** av)
 			sum_t = 0.8f * sum_t + (t1 - t0);
 			sum_w = 0.8f * sum_w + 1.f;
 			float timePerFrame = sum_t / sum_w;
-			float fps = 1.f / timePerFrame;
-			std::string title = "HayThere (" + prettyDouble(fps) + "fps), " + std::to_string(t0) + ", " + std::to_string(t1);
+			float fps = 1.f / timePerFrame;			
 
 			if (getCurrentTime() - t2 > 2.0) {
+				std::string title = "HayThere (" + prettyDouble(fps) + "fps), " + std::to_string(t0) + ", " + std::to_string(t1);
 				std::cout << title << std::endl;
 				t2 = getCurrentTime();
 			}
@@ -553,10 +543,13 @@ int main(int ac, char** av)
 			send_gpujpeg((char*)fbPointer, pixels_buf_empty.data(), fromCL.fbSize.x, fromCL.fbSize.y);
 #else
 			char* pixels_buf = (char*)fbPointer; //renderer->getBuffer();
-			((int*)pixels_buf)[0] = total_samples; //renderer->getTotalSamples();
+			//((int*)pixels_buf)[0] = total_samples; //renderer->getTotalSamples();
 
 			send_data_data((char*)fbPointer, pixels_buf_empty.size());
 #endif
+			hsDataState.fps = fps;
+			hsDataState.samples = total_samples;
+			send_data_data((char*)&hsDataState, sizeof(hsDataState));
 
 			if (is_error()) {
 				std::cerr << "TCP Error!";

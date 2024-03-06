@@ -87,6 +87,8 @@ try:
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();
     #_renderengine_dll.get_samples.restype = c_int32
     _renderengine_dll.get_current_samples.restype = c_int32
+    _renderengine_dll.get_remote_fps.restype = c_float
+    _renderengine_dll.get_local_fps.restype = c_float
 
     # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD reset();
     # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD send_haystack_data_render(void* colorMap, int colorMapSize, void* domain, void* baseDensity);
@@ -94,7 +96,12 @@ try:
 
     #HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD rcv_haystack_data_init(const char *server, int port_cam, int port_data, 
     #   void* world_bounds_spatial_lower, void* world_bounds_spatial_upper, void* scalars_range);
-    _renderengine_dll.rcv_haystack_data_init.argtypes = [c_char_p, c_int32, c_int32, c_void_p, c_void_p, c_void_p]
+    #_renderengine_dll.rcv_haystack_data_init.argtypes = [c_char_p, c_int32, c_int32, c_void_p, c_void_p, c_void_p]
+   	# HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD  get_haystack_range(
+	# void* world_bounds_spatial_lower,
+	# void* world_bounds_spatial_upper,
+	# void* scalars_range);
+    _renderengine_dll.get_haystack_range.argtypes = [c_void_p, c_void_p, c_void_p]
 
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
     _renderengine_dll.get_texture_id.restype = c_int32

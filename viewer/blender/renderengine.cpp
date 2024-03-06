@@ -36,6 +36,11 @@
 #include <stdlib.h>
 //#include <vector>
 
+#ifdef TCP_FLOAT
+#define PIX_SIZE sizeof(float)
+#else
+#define PIX_SIZE sizeof(char)
+#endif
 
 //////////////////////////
 
@@ -63,6 +68,7 @@ GLuint g_bufferId;   // ID of PBO
 GLuint g_textureId;  // ID of texture
 
 renderengine_data g_renderengine_data;
+HsDataState g_hs_data_state;
 
 double g_previousTime[3] = { 0, 0, 0 };
 int g_frameCount[3] = { 0, 0, 0 };
@@ -74,22 +80,23 @@ struct stl_tri;
 stl_tri* polys = NULL;
 size_t polys_size = 0;
 
-int current_samples = 0;
+//int current_samples = 0;
 
 int active_gpu = 1;
+float local_fps = 0;
 
 /////////////////////////
 
 void displayFPS(int type, int tot_samples = 0)
 {
-#if _WIN32
 	double currentTime = omp_get_wtime();
 	g_frameCount[type]++;
 
+	local_fps = (double)g_frameCount[type] / (currentTime - g_previousTime[type]);
+
 	if (currentTime - g_previousTime[type] >= 3.0)
-	{
-		double fps = (double)g_frameCount[type] / (currentTime - g_previousTime[type]);
-		if (fps > 0.01)
+	{		
+		if (local_fps > 0.01)
 		{
 			char sTemp[1024];
 
@@ -97,7 +104,7 @@ void displayFPS(int type, int tot_samples = 0)
 
 			sprintf(sTemp,
 				"FPS: %.2f, Total Samples: %d, Res: %d x %d",
-				fps,
+				local_fps,
 				tot_samples,
 				g_width,
 				g_height);
@@ -106,7 +113,6 @@ void displayFPS(int type, int tot_samples = 0)
 		g_frameCount[type] = 0;
 		g_previousTime[type] = omp_get_wtime();
 	}
-#endif
 }
 
 //////////////////////////
@@ -195,7 +201,11 @@ void setup_texture()
 		g_height,
 		0,
 		GL_RGBA,
+#ifdef TCP_FLOAT
+		GL_FLOAT,
+#else
 		GL_UNSIGNED_BYTE,
+#endif
 		NULL);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -206,7 +216,7 @@ void setup_texture()
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, g_bufferId);
 
 	glBufferData(GL_PIXEL_UNPACK_BUFFER,
-		(size_t)g_width * g_height * sizeof(char) * 4,
+		(size_t)g_width * g_height * 4 * PIX_SIZE,
 		0,
 		GL_DYNAMIC_COPY);
 
@@ -215,10 +225,7 @@ void setup_texture()
 	cuda_set_device();
 	cuda_assert(cudaGLRegisterBufferObject(g_bufferId));
 	//cuda_assert(cudaGLMapBufferObject((void**)&g_pixels_buf_d, g_bufferId));
-	cuda_assert(cudaMalloc(&g_pixels_buf_recv_d, (size_t)g_width * g_height * sizeof(char) * 4));
-
-
-	
+	cuda_assert(cudaMalloc(&g_pixels_buf_recv_d, (size_t)g_width * g_height * 4 * PIX_SIZE));	
 }
 
 void free_texture()
@@ -403,13 +410,20 @@ void draw_texture()
 {
 	cuda_set_device();
 	cuda_assert(cudaGLMapBufferObject((void**)&g_pixels_buf_d, g_bufferId));
-	cuda_assert(cudaMemcpy(g_pixels_buf_d, g_pixels_buf_recv_d, (size_t)g_width * g_height * sizeof(char) * 4, cudaMemcpyDeviceToDevice));
+	cuda_assert(cudaMemcpy(g_pixels_buf_d, g_pixels_buf_recv_d, (size_t)g_width * g_height * 4 * PIX_SIZE,
+		cudaMemcpyDeviceToDevice));
 	cuda_assert(cudaGLUnmapBufferObject(g_bufferId));
 
 	//download texture from pbo
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, g_bufferId);
 	glBindTexture(GL_TEXTURE_2D, g_textureId);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g_width, g_height, GL_RGBA, 
+#ifdef TCP_FLOAT
+		GL_FLOAT,
+#else
+		GL_UNSIGNED_BYTE,
+#endif
+		NULL);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -482,9 +496,12 @@ int recv_pixels_data()
 		g_width * g_height * sizeof(char) * 4,
 		cudaMemcpyHostToDevice));  // cudaMemcpyDefault gpuMemcpyHostToDevice
 
-	current_samples = ((int*)g_pixels_buf)[0];
-	displayFPS(1, current_samples);
+	//current_samples = ((int*)g_pixels_buf)[0];
 #endif
+
+	recv_data_data((char*)&g_hs_data_state, sizeof(HsDataState));	
+
+	displayFPS(1, get_current_samples());
 
 	return 0;
 }
@@ -511,28 +528,30 @@ void send_haystack_data_render(void* colorMap, int colorMapSize, void* domain, v
 	//	float domain[2];
 	//	float baseDensity;
 	//};
-	send_data_cam((char*)colorMap, colorMapSize * sizeof(float) * 4, false);
-	send_data_cam((char*)domain, sizeof(float) * 2, false);
-	send_data_cam((char*)baseDensity, sizeof(float) * 1);
+	HsDataRender hsDataRender;
+
+	memcpy(hsDataRender.colorMap, (char*)colorMap, colorMapSize * sizeof(float) * 4);
+	memcpy(hsDataRender.domain, (char*)domain, sizeof(float) * 2);
+	hsDataRender.baseDensity = ((float*)baseDensity)[0];
+
+	send_data_cam((char*)&hsDataRender, sizeof(HsDataRender));
 }
 
-void rcv_haystack_data_init(const char* server,
-	int port_cam,
-	int port_data,
+//void haystack_init(const char* server,
+//	int port_cam,
+//	int port_data)
+//{
+//	init_sockets_cam(server, port_cam, port_data);
+//}
+
+void get_haystack_range(
 	void* world_bounds_spatial_lower,
 	void* world_bounds_spatial_upper,
 	void* scalars_range)
 {
-	//struct HsDataInit {
-	//	float world_bounds_spatial_lower[3];
-	//	float world_bounds_spatial_upper[3];
-	//	float scalars_range[2];
-	//};
-
-	init_sockets_cam(server, port_cam, port_data);
-	recv_data_cam((char*)world_bounds_spatial_lower, sizeof(float) * 3, false);
-	recv_data_cam((char*)world_bounds_spatial_upper, sizeof(float) * 3, false);
-	recv_data_cam((char*)scalars_range, sizeof(float) * 2);
+	memcpy((char*)world_bounds_spatial_lower, g_hs_data_state.world_bounds_spatial_lower, sizeof(float) * 3);
+	memcpy((char*)world_bounds_spatial_upper, g_hs_data_state.world_bounds_spatial_upper, sizeof(float) * 3);
+	memcpy((char*)scalars_range, g_hs_data_state.scalars_range, sizeof(float) * 2);
 }
 
 void set_timestep(int timestep)
@@ -561,6 +580,8 @@ void client_init(const char* server,
 
 	init_sockets_cam(server, port_cam, port_data);
 	//gladLoadGL();
+
+	memset(&g_hs_data_state, 0, sizeof(HsDataState));
 
 	resize(w, h);
 }
@@ -612,7 +633,17 @@ void set_camera(void* view_martix,
 
 int get_current_samples()
 {
-	return current_samples;
+	return g_hs_data_state.samples;
+}
+
+float get_remote_fps()
+{
+	return g_hs_data_state.fps;
+}
+
+float get_local_fps()
+{
+	return local_fps;
 }
 
 void get_pixels(void* pixels)

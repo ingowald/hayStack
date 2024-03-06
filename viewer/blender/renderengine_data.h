@@ -50,4 +50,18 @@ typedef struct renderengine_data {
 
 }renderengine_data;
 
+typedef struct HsDataRender {
+	float colorMap[4 * 128];
+	float domain[2];
+	float baseDensity;
+}HsDataRender;
+
+typedef struct HsDataState {
+	float world_bounds_spatial_lower[3];
+	float world_bounds_spatial_upper[3];
+	float scalars_range[2];
+	int samples;
+	float fps;
+} HsDataState;
+
 #endif
