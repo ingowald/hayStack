@@ -414,6 +414,8 @@ int main(int ac, char** av)
 					fromCL.fbSize.x = g_renderengine_data_rcv.width;
 					fromCL.fbSize.y = g_renderengine_data_rcv.height;
 
+					cudaSetDevice(0);
+
 					if (fbPointer)
 						cudaFree(fbPointer);
 
@@ -536,6 +538,8 @@ int main(int ac, char** av)
 			total_samples++;
 
 			cudaDeviceSynchronize();
+
+			cudaSetDevice(0);
 
 #ifdef WITH_CLIENT_GPUJPEG     
 			send_gpujpeg((char*)fbPointer, pixels_buf_empty.data(), fromCL.fbSize.x, fromCL.fbSize.y);
