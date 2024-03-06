@@ -499,7 +499,7 @@ int recv_pixels_data()
 	//current_samples = ((int*)g_pixels_buf)[0];
 #endif
 
-	recv_data_data((char*)&g_hs_data_state, sizeof(HsDataState));	
+	recv_data_cam((char*)&g_hs_data_state, sizeof(HsDataState));	
 
 	displayFPS(1, get_current_samples());
 

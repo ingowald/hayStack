@@ -169,6 +169,7 @@ class HayStackData:
         self.haystack_context = None
         self.haystack_process = None
         self.haystack_tunnel = None
+        self.is_rendered = False
 
 #####################################################################################################################
 
@@ -240,6 +241,7 @@ class HayStackContext:
         self.step_samples = None
         self.filename = None
 
+        #self.is_rendered = False
         #self.data = None
         # self.data_right = None        
 
@@ -757,7 +759,7 @@ class ViewportEngine(Engine):
 
         self.is_finished = True
         self.is_synced = False
-        #self.is_rendered = False
+        self.is_rendered = False
         # self.is_denoised = False
         #self.is_resized = False
 
@@ -1092,6 +1094,11 @@ class ViewportEngine(Engine):
 
         # if self.is_resized or not self.is_rendered:
         #     return
+                
+        if not self.is_rendered:
+            return
+
+        context.scene.haystack_data.is_rendered = True       
 
         # def draw_(texture_id):
         #     # Bind shader that converts from scene linear to display space,
@@ -1253,11 +1260,13 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
             else:
                 col.operator("haystack.stop_ssh_tunnel")                
 
-        if not pref.haystack_remote and not context.scene.haystack_data.haystack_process is None:            
-            col.operator("haystack.create_bbox")
+        if not pref.haystack_remote and not context.scene.haystack_data.haystack_process is None:
+            if context.scene.haystack_data.is_rendered:
+                col.operator("haystack.create_bbox")
 
         if pref.haystack_remote and not context.scene.haystack_data.haystack_process is None and not context.scene.haystack_data.haystack_tunnel is None:
-            col.operator("haystack.create_bbox")
+            if context.scene.haystack_data.is_rendered:
+                col.operator("haystack.create_bbox")
 
         # box = layout.box()
         # col = box.column()

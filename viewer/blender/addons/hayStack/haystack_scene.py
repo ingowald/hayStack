@@ -24,7 +24,7 @@ from . import haystack_dll
 
 class HayStackCreateBBoxOperator(bpy.types.Operator):
     bl_idname = "haystack.create_bbox"
-    bl_label = "Create BBox"
+    bl_label = "Load BBox"
 
     def execute(self, context):
         context.scene.haystack_scene.create_bbox(context)

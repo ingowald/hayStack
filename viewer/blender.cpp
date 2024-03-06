@@ -549,7 +549,7 @@ int main(int ac, char** av)
 #endif
 			hsDataState.fps = fps;
 			hsDataState.samples = total_samples;
-			send_data_data((char*)&hsDataState, sizeof(hsDataState));
+			send_data_cam((char*)&hsDataState, sizeof(hsDataState));
 
 			if (is_error()) {
 				std::cerr << "TCP Error!";
