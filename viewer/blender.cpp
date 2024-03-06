@@ -362,8 +362,7 @@ int main(int ac, char** av)
 	while (true) {
 		recv_data_cam((char*)&g_renderengine_data_rcv, sizeof(renderengine_data));
 		if (is_error()) {
-			std::cerr << "TCP Error!";
-			exit(-1);
+			throw std::runtime_error("TCP Error!");
 		}
 
 		if (g_renderengine_data_rcv.reset) {
@@ -380,8 +379,7 @@ int main(int ac, char** av)
 
 		recv_data_cam((char*)&hsDataRenderRcv, sizeof(HsDataRender));
 		if (is_error()) {
-			std::cerr << "TCP Error!";
-			exit(-1);
+			throw std::runtime_error("TCP Error!");
 		}
 
 		if (pixels_buf_empty.size() != sizeof(uint32_t) * g_renderengine_data_rcv.width * g_renderengine_data_rcv.height) {
@@ -527,7 +525,7 @@ int main(int ac, char** av)
 			sum_t = 0.8f * sum_t + (t1 - t0);
 			sum_w = 0.8f * sum_w + 1.f;
 			float timePerFrame = sum_t / sum_w;
-			float fps = 1.f / timePerFrame;			
+			float fps = 1.f / timePerFrame;
 
 			if (getCurrentTime() - t2 > 2.0) {
 				std::string title = "HayThere (" + prettyDouble(fps) + "fps), " + std::to_string(t0) + ", " + std::to_string(t1);
@@ -547,15 +545,18 @@ int main(int ac, char** av)
 
 			send_data_data((char*)fbPointer, pixels_buf_empty.size());
 #endif
+			if (is_error()) {
+				throw std::runtime_error("TCP Error!");
+			}
+
 			hsDataState.fps = fps;
 			hsDataState.samples = total_samples;
-			send_data_cam((char*)&hsDataState, sizeof(hsDataState));
+			send_data_data((char*)&hsDataState, sizeof(hsDataState));
 
 			if (is_error()) {
-				std::cerr << "TCP Error!";
-				exit(-1);
+				throw std::runtime_error("TCP Error!");
 			}
-			}
+		}
 		catch (const std::exception& ex)
 		{
 			std::cerr << ex.what();

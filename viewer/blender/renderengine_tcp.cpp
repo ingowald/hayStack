@@ -1196,7 +1196,7 @@ void send_gpujpeg(char* dmem, char* pixels, int width, int height)
 	int frame_size = 0;
 	gpujpeg_encode(width, height, (uint8_t*)dmem, (uint8_t*)pixels, frame_size);
 	//double t1 = omp_get_wtime();
-	send_data_data((char*)&frame_size, sizeof(int), false);
+	send_data_data((char*)&frame_size, sizeof(int));
 	send_data_data((char*)g_image_compressed, frame_size);
 	//double t2 = omp_get_wtime();
 	// printf("send_gpujpeg: %f, %f\n", t1 - t0, t2 - t1);
@@ -1208,7 +1208,7 @@ void recv_gpujpeg(char* dmem, char* pixels, int width, int height)
 #ifdef WITH_CLIENT_GPUJPEG
 	int frame_size = 0;
 	//double t0 = omp_get_wtime();
-	recv_data_data((char*)&frame_size, sizeof(int), false);
+	recv_data_data((char*)&frame_size, sizeof(int));
 	recv_data_data((char*)pixels, frame_size);
 	//double t1 = omp_get_wtime();
 	gpujpeg_decode(width, height, (uint8_t*)dmem, (uint8_t*)pixels, frame_size);
