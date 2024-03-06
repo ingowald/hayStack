@@ -35,6 +35,7 @@ import math
 
 import gpu
 #from gpu_extras.presets import draw_texture_2d
+#import bgl
 
 import ctypes
 from dataclasses import dataclass
@@ -753,15 +754,25 @@ class ViewportEngine(Engine):
 
         self.is_finished = True
         self.is_synced = False
-        self.is_rendered = False
+        #self.is_rendered = False
         # self.is_denoised = False
-        self.is_resized = False
+        #self.is_resized = False
 
         # self.render_iterations = 0
         # self.render_time = 0
 
         # g_viewport_engine = self
         # self.render_callback = render_callback_type(self.render_callback)
+
+    def start_render(self):
+        print("start_render")
+        self.is_finished = False
+
+        #print('Start _do_sync_render')
+        self.restart_render_event.clear()
+        self.sync_render_thread = threading.Thread(target=self._do_sync_render)
+        self.sync_render_thread.start()
+        #print('Finish sync')   
 
     def stop_render(self):
         print("stop_render")
@@ -770,13 +781,13 @@ class ViewportEngine(Engine):
         self.restart_render_event.set()
         self.sync_render_thread.join()        
 
-        self.haystack_context.client_close_connection()
+        #self.haystack_context.client_close_connection()
 
-        self.haystack_context = None
-        self.image_filter = None
-        pass
+        #self.haystack_context = None
+        #self.image_filter = None
+        #pass
 
-    def _do_sync_render(self, depsgraph):
+    def _do_sync_render(self):
         """
         Thread function for self.sync_render_thread. It always run during viewport render.
         If it doesn't render it waits for self.restart_render_event
@@ -834,21 +845,21 @@ class ViewportEngine(Engine):
                         self.restart_render_event.clear()
                         iteration = 0
 
-                        if self.is_resized:
-                            # if not self.haystack_context.gl_interop:
-                            # When gl_interop is not enabled, than resize is better to do in
-                            # this thread. This is important for hybrid.
-                            with self.render_lock:
-                                self.haystack_context.resize(self.viewport_settings.width,
-                                                            self.viewport_settings.height)
-                            self.is_resized = False
+                        # if self.is_resized:
+                        #     # if not self.haystack_context.gl_interop:
+                        #     # When gl_interop is not enabled, than resize is better to do in
+                        #     # this thread. This is important for hybrid.
+                        #     # with self.render_lock:
+                        #     #     self.haystack_context.resize(self.viewport_settings.width,
+                        #     #                                 self.viewport_settings.height)
+                        #     self.is_resized = False
 
                         time_begin = time.perf_counter()
 
                     # rendering
-                    with self.render_lock:
-                        if self.restart_render_event.is_set():
-                            break
+                    # with self.render_lock:
+                    #     if self.restart_render_event.is_set():
+                    #         break
 
                     self.haystack_context.render(restart=(iteration == 0))
 
@@ -858,24 +869,25 @@ class ViewportEngine(Engine):
                     time_render = time.perf_counter() - time_begin
                     fps = current_samples / time_render
                     info_str = f"Time: {time_render:.1f} sec"\
-                               f" | Samples: {current_samples}" \
-                               f" | FPS: {fps:.1f}"
+                            f" | Samples: {current_samples}" \
+                            f" | FPS: {fps:.1f}"
 
                     notify_status(info_str, "Render")
 
         except FinishRender:
-            print("Finish by user")
+            #print("Finish by user")
             pass
 
         except Exception as e:
             print(e)
-            self.is_finished = True
+            
+        self.is_finished = True
 
-            # notifying viewport about error
-            #notify_status(f"{e}.\nPlease see logs for more details.", "ERROR")
+        # notifying viewport about error
+        #notify_status(f"{e}.\nPlease see logs for more details.", "ERROR")
 
-        bpy.ops.haystack.stop_process()
-        print('Finish _do_sync_render')        
+        #bpy.ops.haystack.stop_process()
+        #print('Finish _do_sync_render')        
 
     def sync(self, context, depsgraph):
         
@@ -921,20 +933,14 @@ class ViewportEngine(Engine):
         # reset scene
         # haystack_dll._renderengine_dll.reset()
 
-        self.is_finished = False
+        #import array
+        #pixels = width * height * array.array('f', [0.1, 0.2, 0.1, 1.0])
+        #pixels = gpu.types.Buffer('FLOAT', width * height * 4)
 
-        # if haystack_dll._renderengine_dll.get_renderengine_type() == 2:
-        #     self.is_synced = True
-        #     self.is_rendered = True
-        #     self.haystack_context.register_render_callback(self.render_callback)
-        # else:
-        print('Start _do_sync_render')
-        self.restart_render_event.clear()
-        self.sync_render_thread = threading.Thread(
-            target=self._do_sync_render, args=(depsgraph,))
-        self.sync_render_thread.start()
+        # Generate texture
+        #self.texture = gpu.types.GPUTexture((width, height), format='RGBA16F', data=pixels)
 
-        print('Finish sync')
+        self.start_render()
 
     # @staticmethod
     # def _draw_texture(texture_id, x, y, width, height):
@@ -999,6 +1005,38 @@ class ViewportEngine(Engine):
     #     # else:
     #     # , self.haystack_context.get_image_right()
     #     return self.haystack_context.get_image()
+        
+    def draw_texture_2d(self, texture, position, width, height):
+        import gpu
+        from gpu_extras.batch import batch_for_shader
+
+        coords = ((0, 0), (1, 0), (1, 1), (0, 1))
+
+        shader = gpu.shader.from_builtin('IMAGE')
+        batch = batch_for_shader(
+            shader, 'TRI_FAN',
+            {"pos": coords, "texCoord": coords},
+        )
+
+        with gpu.matrix.push_pop():
+            gpu.matrix.translate(position)
+            gpu.matrix.scale((width, height))
+
+            shader = gpu.shader.from_builtin('IMAGE')
+
+            # if isinstance(texture, int):
+            #     # Call the legacy bgl to not break the existing API
+            #     import bgl
+            #     bgl.glActiveTexture(bgl.GL_TEXTURE0)
+            #     bgl.glBindTexture(bgl.GL_TEXTURE_2D, texture)
+            #     shader.uniform_int("image", 0)
+            # else:
+            #     shader.uniform_sampler("image", texture)            
+
+            self.haystack_context.draw_texture()
+            shader.uniform_int("image", 0)
+
+            batch.draw(shader)        
 
     def draw(self, context):
         # log("Draw")
@@ -1029,20 +1067,26 @@ class ViewportEngine(Engine):
 
                     resolution = (viewport_settings.width,
                                   viewport_settings.height)
+                    
+                    self.stop_render()
+                    self.haystack_context.resize(*resolution)
+                    self.start_render()
 
-                    with self.resolve_lock:
-                        self.haystack_context.resize(*resolution)
+                    #self.restart_render_event.set()
+
+                    #return       
 
                     # if self.gl_texture:
                     #     self.gl_texture = GLTexture(*resolution)
 
-                    self.is_resized = True
+                    #self.is_resized = True
 
                 # if haystack_dll._renderengine_dll.get_renderengine_type() != 2:
+                #else:
                 self.restart_render_event.set()
 
-        if self.is_resized or not self.is_rendered:
-            return
+        # if self.is_resized or not self.is_rendered:
+        #     return
 
         # def draw_(texture_id):
         #     # Bind shader that converts from scene linear to display space,
@@ -1063,15 +1107,16 @@ class ViewportEngine(Engine):
 
         # self.gl_texture.set_image(im)
 
-        #texture_id = self.haystack_context.get_texture_id()
+        #self.haystack_context.draw_texture()
+        #self.haystack_context.render()
+        texture_id = self.haystack_context.get_texture_id()
         # draw_(self.gl_texture.texture_id)
         #draw_(texture_id)
         
         # present
         gpu.state.blend_set('ALPHA_PREMULT')
         self.haystack_engine.bind_display_space_shader(scene)
-        # draw_texture_2d(texture_id, self.viewport_settings.border[0], self.viewport_settings.border[1][0], self.viewport_settings.border[1][1])
-        self.haystack_context.draw_texture()
+        self.draw_texture_2d(texture_id, self.viewport_settings.border[0], self.viewport_settings.border[1][0], self.viewport_settings.border[1][1])        
         self.haystack_engine.unbind_display_space_shader()
         gpu.state.blend_set('NONE')            
 
@@ -1097,7 +1142,7 @@ class HayStackRenderEngine(bpy.types.RenderEngine):
         self.engine = None
 
         dummy = gpu.types.GPUFrameBuffer()
-        dummy.bind()
+        dummy.bind()  
 
     # When the render engine instance is destroy, this is called. Clean up any
     # render engine data here, for example stopping running render threads.
@@ -1197,11 +1242,17 @@ class RENDER_PT_haystack_server(RenderButtonsPanel, bpy.types.Panel):
         else:
             col.operator("haystack.stop_process")
 
+        if pref.haystack_remote:
             if context.scene.haystack_data.haystack_tunnel is None:
                 col.operator("haystack.start_ssh_tunnel")
             else:
-                col.operator("haystack.stop_ssh_tunnel")
-                col.operator("haystack.create_bbox")
+                col.operator("haystack.stop_ssh_tunnel")                
+
+        if not pref.haystack_remote and not context.scene.haystack_data.haystack_process is None:            
+            col.operator("haystack.create_bbox")
+
+        if pref.haystack_remote and not context.scene.haystack_data.haystack_process is None and not context.scene.haystack_data.haystack_tunnel is None:
+            col.operator("haystack.create_bbox")
 
         # box = layout.box()
         # col = box.column()

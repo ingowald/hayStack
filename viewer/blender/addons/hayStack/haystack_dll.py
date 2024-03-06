@@ -80,7 +80,8 @@ try:
 
     # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD get_pixels(void* pixels);
     #_renderengine_dll.get_pixels.argtypes = [c_void_p]
-    # HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD draw_texture();
+    #HAYSTACK_EXPORT_DLL void HAYSTACK_EXPORT_STD draw_texture(void* gpu_buffer);
+    #_renderengine_dll.draw_texture.argtypes = [c_void_p]
 
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_samples();
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_current_samples();

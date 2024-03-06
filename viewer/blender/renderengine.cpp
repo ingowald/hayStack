@@ -18,9 +18,11 @@
 #include "renderengine_api.h"
 #include "renderengine_data.h"
 
-#ifdef _WIN32
-#	include <glad/glad.h>
-#endif
+//#ifdef _WIN32
+//#	include <glad/glad.h>
+//#endif
+#include <epoxy/gl.h>
+
 #include <cuda_gl_interop.h>
 #include "renderengine_tcp.h"
 
@@ -56,6 +58,7 @@ unsigned int g_height = 1;
 
 unsigned char* g_pixels_buf = NULL;
 void* g_pixels_buf_d = NULL;
+void* g_pixels_buf_recv_d = NULL;
 GLuint g_bufferId;   // ID of PBO
 GLuint g_textureId;  // ID of texture
 
@@ -107,9 +110,53 @@ void displayFPS(int type, int tot_samples = 0)
 }
 
 //////////////////////////
+void check_exit()
+{
+}
+
+#define cuda_assert(stmt) \
+  { \
+    if (stmt != cudaSuccess) { \
+      char err[1024]; \
+      sprintf(err, \
+              "CUDA error: %s: %s in %s, line %d", \
+              cudaGetErrorName(stmt), \
+              cudaGetErrorString(stmt), \
+              #stmt, \
+              __LINE__); \
+      std::string message(err); \
+      fprintf(stderr, "%s\n", message.c_str()); \
+      check_exit(); \
+    } \
+  } \
+  (void)0
+
+bool gpu_error_(cudaError_t result, const std::string& stmt)
+{
+	if (result == cudaSuccess)
+		return false;
+
+	char err[1024];
+	sprintf(err,
+		"CUDA error at %s: %s: %s",
+		stmt.c_str(),
+		cudaGetErrorName(result),
+		cudaGetErrorString(result));
+	std::string message(err);
+	fprintf(stderr, "%s\n", message.c_str());
+	return true;
+}
+
+#define gpu_error(stmt) gpu_error_(stmt, #stmt)
+
+void gpu_error_message(const std::string& message)
+{
+	fprintf(stderr, "%s\n", message.c_str());
+}
+
 void cuda_set_device()
 {
-	cudaSetDevice(0);
+	cuda_assert(cudaSetDevice(0));
 }
 
 void setup_texture()
@@ -163,22 +210,27 @@ void setup_texture()
 		0,
 		GL_DYNAMIC_COPY);
 
-	cuda_set_device();
-	cudaGLRegisterBufferObject(g_bufferId);
-	cudaGLMapBufferObject((void**)&g_pixels_buf_d, g_bufferId);
-
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	cuda_set_device();
+	cuda_assert(cudaGLRegisterBufferObject(g_bufferId));
+	//cuda_assert(cudaGLMapBufferObject((void**)&g_pixels_buf_d, g_bufferId));
+	cuda_assert(cudaMalloc(&g_pixels_buf_recv_d, (size_t)g_width * g_height * sizeof(char) * 4));
+
+
+	
 }
 
 void free_texture()
 {
-	glDeleteTextures(1, &g_textureId);
-
 	cuda_set_device();
-	cudaGLUnmapBufferObject(g_bufferId);
-	cudaGLUnregisterBufferObject(g_bufferId);
+	//cuda_assert(cudaGLUnmapBufferObject(g_bufferId));
+	cuda_assert(cudaGLUnregisterBufferObject(g_bufferId));
+
+	cuda_assert(cudaFree(g_pixels_buf_recv_d));
 
 	glDeleteFramebuffers(1, &g_bufferId);
+	glDeleteTextures(1, &g_textureId);
 }
 
 void to_ortho()
@@ -200,6 +252,7 @@ void to_ortho()
 	glLoadIdentity();
 }
 
+#if 0
 void draw_texture()
 {
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -345,6 +398,49 @@ void draw_texture()
 	glDeleteBuffers(2, vertex_buffer);
 	glDeleteVertexArrays(1, vertexArray);
 }
+#else
+void draw_texture()
+{
+	cuda_set_device();
+	cuda_assert(cudaGLMapBufferObject((void**)&g_pixels_buf_d, g_bufferId));
+	cuda_assert(cudaMemcpy(g_pixels_buf_d, g_pixels_buf_recv_d, (size_t)g_width * g_height * sizeof(char) * 4, cudaMemcpyDeviceToDevice));
+	cuda_assert(cudaGLUnmapBufferObject(g_bufferId));
+
+	//download texture from pbo
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, g_bufferId);
+	glBindTexture(GL_TEXTURE_2D, g_textureId);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, g_textureId);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, g_bufferId);
+	////glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	//return;
+
+	////glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	//// bind the texture and PBO
+	//glBindTexture(GL_TEXTURE_2D, g_textureId);
+	//glBindBuffer(GL_PIXEL_UNPACK_BUFFER, g_bufferId);
+
+	//// copy pixels from PBO to texture object
+	//// use offset instead of pointer.
+	//glTexSubImage2D(GL_TEXTURE_2D,
+	//	0,
+	//	0,
+	//	0,
+	//	g_width,
+	//	g_height,
+	//	GL_RGBA,
+	//	GL_UNSIGNED_BYTE,
+	//	0);
+
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+}
+#endif
 //////////////////////////
 
 void resize(int width, int height)
@@ -352,17 +448,18 @@ void resize(int width, int height)
 	if (width == g_width && height == g_height && g_pixels_buf)
 		return;
 
+	cuda_set_device();
+
 	if (g_pixels_buf)
-	{
-		cuda_set_device();
+	{		
 		free_texture();
-		cudaFreeHost(g_pixels_buf);
+		cuda_assert(cudaFreeHost(g_pixels_buf));
 	}
 
 	g_width = width;
 	g_height = height;
 
-	cudaHostAlloc((void**)&g_pixels_buf, (size_t)width * height * sizeof(char) * 4, cudaHostAllocMapped);
+	cuda_assert(cudaHostAlloc((void**)&g_pixels_buf, (size_t)width * height * sizeof(char) * 4, cudaHostAllocMapped));
 
 	int* size = (int*)&g_renderengine_data.width;
 	size[0] = width;
@@ -375,15 +472,15 @@ int recv_pixels_data()
 {
 #ifdef WITH_CLIENT_GPUJPEG
 	recv_gpujpeg(
-		(char*)g_pixels_buf_d, (char*)g_pixels_buf, g_width, g_height);
+		(char*)g_pixels_buf_recv_d, (char*)g_pixels_buf, g_width, g_height);
 #else
 	recv_data_data((char*)g_pixels_buf,
 		g_width * g_height * sizeof(char) * 4 /*, false*/);
 
-	cudaMemcpy(g_pixels_buf_d,
+	cuda_assert(cudaMemcpy(g_pixels_buf_d,
 		g_pixels_buf,
 		g_width * g_height * sizeof(char) * 4,
-		cudaMemcpyHostToDevice);  // cudaMemcpyDefault gpuMemcpyHostToDevice
+		cudaMemcpyHostToDevice));  // cudaMemcpyDefault gpuMemcpyHostToDevice
 
 	current_samples = ((int*)g_pixels_buf)[0];
 	displayFPS(1, current_samples);
@@ -463,7 +560,7 @@ void client_init(const char* server,
 	//strcpy(g_renderengine_data.filename, filename);
 
 	init_sockets_cam(server, port_cam, port_data);
-	gladLoadGL();
+	//gladLoadGL();
 
 	resize(w, h);
 }

@@ -30,20 +30,23 @@ if(NOT BLENDER_SUBDIRECTORY)
         cmake_policy(SET CMP0104 NEW)
     endif()
 
-    if(WIN32)
-        set(GLAD_SOURCES
-          ../external/glad/glad.cpp
-          ../external/glad/glad.h
-          ../external/glad/khrplatform.h
-        )
-        set(GLAD_INCLUDE_DIR
-           ../external
-        )
-    endif()
+#    if(WIN32)
+#        set(GLAD_SOURCES
+#          ../external/glad/glad.cpp
+#          ../external/glad/glad.h
+#          ../external/glad/khrplatform.h
+#        )
+#        set(GLAD_INCLUDE_DIR
+#           ../external
+#        )
+#    endif()
 
     find_package(CUDA REQUIRED)
-    find_package(OpenGL REQUIRED)
+    #find_package(OpenGL REQUIRED)
 endif()
+
+set(EPOXY_INCLUDE_DIR "" CACHE PATH "")
+set(EPOXY_LIBRARIES "" CACHE FILEPATH "")
 
 if(WITH_CLIENT_GPUJPEG)
 	set(GPUJPEG_INCLUDE_DIR "" CACHE PATH "")
@@ -54,10 +57,10 @@ endif()
 
 set(INC
 	 .
-     ${GLAD_INCLUDE_DIR}
+     ${EPOXY_INCLUDE_DIR}
      ${GPUJPEG_INCLUDE_DIR}
      ${CUDA_INCLUDE_DIRS}
-     ${OPENGL_INCLUDE_DIR}
+     #${OPENGL_INCLUDE_DIR}
 )
 
 set(SRC
@@ -73,13 +76,13 @@ set(SRC_HEADERS
 )
 
 include_directories(${INC})
-add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS} ${GLAD_SOURCES})
-#target_link_libraries(hayStack-renderengine stb_image)
+add_library(hayStack-renderengine SHARED ${SRC} ${SRC_HEADERS})
 
 target_link_libraries(hayStack-renderengine 
     ${CUDA_LIBRARIES}
     ${CUDA_CUDA_LIBRARY} # For CUDA Driver API
     ${OPENGL_LIBRARIES}
+    ${EPOXY_LIBRARIES}
 )
 
 if(WITH_CLIENT_GPUJPEG)
