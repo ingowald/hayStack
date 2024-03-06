@@ -483,7 +483,9 @@ void resize(int width, int height)
 }
 
 int recv_pixels_data()
-{
+{  
+	cuda_set_device();
+
 #ifdef WITH_CLIENT_GPUJPEG
 	recv_gpujpeg(
 		(char*)g_pixels_buf_recv_d, (char*)g_pixels_buf, g_width, g_height);
