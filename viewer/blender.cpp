@@ -374,7 +374,7 @@ int main(int ac, char** av)
 			client_close();
 			server_close();
 
-			continue;
+			break;
 		}
 
 		recv_data_cam((char*)&hsDataRenderRcv, sizeof(HsDataRender));

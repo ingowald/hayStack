@@ -281,6 +281,9 @@ class HayStackContext:
 
         haystack_dll._renderengine_dll.send_cam_data()
 
+        if haystack_dll._renderengine_dll.com_error() == 1:
+            raise Exception("TCP error")
+
         # volume       
         haystack_data = HsDataRender()
         #haystack_data_size = int(129 * 4 * 4)
@@ -338,6 +341,9 @@ class HayStackContext:
 
         # image
         haystack_dll._renderengine_dll.recv_pixels_data()
+
+        if haystack_dll._renderengine_dll.com_error() == 1:
+            raise Exception("TCP error")        
 
         return 1
 

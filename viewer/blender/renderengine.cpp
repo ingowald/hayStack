@@ -658,3 +658,7 @@ int get_texture_id()
 {
 	return g_textureId;
 }
+
+int com_error() {
+	return is_error();
+}

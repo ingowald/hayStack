@@ -85,6 +85,8 @@ extern "C"
 		void* scalars_range);
 
 	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
+
+	HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD com_error();
 	
 
 #ifdef __cplusplus

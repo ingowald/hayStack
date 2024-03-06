@@ -106,6 +106,9 @@ try:
     # HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD get_texture_id();
     _renderengine_dll.get_texture_id.restype = c_int32
 
+    #HAYSTACK_EXPORT_DLL int HAYSTACK_EXPORT_STD com_error();
+    _renderengine_dll.com_error.restype = c_int32
+
 
 except:
     print("Missing: ", _renderengine_dll_name)

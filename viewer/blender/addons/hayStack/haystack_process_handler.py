@@ -53,6 +53,10 @@ def start_process(context):
 
         haystack_remote.ssh_command_sync_sh(pref.ssh_server_name, f"echo \'{job_command}\' > ~/haystack_command.sh; chmod +x ~/haystack_command.sh; sed -i \'s/\r$//\' ~/haystack_command.sh")
         process_command = "ssh " + pref.ssh_server_name + " ~/haystack_command.sh "
+
+        # import platform
+        # if platform.system() == 'Windows':
+        #     process_command = "cmd /C \" start " + process_command + "\""
     
     # Start the process in a new thread to avoid blocking Blender's UI
     def run():
@@ -86,6 +90,10 @@ def start_ssh_tunnel(context):
          " -L " + str(pref.haystack_port_data) + ":" + \
          str(pref.ssh_server_node_name) + ":" + str(pref.haystack_port_data) + \
          " " + pref.ssh_server_name
+    
+    import platform
+    if platform.system() == 'Windows':
+        process_command = "cmd /C \" start " + process_command + "\""
     
     # Start the process in a new thread to avoid blocking Blender's UI
     def run():
@@ -133,8 +141,8 @@ class HayStackStopProcessOperator(bpy.types.Operator):
     bl_label = "Stop Process"
 
     def execute(self, context):
-        #haystack_dll._renderengine_dll.reset()
-        #haystack_dll._renderengine_dll.client_close_connection()
+        haystack_dll._renderengine_dll.reset()
+        haystack_dll._renderengine_dll.client_close_connection()
 
         stop_process(context)
         return {'FINISHED'}    
