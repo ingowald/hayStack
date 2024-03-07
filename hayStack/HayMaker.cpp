@@ -378,6 +378,27 @@ namespace hs {
       bnSet3fc(mat,"reflectance",(const float3&)matte->reflectance);
       return mat;
     }
+    BNMaterial create(mini::Metal::SP metal)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      vec3f gray(.5f);
+      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      return mat;
+    }
+    BNMaterial create(mini::ThinGlass::SP thinGlass)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      vec3f gray(.5f);
+      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      return mat;
+    }
+    BNMaterial create(mini::Dielectric::SP dielectric)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      vec3f gray(.5f);
+      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      return mat;
+    }
     BNMaterial create(mini::MetallicPaint::SP metallicPaint)
     {
     // float eta = 1.45f;
@@ -408,7 +429,7 @@ namespace hs {
     }
     BNMaterial create(mini::Material::SP miniMat)
     {
-      PRINT(miniMat->toString());
+      // PRINT(miniMat->toString());
       if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
         return create(plastic);
       if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
@@ -419,6 +440,12 @@ namespace hs {
         return create(metallicPaint);
       if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
         return create(matte);
+      if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
+        return create(metal);
+      if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+        return create(dielectric);
+      if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
+        return create(thinGlass);
       throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
     }
 
