@@ -26,7 +26,7 @@
 #include <cuda_gl_interop.h>
 #include "renderengine_tcp.h"
 
-#ifdef _WIN32
+#if _WIN32
 #include <omp.h>
 #endif
 
@@ -86,7 +86,7 @@ int active_gpu = 1;
 float local_fps = 0;
 
 /////////////////////////
-
+#ifdef _WIN32
 void displayFPS(int type, int tot_samples = 0)
 {
 	double currentTime = omp_get_wtime();
@@ -114,7 +114,7 @@ void displayFPS(int type, int tot_samples = 0)
 		g_previousTime[type] = omp_get_wtime();
 	}
 }
-
+#endif
 //////////////////////////
 void check_exit()
 {
@@ -503,7 +503,9 @@ int recv_pixels_data()
 
 	recv_data_data((char*)&g_hs_data_state, sizeof(HsDataState));	
 
+#ifdef _WIN32
 	displayFPS(1, get_current_samples());
+#endif	
 
 	return 0;
 }

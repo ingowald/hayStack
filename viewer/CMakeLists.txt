@@ -131,8 +131,10 @@ endif()
 # ------------------------------------------------------------------
 # blender
 # ------------------------------------------------------------------
-#set(BLENDER_SUBDIRECTORY ON)
-#add_subdirectory(blender)
+if(BLENDER_ADDON)
+  set(BLENDER_SUBDIRECTORY ON)
+  add_subdirectory(blender)
+endif()
 
 add_executable(hsBlender
   blender.cpp

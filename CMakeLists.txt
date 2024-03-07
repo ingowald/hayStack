@@ -34,7 +34,14 @@ else()
 option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
 endif()
 
-#option(WITH_CLIENT_GPUJPEG "Enable GPUJPEG" OFF)
+option(WITH_CLIENT_GPUJPEG "Enable GPUJPEG" OFF)
+option(BLENDER_ADDON "Enable build HayStack Addon for Blender" OFF)
+
+if(WITH_CLIENT_GPUJPEG)
+	set(GPUJPEG_INCLUDE_DIR "" CACHE PATH "")
+  set(GPUJPEG_LIBRARIES "" CACHE FILEPATH "")
+endif()
+
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
