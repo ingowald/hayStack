@@ -192,10 +192,10 @@ namespace hs {
           uint8_t *g = line_g.data();
           uint8_t *b = line_b.data();
           for (int i=0;i<numVoxels.x;i++) {
-            *rgbPtr++ = 255;
-            *rgbPtr++ = *b++;
-            *rgbPtr++ = *g++;
             *rgbPtr++ = *r++;
+            *rgbPtr++ = *g++;
+            *rgbPtr++ = *b++;
+            *rgbPtr++ = 255;
           }
         }
       }
