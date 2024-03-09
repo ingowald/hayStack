@@ -430,6 +430,14 @@ namespace hs {
     BNMaterial create(mini::Material::SP miniMat)
     {
       // PRINT(miniMat->toString());
+      if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
+        std::cout
+          << OWL_TERMINAL_YELLOW
+          << "#hs: creating at least one instance of material *** "
+          << miniMat->toString() << " ***" 
+          << OWL_TERMINAL_DEFAULT << std::endl;
+        typesCreated.insert(miniMat->toString());
+      }
       if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
         return create(plastic);
       if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
@@ -449,6 +457,7 @@ namespace hs {
       throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
     }
 
+    std::set<std::string> typesCreated;
     TextureLibrary &textureLibrary;
     std::map<mini::Material::SP,BNMaterial> alreadyCreated;
     BNModel model;
