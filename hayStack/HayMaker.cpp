@@ -380,9 +380,10 @@ namespace hs {
     }
     BNMaterial create(mini::Metal::SP metal)
     {
-      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
-      vec3f gray(.5f);
-      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      BNMaterial mat = bnMaterialCreate(model,slot,"metal");
+      bnSet3fc(mat,"eta",(const float3&)metal->eta);
+      bnSet3fc(mat,"k",(const float3&)metal->k);
+      bnSet1f (mat,"roughness",metal->roughness);
       return mat;
     }
     BNMaterial create(mini::ThinGlass::SP thinGlass)
