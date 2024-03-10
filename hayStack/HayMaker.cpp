@@ -395,9 +395,14 @@ namespace hs {
     }
     BNMaterial create(mini::Dielectric::SP dielectric)
     {
-      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
-      vec3f gray(.5f);
-      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      BNMaterial mat = bnMaterialCreate(model,slot,"glass");
+      bnSet3fc(mat,"attenuationColorInside",(const float3&)dielectric->transmission);
+      bnSet1f (mat,"etaInside",dielectric->etaInside);
+      bnSet1f (mat,"etaOutside",dielectric->etaOutside);
+      // BNMaterial mat = bnMaterialCreate(model,slot,"dielectric");
+      // bnSet3fc(mat,"transmission",(const float3&)dielectric->transmission);
+      // bnSet1f (mat,"etaInside",dielectric->etaInside);
+      // bnSet1f (mat,"etaOutside",dielectric->etaOutside);
       return mat;
     }
     BNMaterial create(mini::MetallicPaint::SP metallicPaint)
