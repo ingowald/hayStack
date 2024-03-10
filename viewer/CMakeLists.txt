@@ -85,7 +85,9 @@ if (WIN32)
 else()
   target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
 endif()
-target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+if (HS_USE_IMGUI)
+  target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+endif()
 
 # ------------------------------------------------------------------
 add_executable(hsOffline
