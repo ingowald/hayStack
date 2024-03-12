@@ -407,6 +407,15 @@ namespace hs {
     }
     BNMaterial create(mini::MetallicPaint::SP metallicPaint)
     {
+#if 1
+      BNMaterial mat = bnMaterialCreate(model,slot,"blender");
+      bnSet3fc(mat,"baseColor",(const float3&)metallicPaint->shadeColor);
+      bnSet1f (mat,"roughness",.15f);
+      bnSet1f (mat,"metallic",.8f);
+      bnSet1f (mat,"clearcoat",.15f);
+      bnSet1f (mat,"clearcoat_roughness",.15f);
+      // bnSet1f (mat,"ior",metallicPaint->eta);
+#else
     // float eta = 1.45f;
     // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
     // float glitterSpread = 0.025f;
@@ -416,6 +425,7 @@ namespace hs {
       bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
       bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
       bnSet1f(mat,"eta",metallicPaint->eta);
+#endif
       return mat;
     }
     BNMaterial create(mini::DisneyMaterial::SP disney)
