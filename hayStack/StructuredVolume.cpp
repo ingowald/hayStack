@@ -37,6 +37,10 @@ namespace hs {
       for (size_t i=0;i<numScalars;i++)
         range.extend(((const float *)rawData.data())[i]);
       break;
+    case BN_TEXEL_FORMAT_R64F: // TODO
+      for (size_t i=0;i<numScalars;i++)
+        range.extend(((const double *)rawData.data())[i]);
+      break;      
     case BN_TEXEL_FORMAT_R8:
       for (size_t i=0;i<numScalars;i++)
         range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);

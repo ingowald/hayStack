@@ -84,6 +84,8 @@ namespace hs {
       texelFormat = BN_TEXEL_FORMAT_R8; //scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
       texelFormat = BN_TEXEL_FORMAT_R32F; //scalarType = StructuredVolume::FLOAT;
+    else if (type == "double" || type == "d")
+      texelFormat = BN_TEXEL_FORMAT_R64F; //scalarType = StructuredVolume::DOUBLE;
     else if (type == "uint16")
       texelFormat = BN_TEXEL_FORMAT_R16; //scalarType = StructuredVolume::UINT16;
     else
@@ -218,6 +220,9 @@ namespace hs {
             case BN_TEXEL_FORMAT_R32F:
               scalar = ((const float*)rawData.data())[idx];
               break;
+            case BN_TEXEL_FORMAT_R64F:
+              scalar = ((const double*)rawData.data())[idx];
+              break;              
             case BN_TEXEL_FORMAT_R16:
               scalar = ((const uint16_t*)rawData.data())[idx]*(1.f/((1<<16)-1));
               break;

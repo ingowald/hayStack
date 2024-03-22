@@ -700,6 +700,11 @@ namespace hs {
           (device, field, "data", (const float *)vol->rawData.data(),
            volumeDims.x, volumeDims.y, volumeDims.z);
         break;
+      case BN_TEXEL_FORMAT_R64F:
+        anari::setParameterArray3D
+          (device, field, "data", (const double *)vol->rawData.data(),
+           volumeDims.x, volumeDims.y, volumeDims.z);
+        break;        
       case BN_TEXEL_FORMAT_R8:
         anari::setParameterArray3D
           (device, field, "data", (const uint8_t *)vol->rawData.data(),

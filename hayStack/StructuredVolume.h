@@ -63,7 +63,9 @@ namespace hs {
   {
     switch(type) {
     case BN_TEXEL_FORMAT_R32F:
-      return sizeof(float); 
+      return sizeof(float);
+    case BN_TEXEL_FORMAT_R64F:
+      return sizeof(double);
     case BN_TEXEL_FORMAT_R16:
       return sizeof(uint16_t);
     case BN_TEXEL_FORMAT_R8:
