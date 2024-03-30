@@ -60,6 +60,15 @@ vec3f colorMap(float f)
   return temperature_to_rgb(f);
 }
 
+int hash(const std::string s)
+{
+  int sum = 0;
+  for (int i=0;i<s.size();i++)
+    sum = 13 * sum + int(s[i]);
+  return sum;
+}
+
+
 int main(int ac, char **av)
 {
   DLAFScene dl;
@@ -73,7 +82,9 @@ int main(int ac, char **av)
   const vec3f *points = (const vec3f*)dl.points.data();
   for (int i=0;i<numPoints;i++) {
     out.write((const char *)&points[i],sizeof(points[i]));
-    vec3f color = colorMap(dl.distances[i]/maxDist);
+    vec3f color = colorMap(powf(dl.distances[i]/maxDist,1.3f));
+    // quick-hack for per-rank mapping:
+    // color = randomColor(hash(av[1])+14);
     out.write((const char *)&color,sizeof(color));
     out.write((const char *)&radius,sizeof(radius));
   }
