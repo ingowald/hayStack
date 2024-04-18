@@ -47,12 +47,48 @@ namespace hs {
       dataGroup.minis.push_back(ms);
       
 #if 1
-      if (ms->instances.size() == 1 && getenv("HS_COLOR_MESHID")) {
-        int hash = 0;
-        for (auto c : fileName) hash = hash * 13 + c;
-        PING; PRINT(hash);
-        for (auto mesh : ms->instances[0]->object->meshes)
-          mesh->material->baseColor = 0.7f*randomColor(hash);
+      if (getenv("HS_COLOR_MESHID")) {
+        static int uniqueID = 0;
+        std::map<Object::SP,int> objIDs;
+        std::map<Mesh::SP,int> meshIDs;
+        for (auto inst : ms->instances) {
+          if (objIDs.find(inst->object) == objIDs.end()) {
+            int ID = (uniqueID += inst->object->meshes.size());
+            objIDs[inst->object] = ID;
+            for (int i=0;i<inst->object->meshes.size();i++)
+              meshIDs[inst->object->meshes[i]] = (ID + i);
+          }
+        }
+        for (auto pair : meshIDs) {
+          auto mesh = pair.first;
+          // mini::DisneyMaterial::SP asDisney = mesh->material->as<mini::DisneyMaterial>();
+          mini::DisneyMaterial::SP asDisney = mini::DisneyMaterial::create();
+          if (asDisney)
+            asDisney->baseColor = 0.7f*randomColor(meshIDs[mesh]);
+          mesh->material = asDisney;
+        }
+      }
+#endif
+#if 1
+      if (getenv("HS_COLOR_GRAY")) {
+        static int uniqueID = 0;
+        std::map<Object::SP,int> objIDs; 
+        std::map<Mesh::SP,int> meshIDs;
+        for (auto inst : ms->instances) {
+          if (objIDs.find(inst->object) == objIDs.end()) {
+            int ID = (uniqueID += inst->object->meshes.size());
+            objIDs[inst->object] = ID;
+            for (int i=0;i<inst->object->meshes.size();i++)
+              meshIDs[inst->object->meshes[i]] = (ID + i);
+          }
+        }
+        for (auto pair : meshIDs) {
+          auto mesh = pair.first;
+          mini::Matte::SP asMini = mini::Matte::create();
+          if (asMini)
+            asMini->reflectance = .7f;
+          mesh->material = asMini;
+        }
       }
 #endif
     }

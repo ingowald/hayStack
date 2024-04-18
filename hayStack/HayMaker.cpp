@@ -331,6 +331,156 @@ namespace hs {
     BNModel const model;
     int     const slot;
   };
+
+
+  struct MaterialLibrary {
+    MaterialLibrary(BNModel model,int slot,
+                    TextureLibrary &textureLibrary)
+      : model(model), slot(slot), textureLibrary(textureLibrary)
+    {}
+    ~MaterialLibrary()
+    {
+      for (auto it : alreadyCreated)
+        bnRelease(it.second);
+    }
+    
+    BNMaterial getOrCreate(mini::Material::SP miniMat)
+    {
+      if (alreadyCreated.find(miniMat) != alreadyCreated.end())
+        return alreadyCreated[miniMat];
+
+      BNMaterial mat = create(miniMat);
+      alreadyCreated[miniMat] = mat;
+      return mat;
+    }
+  private:
+    BNMaterial create(mini::Plastic::SP plastic)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"plastic");
+      bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
+      bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
+      bnSet1f(mat,"roughness",plastic->roughness);
+      bnSet1f(mat,"eta",plastic->eta);
+      return mat;
+    }
+    BNMaterial create(mini::Velvet::SP velvet)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"velvet");
+      bnSet3fc(mat,"reflectance",(const float3&)velvet->reflectance);
+      bnSet3fc(mat,"horizonScatteringColor",(const float3&)velvet->horizonScatteringColor);
+      bnSet1f(mat,"horizonScatteringFallOff",velvet->horizonScatteringFallOff);
+      bnSet1f(mat,"backScattering",velvet->backScattering);
+      return mat;
+    }
+    BNMaterial create(mini::Matte::SP matte)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      bnSet3fc(mat,"reflectance",(const float3&)matte->reflectance);
+      return mat;
+    }
+    BNMaterial create(mini::Metal::SP metal)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"metal");
+      bnSet3fc(mat,"eta",(const float3&)metal->eta);
+      bnSet3fc(mat,"k",(const float3&)metal->k);
+      bnSet1f (mat,"roughness",metal->roughness);
+      return mat;
+    }
+    BNMaterial create(mini::ThinGlass::SP thinGlass)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"matte");
+      vec3f gray(.5f);
+      bnSet3fc(mat,"reflectance",(const float3&)gray);
+      return mat;
+    }
+    BNMaterial create(mini::Dielectric::SP dielectric)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"glass");
+      bnSet3fc(mat,"attenuationColorInside",(const float3&)dielectric->transmission);
+      bnSet1f (mat,"etaInside",dielectric->etaInside);
+      bnSet1f (mat,"etaOutside",dielectric->etaOutside);
+      // BNMaterial mat = bnMaterialCreate(model,slot,"dielectric");
+      // bnSet3fc(mat,"transmission",(const float3&)dielectric->transmission);
+      // bnSet1f (mat,"etaInside",dielectric->etaInside);
+      // bnSet1f (mat,"etaOutside",dielectric->etaOutside);
+      return mat;
+    }
+    BNMaterial create(mini::MetallicPaint::SP metallicPaint)
+    {
+#if 1
+      BNMaterial mat = bnMaterialCreate(model,slot,"blender");
+      bnSet3fc(mat,"baseColor",(const float3&)metallicPaint->shadeColor);
+      bnSet1f (mat,"roughness",.15f);
+      bnSet1f (mat,"metallic",.8f);
+      bnSet1f (mat,"clearcoat",.15f);
+      bnSet1f (mat,"clearcoat_roughness",.15f);
+      // bnSet1f (mat,"ior",metallicPaint->eta);
+#else
+    // float eta = 1.45f;
+    // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
+    // float glitterSpread = 0.025f;
+    // vec3f shadeColor { 0.f, 0.03f, 0.07f };
+      BNMaterial mat = bnMaterialCreate(model,slot,"metallic_paint");
+      bnSet3fc(mat,"shadeColor",(const float3&)metallicPaint->shadeColor);
+      bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
+      bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
+      bnSet1f(mat,"eta",metallicPaint->eta);
+#endif
+      return mat;
+    }
+    BNMaterial create(mini::DisneyMaterial::SP disney)
+    {
+      BNMaterial mat = bnMaterialCreate(model,slot,"mini");
+      bnSet3fc(mat,"emission",(const float3&)disney->emission);
+      bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
+      bnSet1f(mat,"roughness",   disney->roughness);
+      bnSet1f(mat,"metallic",    disney->metallic);
+      bnSet1f(mat,"transmission",disney->transmission);
+      bnSet1f(mat,"ior",         disney->ior);
+      if (disney->colorTexture)
+        bnSetObject(mat,"colorTexture",textureLibrary.getOrCreate(disney->colorTexture));
+      if (disney->alphaTexture)
+        bnSetObject(mat,"alphaTexture",textureLibrary.getOrCreate(disney->alphaTexture));
+      return mat;
+    }
+    BNMaterial create(mini::Material::SP miniMat)
+    {
+      // PRINT(miniMat->toString());
+      if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
+        std::cout
+          << OWL_TERMINAL_YELLOW
+          << "#hs: creating at least one instance of material *** "
+          << miniMat->toString() << " ***" 
+          << OWL_TERMINAL_DEFAULT << std::endl;
+        typesCreated.insert(miniMat->toString());
+      }
+      if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+        return create(plastic);
+      if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
+        return create(disney);
+      if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
+        return create(velvet);
+      if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
+        return create(metallicPaint);
+      if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
+        return create(matte);
+      if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
+        return create(metal);
+      if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+        return create(dielectric);
+      if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
+        return create(thinGlass);
+      throw std::runtime_error("could not create barney material for mini mat "+miniMat->toString());
+    }
+
+    std::set<std::string> typesCreated;
+    TextureLibrary &textureLibrary;
+    std::map<mini::Material::SP,BNMaterial> alreadyCreated;
+    BNModel model;
+    int slot;
+  };
+  
+
 #endif
   
   void HayMaker::buildDataGroup(int slot)
@@ -540,6 +690,7 @@ namespace hs {
 #else
       std::map<mini::Object::SP, BNGroup> miniGroups;
       TextureLibrary textureLibrary(model,slot);
+      MaterialLibrary materialLib(model,slot,textureLibrary);
 #endif
 
       
@@ -580,31 +731,60 @@ namespace hs {
             
             auto geom = surface;
 #else
-            BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
-            mini::Material::SP miniMat = miniMesh->material;
-            material.baseColor = (const float3&)miniMat->baseColor;
-            material.transmission = miniMat->transmission;
-            material.metallic     = miniMat->metallic;
-            material.roughness    = miniMat->roughness;
-            material.ior          = miniMat->ior;
-            material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
-            material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
-            // some of our test mini files have a texture, but basecolor isn't set - fix this here.
-            if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
-              (vec3f&)material.baseColor = vec3f(1.f);
-              
-            BNGeom geom 
-              = bnTriangleMeshCreate
-              (model,slot,&material,
-               (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
-               (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
-               miniMesh->normals.empty()
-               ? nullptr
-               : (float3*)miniMesh->normals.data(),
-               miniMesh->texcoords.empty()
-               ? nullptr
-               : (float2*)miniMesh->texcoords.data()
-               );
+            BNMaterial mat = materialLib.getOrCreate(miniMesh->material);
+            // BNMaterialHelper material;// = BN_DEFAULT_MATERIAL;
+            // mini::Material::SP miniMat = miniMesh->material;
+            // material.baseColor = (const float3&)miniMat->baseColor;
+            // material.transmission = miniMat->transmission;
+            // material.metallic     = miniMat->metallic;
+            // material.roughness    = miniMat->roughness;
+            // material.ior          = miniMat->ior;
+            // material.colorTexture = textureLibrary.getOrCreate(miniMat->colorTexture);
+            // material.alphaTexture = textureLibrary.getOrCreate(miniMat->alphaTexture);
+            // // some of our test mini files have a texture, but basecolor isn't set - fix this here.
+            // if (material.colorTexture && (vec3f&)material.baseColor == vec3f(0.f))
+            //   (vec3f&)material.baseColor = vec3f(1.f);
+
+            BNGeom geom = bnGeometryCreate(model,slot,"triangles");
+
+            int numVertices = miniMesh->vertices.size();
+            int numIndices = miniMesh->indices.size();
+            const float2 *texcoords = (const float2*)miniMesh->texcoords.data();
+            const float3 *vertices = (const float3*)miniMesh->vertices.data();
+            const float3 *normals = (const float3*)miniMesh->normals.data();
+            const int3 *indices = (const int3*)miniMesh->indices.data();
+            BNData _vertices = bnDataCreate(model,slot,BN_FLOAT3,numVertices,vertices);
+            bnSetAndRelease(geom,"vertices",_vertices);
+    
+            BNData _indices  = bnDataCreate(model,slot,BN_INT3,numIndices,indices);
+            bnSetAndRelease(geom,"indices",_indices);
+    
+            if (normals) {
+              BNData _normals  = bnDataCreate(model,slot,BN_FLOAT3,normals?numVertices:0,normals);
+              bnSetAndRelease(geom,"normals",_normals);
+            }
+    
+            if (texcoords) {
+              BNData _texcoords  = bnDataCreate(model,slot,BN_FLOAT2,texcoords?numVertices:0,texcoords);
+              bnSetAndRelease(geom,"texcoords",_texcoords);
+            }
+            bnSetObject(geom,"material",mat);
+            // bnAssignMaterial(geom,material);
+            bnCommit(geom);
+            
+            
+            // BNGeom geom 
+            //   = bnTriangleMeshCreate
+            //   (model,slot,&material,
+            //    (int3*)miniMesh->indices.data(),(int)miniMesh->indices.size(),
+            //    (float3*)miniMesh->vertices.data(),(int)miniMesh->vertices.size(),
+            //    miniMesh->normals.empty()
+            //    ? nullptr
+            //    : (float3*)miniMesh->normals.data(),
+            //    miniMesh->texcoords.empty()
+            //    ? nullptr
+            //    : (float2*)miniMesh->texcoords.data()
+            //    );
 #endif
             geoms.push_back(geom);
           }
