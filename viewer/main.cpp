@@ -374,6 +374,16 @@ int main(int ac, char **av)
       fromCL.measure = true;
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "--camera-pdu") {
+      fromCL.camera.vp.x = std::stof(av[++i]);
+      fromCL.camera.vp.y = std::stof(av[++i]);
+      fromCL.camera.vp.z = std::stof(av[++i]);
+      fromCL.camera.vi.x = fromCL.camera.vp.x + std::stof(av[++i]);
+      fromCL.camera.vi.y = fromCL.camera.vp.y + std::stof(av[++i]);
+      fromCL.camera.vi.z = fromCL.camera.vp.z + std::stof(av[++i]);
+      fromCL.camera.vu.x = std::stof(av[++i]);
+      fromCL.camera.vu.y = std::stof(av[++i]);
+      fromCL.camera.vu.z = std::stof(av[++i]);
     } else if (arg == "--camera") {
       fromCL.camera.vp.x = std::stof(av[++i]);
       fromCL.camera.vp.y = std::stof(av[++i]);

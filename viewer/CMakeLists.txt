@@ -125,3 +125,12 @@ if (HT_CUTEE)
   
 endif()
 
+
+# ------------------------------------------------------------------
+add_executable(hsDLAFtoPCR
+  content/dlafToPCR.cpp
+  )
+target_link_libraries(hsDLAFtoPCR
+  PUBLIC
+  hayStack
+  )

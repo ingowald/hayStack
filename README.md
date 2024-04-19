@@ -2,12 +2,11 @@
 
 # Building and Running
 
-..
-dependencies
+### linux package dependencies
 
     sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev libucx-dev libpmix-dev libgtk-3-dev
 
-# MPI
+### MPI
 
 For data parallel work you need to have mpi installed with cuda
 support. for openmpi 4.1.6, build with
@@ -16,6 +15,25 @@ support. for openmpi 4.1.6, build with
 
 
 # Example Data Sets and How to Run Them
+
+## Quick-Tests, for raw (structured) and mini (triangle meshes) files:
+
+![](jpg/collage-quicktests.jpg)
+
+``` bash
+./hsViewer ~/mini/ls.mini 
+
+BARNEY_RENDER=pt ./hsViewer ~/mini/ls.mini `cat data/ls.cam`
+
+BARNEY_RENDER=pt ./hsViewer ~/mini/rungholt.mini `cat data/rungholt.cam`
+
+./hsViewerQT raw:///cluster/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 `cat data/kingsnake.cam` -xf data/kingsnake.xf
+```
+
+
+
+
+# DEPRECATED: 
 
 ## "Fun3D Lander"
 
@@ -248,5 +266,8 @@ then run as follows:
 #    mm && /home/wald/opt/bin/mpirun -n 2 ./hsOffline /cluster/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /cluster/lander-small-surface.obj -o lander-small-offline.png
 	
 # camera and xf file checked into this repo, under `data/`
+
+
+
 
 
