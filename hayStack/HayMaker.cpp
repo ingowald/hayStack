@@ -705,11 +705,12 @@ namespace hs {
 #if HANARI
             anari::Material material
               = anari::newObject<anari::Material>(device, "matte");
-            anari::math::float3 color(miniMesh->material->baseColor.x,
-                                      miniMesh->material->baseColor.y,
-                                      miniMesh->material->baseColor.z// ,
-                                      // 1.f
-                                      );
+            anari::math::float3 color(1.f,1.f,1.f);
+            // miniMesh->material->baseColor.x,
+            //                           miniMesh->material->baseColor.y,
+            //                           miniMesh->material->baseColor.z// ,
+            //                           // 1.f
+            //                           );
             anari::setParameter(device,material,"color",color);
             anari::commitParameters(device, material);
             
