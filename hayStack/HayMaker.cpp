@@ -350,6 +350,7 @@ namespace hs {
         return alreadyCreated[miniMat];
 
       BNMaterial mat = create(miniMat);
+      bnCommit(mat);
       alreadyCreated[miniMat] = mat;
       return mat;
     }
@@ -430,8 +431,9 @@ namespace hs {
     }
     BNMaterial create(mini::DisneyMaterial::SP disney)
     {
-      BNMaterial mat = bnMaterialCreate(model,slot,"mini");
+      BNMaterial mat = bnMaterialCreate(model,slot,"AnariPBR");
       bnSet3fc(mat,"emission",(const float3&)disney->emission);
+      PING; PRINT(disney->baseColor);
       bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
       bnSet1f(mat,"roughness",   disney->roughness);
       bnSet1f(mat,"metallic",    disney->metallic);
@@ -704,7 +706,7 @@ namespace hs {
           for (auto miniMesh : inst->object->meshes) {
 #if HANARI
             anari::Material material
-              = anari::newObject<anari::Material>(device, "matte");
+              = anari::newObject<anari::Material>(device, "AnariMatte");
             anari::math::float3 color(1.f,1.f,1.f);
             // miniMesh->material->baseColor.x,
             //                           miniMesh->material->baseColor.y,
