@@ -19,6 +19,7 @@
 #include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
+#include "viewer/content/MaterialsTest.h"
 #include "viewer/content/BoxesFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
@@ -294,6 +295,8 @@ namespace hs {
         SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
+      else if (url.type == "materialsTest") 
+        MaterialsTest::create(this,contentDescriptor);
       // else if (url.type == "en-dump")
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 

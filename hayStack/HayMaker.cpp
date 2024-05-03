@@ -488,6 +488,15 @@ namespace hs {
   void HayMaker::buildDataGroup(int slot)
   {
 #if HANARI
+      std::map<mini::Object::SP, anari::Group> miniGroups;
+#else
+      std::map<mini::Object::SP, BNGroup> miniGroups;
+      TextureLibrary textureLibrary(model,slot);
+      MaterialLibrary materialLib(model,slot,textureLibrary);
+#endif
+
+      
+#if HANARI
     std::vector<anari::Light> lights;
 #else
     std::vector<BNLight> lights;
@@ -550,6 +559,13 @@ namespace hs {
         // if (material.alphaTexture)
         //   bnSetObject(geom,"material.alphaTexture",material.alphaTexture);
         // .......................................................
+
+        mini::Material::SP material = sphereSet->material;
+        if (!material)
+          material = myData.defaultMaterial;
+
+        BNMaterial mat = materialLib.getOrCreate(material);
+        bnSetObject(geom,"material",mat);
         bnCommit(geom);
         // .......................................................
         BNGroup group = bnGroupCreate(model,slot,&geom,1,0,0);
@@ -687,15 +703,6 @@ namespace hs {
       // ------------------------------------------------------------------
       // render all (possibly instanced) triangle meshes from mini format
       // ------------------------------------------------------------------
-#if HANARI
-      std::map<mini::Object::SP, anari::Group> miniGroups;
-#else
-      std::map<mini::Object::SP, BNGroup> miniGroups;
-      TextureLibrary textureLibrary(model,slot);
-      MaterialLibrary materialLib(model,slot,textureLibrary);
-#endif
-
-      
       for (auto inst : mini->instances) {
         if (!miniGroups[inst->object]) {
 #if HANARI

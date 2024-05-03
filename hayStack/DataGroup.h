@@ -40,7 +40,11 @@ namespace hs {
         their own acceleration strcutre, etc, then that may have some
         negative side effects on performance */
     void mergeUnstructuredMeshes();
-    
+
+    DataGroup() {
+      defaultMaterial = mini::DisneyMaterial::create();
+    };
+    mini::Material::SP                defaultMaterial;
     std::vector<mini::Scene::SP>      minis;
     /*! mesh AND domain. domain being empty means 'no clip box' */
     std::vector<std::pair<umesh::UMesh::SP,box3f>>     unsts;

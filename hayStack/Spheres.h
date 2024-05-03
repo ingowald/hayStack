@@ -36,7 +36,7 @@ namespace hs {
         for all spheres equally), but if non-empty it has to be the
         same size as `origins` */
     std::vector<float> radii;
-    
+    mini::Material::SP material;
     float radius = .1f;
   };
 
