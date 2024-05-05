@@ -254,6 +254,15 @@ namespace hs {
       //   for (int r=workers.rank;r<workers.size;r++) 
       //     workers.barrier();
     }
+
+
+    if (!sharedLights.directional.empty())
+      for (int i=0;i<rankData.dataGroups.size();i++) {
+        mini::Scene::SP lights = mini::Scene::create();
+        lights->dirLights = sharedLights.directional;
+        rankData.dataGroups[i].minis.push_back(lights);
+      }
+           
     if (verbose) {
       workers.barrier();
       if (workers.rank == 0)

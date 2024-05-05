@@ -97,6 +97,9 @@ namespace hs {
                            int    /* linear index, to ensure stable sorting */,
                            LoadableContent *>> allContent;
 
+    struct {
+      std::vector<mini::DirLight> directional;
+    } sharedLights;
     /*! default radius to use for spheres that do not have a radius specified */
     static float defaultRadius;
     hs::mpi::Comm workers;

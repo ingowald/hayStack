@@ -45,6 +45,9 @@ namespace hs {
       defaultMaterial = mini::DisneyMaterial::create();
     };
     mini::Material::SP                defaultMaterial;
+    struct {
+      std::vector<mini::DirLight>     directional;
+    }                                 sharedLights;
     std::vector<mini::Scene::SP>      minis;
     /*! mesh AND domain. domain being empty means 'no clip box' */
     std::vector<std::pair<umesh::UMesh::SP,box3f>>     unsts;

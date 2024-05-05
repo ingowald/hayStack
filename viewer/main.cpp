@@ -333,7 +333,15 @@ namespace hs {
 # endif
 #endif
 
-#endif  
+#endif
+
+  inline vec3f get3f(char **av, int &i)
+  {
+    float x = std::stof(av[++i]);
+    float y = std::stof(av[++i]);
+    float z = std::stof(av[++i]);
+    return vec3f(x,y,z);
+  }
 }
 
 using namespace hs;
@@ -374,26 +382,19 @@ int main(int ac, char **av)
       fromCL.measure = true;
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "--dir-light") {
+      mini::DirLight light;
+      light.direction = get3f(av,i);
+      light.radiance  = get3f(av,i);
+      loader.sharedLights.directional.push_back(light);
     } else if (arg == "--camera-pdu") {
-      fromCL.camera.vp.x = std::stof(av[++i]);
-      fromCL.camera.vp.y = std::stof(av[++i]);
-      fromCL.camera.vp.z = std::stof(av[++i]);
-      fromCL.camera.vi.x = fromCL.camera.vp.x + std::stof(av[++i]);
-      fromCL.camera.vi.y = fromCL.camera.vp.y + std::stof(av[++i]);
-      fromCL.camera.vi.z = fromCL.camera.vp.z + std::stof(av[++i]);
-      fromCL.camera.vu.x = std::stof(av[++i]);
-      fromCL.camera.vu.y = std::stof(av[++i]);
-      fromCL.camera.vu.z = std::stof(av[++i]);
+      fromCL.camera.vp = get3f(av,i);
+      fromCL.camera.vi = fromCL.camera.vp + get3f(av,i);
+      fromCL.camera.vu = get3f(av,i);
     } else if (arg == "--camera") {
-      fromCL.camera.vp.x = std::stof(av[++i]);
-      fromCL.camera.vp.y = std::stof(av[++i]);
-      fromCL.camera.vp.z = std::stof(av[++i]);
-      fromCL.camera.vi.x = std::stof(av[++i]);
-      fromCL.camera.vi.y = std::stof(av[++i]);
-      fromCL.camera.vi.z = std::stof(av[++i]);
-      fromCL.camera.vu.x = std::stof(av[++i]);
-      fromCL.camera.vu.y = std::stof(av[++i]);
-      fromCL.camera.vu.z = std::stof(av[++i]);
+      fromCL.camera.vp = get3f(av,i);
+      fromCL.camera.vi = get3f(av,i);
+      fromCL.camera.vu = get3f(av,i);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
