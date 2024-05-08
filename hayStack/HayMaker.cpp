@@ -660,6 +660,8 @@ namespace hs {
     auto device = global->device;
     auto model  = global->model;
     std::vector<anari::Instance> instances;
+    PRINT(groups.size());
+    PRINT((int*)groups[0]);
     for (int i=0;i<groups.size();i++) {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
@@ -692,7 +694,7 @@ namespace hs {
        model,
        "instance",
        anari::newArray1D(device, instances.data(),instances.size()));
-    PING;
+    std::cout << "### COMMITTING MODEL" << std::endl;
     anari::commitParameters(device, model);
   }
   
@@ -706,6 +708,26 @@ namespace hs {
                    (BNGroup*)groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
     bnBuild(global->model,slot);
+  }
+
+
+  template<typename Backend>
+  void HayMakerT<Backend>::buildSlots() 
+  {
+    for (auto slot : perSlot)
+      slot->renderAll();
+    global.finalizeRender();
+  }
+
+  void AnariBackend::Global::finalizeRender()
+  {
+    anari::setParameter(device, frame, "world",    model);
+    std::cout << "### COMMITTING FRAME" << std::endl;
+    anari::commitParameters(device, frame);
+  }
+
+  void BarneyBackend::Global::finalizeRender()
+  {
   }
   
 

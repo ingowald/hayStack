@@ -478,6 +478,7 @@ int main(int ac, char **av)
     hayMaker->buildSlots();
     // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
     //   hayMaker->buildDataGroup(dgID);
+  
   world.barrier();
   
   Renderer *renderer = nullptr;

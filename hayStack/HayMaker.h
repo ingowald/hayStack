@@ -85,11 +85,7 @@ namespace hs {
 
     void init();
 
-    void buildSlots() override
-    {
-      for (auto slot : perSlot)
-        slot->renderAll();
-    }
+    void buildSlots() override;
     
     void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
     { global.resize(fbSize,hostRGBA); }
@@ -168,6 +164,7 @@ namespace hs {
       void renderFrame(int pathsPerPixel);
       void resetAccumulation();
       void setCamera(const Camera &camera);
+      void finalizeRender();
       
       HayMaker *const base;
       BNContext     barney = 0;
@@ -237,7 +234,8 @@ namespace hs {
       void renderFrame(int pathsPerPixel);
       void resetAccumulation();
       void setCamera(const Camera &camera);
-      
+      void finalizeRender();
+
       HayMaker *const base;
 
       anari::Device device = 0;
