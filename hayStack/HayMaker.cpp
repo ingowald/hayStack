@@ -53,7 +53,6 @@ namespace hs {
   {
     anari::Group meshGroup
       = anari::newObject<anari::Group>(global->device);
-    PING; PRINT(geoms.size());
     anari::setParameterArray1D(global->device, meshGroup, "surface", geoms.data(),geoms.size());
     anari::commitParameters(global->device, meshGroup);
     return meshGroup;
@@ -62,14 +61,8 @@ namespace hs {
   AnariBackend::GeomHandle AnariBackend::Slot::create(mini::Mesh::SP miniMesh,
                                                       MaterialLibrary<AnariBackend> *materialLib)
   {
-    PING;
     auto device = global->device;
-    anari::Material material
-      = anari::newObject<anari::Material>(device, "AnariMatte");
-    anari::math::float3 color(1.f,1.f,1.f);
-    anari::setParameter(device,material,"color",color);
-    anari::commitParameters(device, material);
-    
+    anari::Material material = materialLib->getOrCreate(miniMesh->material);
     anari::Geometry mesh
       = anari::newObject<anari::Geometry>(device, "triangle");
     anari::setParameterArray1D(device, mesh, "vertex.position",
@@ -83,7 +76,7 @@ namespace hs {
             
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
     anari::setAndReleaseParameter(device, surface, "geometry", mesh);
-    anari::setAndReleaseParameter(device, surface, "material", material);
+    anari::setParameter(device, surface, "material", material);
     anari::commitParameters(device, surface);
             
     return surface;
@@ -200,7 +193,7 @@ namespace hs {
     anari::commitParameters(device, model);
     
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", 1.f);
+    anari::setParameter(device, renderer, "ambientRadiance", 2.f);
     anari::commitParameters(device, renderer);
     
     frame = anari::newObject<anari::Frame>(device);
@@ -437,7 +430,6 @@ namespace hs {
     
     auto mat = backend->create(miniMat);
     alreadyCreated[miniMat] = mat;
-    bnCommit(mat);
     return mat;
   }
 
@@ -538,6 +530,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
+  
   BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat)
   {
     // PRINT(miniMat->toString());
@@ -569,6 +562,80 @@ namespace hs {
     throw std::runtime_error("could not create barney material for mini mat "
                              +miniMat->toString());
   }
+
+  anari::Material AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
+  {
+    // BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
+    // bnSet3fc(mat,"emission",(const float3&)disney->emission);
+    // PING; PRINT(disney->baseColor);
+    // bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
+    // bnSet1f(mat,"roughness",   disney->roughness);
+    // bnSet1f(mat,"metallic",    disney->metallic);
+    // bnSet1f(mat,"transmission",disney->transmission);
+    // bnSet1f(mat,"ior",         disney->ior);
+    // // if (disney->colorTexture)
+    // //   bnSetObject(mat,"colorTexture",backend->getOrCreate(slot, disney->colorTexture));
+    // // if (disney->alphaTexture)
+    // //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
+    // bnCommit(mat);
+    // return mat;
+    auto device = global->device;
+    
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+    anari::setParameter(device,material,"baseColor",(const anari::math::float3&)disney->baseColor);
+    anari::setParameter(device,material,"roughness",disney->roughness);
+    anari::setParameter(device,material,"metallic",disney->metallic);
+    anari::commitParameters(device, material);
+    return material;
+  }
+  anari::Material AnariBackend::Slot::create(mini::Material::SP miniMat)
+  {
+    static std::set<std::string> typesCreated;
+    if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
+      std::cout
+        << OWL_TERMINAL_YELLOW
+        << "#hs: creating at least one instance of material *** "
+        << miniMat->toString() << " ***" 
+        << OWL_TERMINAL_DEFAULT << std::endl;
+      typesCreated.insert(miniMat->toString());
+    }
+
+    auto device = global->device;
+    
+    // if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+    //   return create(plastic);
+    if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
+      return create(disney);
+    // if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
+    //   return create(velvet);
+    // if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
+    //   return create(metallicPaint);
+    // if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
+    //   return create(matte);
+    // if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
+    //   return create(metal);
+    // if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+    //   return create(dielectric);
+    // if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
+    //   return create(thinGlass);
+    // throw std::runtime_error("could not create barney material for mini mat "
+    //                          +miniMat->toString());
+
+    std::cout << MINI_TERMINAL_RED 
+              << "#warning: do not know how to realize mini material '"
+              << miniMat->toString() << "'; replacing with matte gray"
+              << MINI_TERMINAL_DEFAULT << std::endl;
+    
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "matte");
+    anari::math::float3 color(.7f,.7f,.7f);
+    anari::setParameter(device,material,"color",color);
+    anari::commitParameters(device, material);
+    return material;
+  }
+
+
 
   template<typename Backend>
   void HayMakerT<Backend>::Slot::renderAll()
@@ -730,8 +797,6 @@ namespace hs {
   {
   }
   
-
-
   template struct HayMakerT<BarneyBackend>;
   template struct HayMakerT<AnariBackend>;
 }
