@@ -362,7 +362,7 @@ int main(int ac, char **av)
 
   // FromCL fromCL;
   // BarnConfig config;
-
+  bool hanari = false;
   DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -413,6 +413,8 @@ int main(int ac, char **av)
       fromCL.createHeadNode = true;
     } else if (arg == "-h" || arg == "--help") {
       usage();
+    } else if (arg == "-anari" || arg == "--hanari") {
+      hanari = true;
     } else {
       usage("unknown cmd-line argument '"+arg+"'");
     }    
@@ -435,14 +437,20 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
-  HayMaker hayMaker(/* the ring that binds them all : */world,
-                    /* the workers */workers,
-                    thisRankData,
-                    verbose());
+  HayMaker *hayMaker = 0;
+  if (hanari)
+    hayMaker = new HayMakerT<AnariBackend>(world,
+                                           /* the workers */workers,
+                                           thisRankData,
+                                           verbose());
+  else 
+    hayMaker = new HayMakerT<BarneyBackend>(world,
+                                            /* the workers */workers,
+                                            thisRankData,
+                                            verbose());
   
-
   world.barrier();
-  const BoundsData worldBounds = hayMaker.getWorldBounds();
+  const BoundsData worldBounds = hayMaker->getWorldBounds();
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -460,27 +468,28 @@ int main(int ac, char **av)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: creating barney context"
               << OWL_TERMINAL_DEFAULT << std::endl;
-  hayMaker.createBarney();
+  // hayMaker->createBarney();
   world.barrier();
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: building barney data groups"
               << OWL_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
-    for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
-      hayMaker.buildDataGroup(dgID);
+    hayMaker->buildSlots();
+    // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
+    //   hayMaker->buildDataGroup(dgID);
   world.barrier();
   
   Renderer *renderer = nullptr;
   if (world.size == 1)
     // no MPI, render direcftly
-    renderer = &hayMaker;
+    renderer = hayMaker;
   else if (world.rank == 0)
     // we're in MPI mode, _and_ the rank that runs the viewer
-    renderer = new MPIRenderer(world,&hayMaker);
+    renderer = new MPIRenderer(world,hayMaker);
   else {
     // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
-    MPIRenderer::runWorker(world,&hayMaker);
+    MPIRenderer::runWorker(world,hayMaker);
     world.barrier();
     hs::mpi::finalize();
 
