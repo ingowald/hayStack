@@ -53,7 +53,7 @@ namespace hs {
     using TextureHandle = typename Backend::TextureHandle;
     
     TextureLibrary(typename Backend::Slot *backend);
-    BNTexture getOrCreate(mini::Texture::SP miniTex);
+    BNSampler getOrCreate(mini::Texture::SP miniTex);
     
   private:
     TextureHandle create(mini::Texture::SP miniTex);
@@ -114,7 +114,7 @@ namespace hs {
       using GeomHandle = typename Backend::GeomHandle;
       
       Slot(Global *global, int slot)
-        : Backend::Slot(global,slot),
+        : Backend::Slot(global,slot,this),
           textureLibrary(this),
           materialLibrary(this)
       {}
@@ -150,7 +150,7 @@ namespace hs {
 
   struct BarneyBackend {
     typedef BNMaterial MaterialHandle;
-    typedef BNTexture  TextureHandle;
+    typedef BNSampler  TextureHandle;
     typedef BNGroup    GroupHandle;
     typedef BNLight    LightHandle;
     typedef BNVolume   VolumeHandle;
@@ -183,7 +183,9 @@ namespace hs {
     // void buildDataGroup(int dgID);
     
     struct Slot {
-      Slot(Global *global, int slot) : global(global), slot(slot) {}
+      Slot(Global *global, int slot,
+           typename HayMakerT<BarneyBackend>::Slot *impl)
+        : global(global), slot(slot), impl(impl) {}
     
       void setTransferFunction(const std::vector<VolumeHandle> &volumes,
                                const TransferFunction &xf);
@@ -203,16 +205,17 @@ namespace hs {
       BNMaterial create(mini::DisneyMaterial::SP disney);
       BNMaterial create(mini::Material::SP miniMat);
 
-      BNTexture create(mini::Texture::SP miniTex);
+      BNSampler create(mini::Texture::SP miniTex);
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<BarneyBackend> *materialLib);
 
       void setInstances(const std::vector<BNGroup> &groups,
                         const std::vector<affine3f> &xfms);
       
-      inline void release(BNTexture t) { bnRelease(t); }
+      inline void release(BNSampler t) { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
-      
+
+      typename HayMakerT<BarneyBackend>::Slot *const impl;
       Global *const global;
       int     const slot;
     };
@@ -247,7 +250,9 @@ namespace hs {
     };
 
     struct Slot {
-      Slot(Global *global, int slot) : global(global), slot(slot) {}
+      Slot(Global *global, int slot,
+           typename HayMakerT<AnariBackend>::Slot *impl)
+        : global(global), slot(slot), impl(impl) {}
     
       void setTransferFunction(const std::vector<VolumeHandle> &volumes,
                                const TransferFunction &xf);
@@ -277,6 +282,7 @@ namespace hs {
       inline void release(anari::Material m) { anari::release(global->device, m); }
       
       
+      typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;
       int     const slot;
       std::vector<anari::Volume> createdVolumes;

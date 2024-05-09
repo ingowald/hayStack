@@ -108,7 +108,9 @@ namespace hs {
     
     if (texcoords) {
       BNData _texcoords  = bnDataCreate(model,slot,BN_FLOAT2,texcoords?numVertices:0,texcoords);
-      bnSetAndRelease(geom,"texcoords",_texcoords);
+      bnSetData(geom,"vertex.attribute0",_texcoords);
+      // bnSetAndRelease(geom,"texcoords",_texcoords);
+      bnRelease(_texcoords);
     }
     bnSetObject(geom,"material",mat);
     bnCommit(geom);
@@ -354,17 +356,17 @@ namespace hs {
   {}
 
   template<typename Backend>
-  BNTexture TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
+  BNSampler TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
   {
     auto it = alreadyCreated.find(miniTex);
     if (it != alreadyCreated.end()) return it->second;
 
-    BNTexture bnTex = backend->create(miniTex);
+    BNSampler bnTex = backend->create(miniTex);
     alreadyCreated[miniTex] = bnTex;
     return bnTex;
   }
     
-  BNTexture BarneyBackend::Slot::create(mini::Texture::SP miniTex)
+  BNSampler BarneyBackend::Slot::create(mini::Texture::SP miniTex)
   {
     if (!miniTex) return 0;
     BNTexelFormat texelFormat;
@@ -398,14 +400,31 @@ namespace hs {
       return 0;
     }
 
-    BNTextureAddressMode addressMode = BN_TEXTURE_WRAP;
+    BNTextureAddressMode wrapMode = BN_TEXTURE_WRAP;
     BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
+#if 1
+    BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
+                                                  texelFormat,
+                                                  miniTex->size.x,miniTex->size.y,
+                                                  miniTex->data.data());
+    BNSampler sampler = bnSamplerCreate(global->model,this->slot,"texture2D");
+    assert(sampler);
+    bnSetString(sampler,"inAttribute","attribute0");
+    bnSet1i(sampler,"wrapMode0",(int)wrapMode);
+    bnSet1i(sampler,"wrapMode1",(int)wrapMode);
+    bnSet1i(sampler,"filterMode",(int)filterMode);
+    bnSetObject(sampler,"textureData",texData);
+    bnRelease(texData);
+    bnCommit(sampler);
+    return sampler;
+#else
     BNTexture newTex
       = bnTexture2DCreate(global->model,this->slot,texelFormat,
                           miniTex->size.x,miniTex->size.y,
                           miniTex->data.data(),
                           filterMode,addressMode,colorSpace);
     return newTex;
+#endif
   }
   
 
@@ -517,14 +536,16 @@ namespace hs {
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
     bnSet3fc(mat,"emission",(const float3&)disney->emission);
-    PING; PRINT(disney->baseColor);
     bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
     bnSet1f(mat,"roughness",   disney->roughness);
     bnSet1f(mat,"metallic",    disney->metallic);
     bnSet1f(mat,"transmission",disney->transmission);
     bnSet1f(mat,"ior",         disney->ior);
-    // if (disney->colorTexture)
-    //   bnSetObject(mat,"colorTexture",backend->getOrCreate(slot, disney->colorTexture));
+
+    if (disney->colorTexture) {
+      BNSampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
+      if (tex) bnSetObject(mat,"baseColor",tex);
+    }
     // if (disney->alphaTexture)
     //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
     bnCommit(mat);
