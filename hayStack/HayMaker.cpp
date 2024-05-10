@@ -77,12 +77,12 @@ namespace hs {
                                  (const anari::math::float2*)miniMesh->texcoords.data(),
                                miniMesh->texcoords.size());
     anari::commitParameters(device, mesh);
-            
+
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
     anari::setAndReleaseParameter(device, surface, "geometry", mesh);
     anari::setParameter(device, surface, "material", material);
     anari::commitParameters(device, surface);
-            
+
     return surface;
   }
 
@@ -101,15 +101,15 @@ namespace hs {
     const int3 *indices = (const int3*)miniMesh->indices.data();
     BNData _vertices = bnDataCreate(model,slot,BN_FLOAT3,numVertices,vertices);
     bnSetAndRelease(geom,"vertices",_vertices);
-    
+
     BNData _indices  = bnDataCreate(model,slot,BN_INT3,numIndices,indices);
     bnSetAndRelease(geom,"indices",_indices);
-    
+
     if (normals) {
       BNData _normals  = bnDataCreate(model,slot,BN_FLOAT3,normals?numVertices:0,normals);
       bnSetAndRelease(geom,"normals",_normals);
     }
-    
+
     if (texcoords) {
       BNData _texcoords  = bnDataCreate(model,slot,BN_FLOAT2,texcoords?numVertices:0,texcoords);
       bnSetData(geom,"vertex.attribute0",_texcoords);
@@ -120,8 +120,8 @@ namespace hs {
     bnCommit(geom);
     return geom;
   }
-  
-  
+
+
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
                      ThisRankData &thisRankData,
@@ -131,7 +131,7 @@ namespace hs {
       rankData(std::move(thisRankData)),
       verbose(verbose)
   {}
-  
+
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
@@ -177,7 +177,7 @@ namespace hs {
     camera = bnCameraCreate(barney,"perspective");
   }
 
-  
+
   AnariBackend::Global::Global(HayMaker *base)
     : base(base)
   {
@@ -197,19 +197,19 @@ namespace hs {
 
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
-    
+
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
     anari::setParameter(device, renderer, "ambientRadiance", 10.f);
     anari::commitParameters(device, renderer);
-    
+
     frame = anari::newObject<anari::Frame>(device);
     // anari::setParameter(device, frame, "size", imgSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
     anari::setParameter(device, frame, "world",    model);
     anari::setParameter(device, frame, "renderer", renderer);
-    
+
     this->camera = anari::newObject<anari::Camera>(device, "perspective");
-    
+
     anari::setParameter(device, frame, "camera",   camera);
     anari::commitParameters(device, frame);
   }
@@ -223,7 +223,7 @@ namespace hs {
     bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
     return bb;
   }
-  
+
   void BarneyBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     this->fbSize = fbSize;
@@ -237,12 +237,12 @@ namespace hs {
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
     anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
-              
+
     anari::commitParameters(device, frame);
   }
 
   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &createdVolumes,
-                                                const TransferFunction &xf) 
+                                                const TransferFunction &xf)
   {
     if (createdVolumes.empty())
       return;
@@ -259,7 +259,7 @@ namespace hs {
   }
 
   void AnariBackend::Slot::setTransferFunction(const std::vector<anari::Volume> &createdVolumes,
-                                               const TransferFunction &xf) 
+                                               const TransferFunction &xf)
   {
     if (createdVolumes.empty())
       return;
@@ -270,7 +270,7 @@ namespace hs {
     for (auto vol : createdVolumes) {
       std::vector<anari::math::float3> colors;
       std::vector<float> opacities;
-      
+
       for (int i=0;i<xf.colorMap.size();i++) {
         auto c = xf.colorMap[i];
         colors.emplace_back(c.x,c.y,c.z);
@@ -279,7 +279,7 @@ namespace hs {
       anari::setParameter(device, vol,
                           "unitDistance",
                           xf.baseDensity);
-      
+
       anari::setAndReleaseParameter
         (device,vol,"color",
          anari::newArray1D(device, colors.data(), colors.size()));
@@ -288,18 +288,18 @@ namespace hs {
          anari::newArray1D(device, opacities.data(), opacities.size()));
       range1f valueRange = xf.domain;
       anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &valueRange.lower);
-      
+
       anari::commitParameters(device, vol);
-      
+
       anari::setAndReleaseParameter
         (device, model, "volume", anari::newArray1D(device, &vol));
       anari::release(device, vol);
     }
-    
+
     anari::commitParameters(device, this->volumeGroup);
     anari::commitParameters(device, global->model);
   }
-  
+
   void BarneyBackend::Global::renderFrame(int pathsPerPixel)
   {
     bnRender(model,camera,fb,pathsPerPixel);
@@ -370,7 +370,7 @@ namespace hs {
     alreadyCreated[miniTex] = bnTex;
     return bnTex;
   }
-    
+
   BNSampler BarneyBackend::Slot::create(mini::Texture::SP miniTex)
   {
     if (!miniTex) return 0;
@@ -390,7 +390,7 @@ namespace hs {
                 << (int)miniTex->format << std::endl;
       return 0;
     }
-      
+
     BNTextureFilterMode filterMode;
     switch (miniTex->filterMode) {
     case mini::Texture::FILTER_BILINEAR:
@@ -425,7 +425,7 @@ namespace hs {
     bnCommit(sampler);
     return sampler;
   }
-  
+
 
   anari::Sampler AnariBackend::Slot::create(mini::Texture::SP miniTex)
   {
@@ -477,7 +477,7 @@ namespace hs {
       return 0;
     }
     anari::commitParameters(device,image);
-    
+
     anari::Sampler sampler
       = anari::newObject<anari::Sampler>(device,"image2D");
     assert(sampler);
@@ -489,27 +489,27 @@ namespace hs {
     anari::commitParameters(device,sampler);
     return sampler;
   }
-  
+
 
   template<typename Backend>
   MaterialLibrary<Backend>::MaterialLibrary(typename Backend::Slot *backend)
-    : backend(backend) 
+    : backend(backend)
   {}
-  
+
   template<typename Backend>
   MaterialLibrary<Backend>::~MaterialLibrary()
   {
     for (auto it : alreadyCreated)
       backend->release(it.second);
   }
-    
+
   template<typename Backend>
   typename Backend::MaterialHandle
   MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat)
   {
     if (alreadyCreated.find(miniMat) != alreadyCreated.end())
       return alreadyCreated[miniMat];
-    
+
     auto mat = backend->create(miniMat);
     alreadyCreated[miniMat] = mat;
     return mat;
@@ -611,15 +611,15 @@ namespace hs {
     // if (disney->alphaTexture)
     //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
 
-    if (disney->colorTexture)
-      PRINT(disney->colorTexture->toString());
-    if (disney->alphaTexture)
-      PRINT(disney->alphaTexture->toString());
-    
+    // if (disney->colorTexture)
+    //   PRINT(disney->colorTexture->toString());
+    // if (disney->alphaTexture)
+    //   PRINT(disney->alphaTexture->toString());
+
     bnCommit(mat);
     return mat;
   }
-  
+
   BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat)
   {
     // PRINT(miniMat->toString());
@@ -628,7 +628,7 @@ namespace hs {
       std::cout
         << OWL_TERMINAL_YELLOW
         << "#hs: creating at least one instance of material *** "
-        << miniMat->toString() << " ***" 
+        << miniMat->toString() << " ***"
         << OWL_TERMINAL_DEFAULT << std::endl;
       typesCreated.insert(miniMat->toString());
     }
@@ -655,7 +655,7 @@ namespace hs {
   anari::Material AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
     auto device = global->device;
-    
+
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
     anari::setParameter(device,material,"baseColor",
@@ -669,7 +669,7 @@ namespace hs {
       anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
       if (tex) anari::setParameter(device,material,"baseColor",tex);
     }
-    
+
     anari::commitParameters(device, material);
     return material;
   }
@@ -680,13 +680,13 @@ namespace hs {
       std::cout
         << OWL_TERMINAL_YELLOW
         << "#hs: creating at least one instance of material *** "
-        << miniMat->toString() << " ***" 
+        << miniMat->toString() << " ***"
         << OWL_TERMINAL_DEFAULT << std::endl;
       typesCreated.insert(miniMat->toString());
     }
 
     auto device = global->device;
-    
+
     // if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
     //   return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
@@ -706,11 +706,11 @@ namespace hs {
     // throw std::runtime_error("could not create barney material for mini mat "
     //                          +miniMat->toString());
 
-    std::cout << MINI_TERMINAL_RED 
+    std::cout << MINI_TERMINAL_RED
               << "#warning: do not know how to realize mini material '"
               << miniMat->toString() << "'; replacing with matte gray"
               << MINI_TERMINAL_DEFAULT << std::endl;
-    
+
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
     anari::math::float3 color(.7f,.7f,.7f);
@@ -742,7 +742,7 @@ namespace hs {
     rootGroup = impl->createGroup({});
     rootInstances.groups.push_back(rootGroup);
     rootInstances.xfms.push_back(affine3f{});
-    
+
     // ------------------------------------------------------------------
     // render all mini::Scene formatted geometry - however many there
     // may be
@@ -753,7 +753,7 @@ namespace hs {
 
     // ==================================================================
     // ==================================================================
-    
+
     // ------------------------------------------------------------------
     // render all lights, mini::Scene formatted geometry - however many there
     // may be
@@ -766,28 +766,28 @@ namespace hs {
 
     // 'attach' the lights to the root group
     impl->setLights(rootGroup,lights);
-    
+
     // ------------------------------------------------------------------
     // finally - specify top-level instances for all the stuff we
     // generated
     // -----------------------------------------------------------------
     this->setInstances(rootInstances.groups,rootInstances.xfms);
   }
-  
+
   template<typename Backend>
   void HayMakerT<Backend>::Slot::render(const mini::QuadLight &ml)
   {
     auto light = this->create(ml);
     if (light) lights.push_back(light);
   }
-  
+
   template<typename Backend>
   void HayMakerT<Backend>::Slot::render(const mini::DirLight &ml)
   {
     auto light = this->create(ml);
     if (light) lights.push_back(light);
   }
-  
+
   template<typename Backend>
   void HayMakerT<Backend>::Slot::render(const mini::EnvMapLight::SP &ml)
   {
@@ -795,7 +795,7 @@ namespace hs {
     auto light = this->create(*ml);
     if (light) lights.push_back(light);
   }
-  
+
   template<typename Backend>
   typename Backend::GroupHandle HayMakerT<Backend>::Slot::render(const mini::Object::SP &object)
   {
@@ -806,8 +806,8 @@ namespace hs {
     }
     return this->createGroup(meshes);
   }
-  
-  
+
+
   template<typename Backend>
   void HayMakerT<Backend>::Slot::renderMiniScene(mini::Scene::SP mini)
   {
@@ -816,7 +816,7 @@ namespace hs {
     // ------------------------------------------------------------------
     for (auto ml : mini->quadLights)
       render(ml);
-    for (auto dl : mini->dirLights) 
+    for (auto dl : mini->dirLights)
       render(dl);
     if (mini->envMapLight)
       render(mini->envMapLight);
@@ -826,13 +826,13 @@ namespace hs {
     // ------------------------------------------------------------------
     std::map<mini::Object::SP, GroupHandle> miniGroups;
     for (auto inst : mini->instances) {
-      if (!miniGroups[inst->object]) 
+      if (!miniGroups[inst->object])
         miniGroups[inst->object] = render(inst->object);
       if (miniGroups[inst->object]) {
         rootInstances.groups.push_back(miniGroups[inst->object]);
         rootInstances.xfms.push_back((const affine3f&)inst->xfm);
       }
-    }    
+    }
   }
 
 
@@ -851,7 +851,7 @@ namespace hs {
       // anari::setAndReleaseParameter(device, inst, "group", groups[i]);
 
       const affine3f xfm = xfms[i];
-      
+
       anari::math::mat4 axf = anari::math::identity;
       axf[0].x = xfm.l.vx.x;
       axf[0].y = xfm.l.vx.y;
@@ -877,8 +877,8 @@ namespace hs {
     std::cout << "### COMMITTING MODEL" << std::endl;
     anari::commitParameters(device, model);
   }
-  
-      
+
+
   void BarneyBackend::Slot::setInstances(const std::vector<BNGroup> &groups,
                                          const std::vector<affine3f> &xfms)
   {
@@ -890,7 +890,7 @@ namespace hs {
 
 
   template<typename Backend>
-  void HayMakerT<Backend>::buildSlots() 
+  void HayMakerT<Backend>::buildSlots()
   {
     for (auto slot : perSlot)
       slot->renderAll();
@@ -919,7 +919,7 @@ namespace hs {
         bnCommit(light);
         return light;
       }
-  
+
   BNLight BarneyBackend::Slot::create(const mini::DirLight &ml)
   {
     BNLight light = bnLightCreate(global->model,this->slot,"directional");
@@ -929,7 +929,7 @@ namespace hs {
     bnCommit(light);
     return light;
   }
-  
+
   anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
   {
     auto device = global->device;
@@ -941,7 +941,7 @@ namespace hs {
     PING; PRINT(ml.radiance);
     return light;
   }
-  
+
       BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
       {
         return {};
@@ -960,7 +960,7 @@ namespace hs {
     bnCommit(rootGroup);
     bnGroupBuild(rootGroup);
   }
-  
+
 
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
