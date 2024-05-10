@@ -218,13 +218,13 @@ namespace mini {
     for (auto &objMat : materials) {
       DisneyMaterial::SP baseMaterial = std::make_shared<DisneyMaterial>();
       baseMaterial->baseColor =
-        { float(objMat.diffuse[0]),
-          float(objMat.diffuse[1]),
-          float(objMat.diffuse[2]) };
+        vec3f(float(objMat.diffuse[0]),
+              float(objMat.diffuse[1]),
+              float(objMat.diffuse[2]));
       baseMaterial->emission =
-        { float(objMat.emission[0]),
-          float(objMat.emission[1]),
-          float(objMat.emission[2]) };
+        vec3f(float(objMat.emission[0]),
+              float(objMat.emission[1]),
+              float(objMat.emission[2]));
       baseMaterial->ior = objMat.ior;
       baseMaterials.push_back(baseMaterial);
 

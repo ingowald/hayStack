@@ -199,7 +199,7 @@ namespace hs {
     anari::commitParameters(device, model);
     
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", 2.f);
+    anari::setParameter(device, renderer, "ambientRadiance", 10.f);
     anari::commitParameters(device, renderer);
     
     frame = anari::newObject<anari::Frame>(device);
@@ -448,7 +448,7 @@ namespace hs {
       return 0;
     }
 
-    std::string wrapMode   = "mirror";
+    std::string wrapMode   = "mirrorRepeat";
     // BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
     //                                               texelFormat,
     //                                               miniTex->size.x,miniTex->size.y,
@@ -482,9 +482,9 @@ namespace hs {
       = anari::newObject<anari::Sampler>(device,"image2D");
     assert(sampler);
     // anari::setParameter(device,sampler,"inAttribute","attribute0");
-    // anari::setParameter(device,sampler,"wrapMode1",wrapMode);
-    // anari::setParameter(device,sampler,"wrapMode2",wrapMode);
-    // anari::setParameter(device,sampler,"filterMode",filterMode);
+    anari::setParameter(device,sampler,"wrapMode1",wrapMode);
+    anari::setParameter(device,sampler,"wrapMode2",wrapMode);
+    anari::setParameter(device,sampler,"filterMode",filterMode);
     anari::setParameter(device,sampler,"image",image);
     anari::commitParameters(device,sampler);
     return sampler;
@@ -573,25 +573,24 @@ namespace hs {
   }
   BNMaterial BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint)
   {
-#if 1
     BNMaterial mat = bnMaterialCreate(global->model,slot,"blender");
     bnSet3fc(mat,"baseColor",(const float3&)metallicPaint->shadeColor);
     bnSet1f (mat,"roughness",.15f);
     bnSet1f (mat,"metallic",.8f);
     bnSet1f (mat,"clearcoat",.15f);
     bnSet1f (mat,"clearcoat_roughness",.15f);
-    // bnSet1f (mat,"ior",metallicPaint->eta);
-#else
-    // float eta = 1.45f;
-    // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
-    // float glitterSpread = 0.025f;
-    // vec3f shadeColor { 0.f, 0.03f, 0.07f };
-    BNMaterial mat = bnMaterialCreate(global->model,slot,"metallic_paint");
-    bnSet3fc(mat,"shadeColor",(const float3&)metallicPaint->shadeColor);
-    bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
-    bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
-    bnSet1f(mat,"eta",metallicPaint->eta);
-#endif
+//     // bnSet1f (mat,"ior",metallicPaint->eta);
+// #else
+//     // float eta = 1.45f;
+//     // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
+//     // float glitterSpread = 0.025f;
+//     // vec3f shadeColor { 0.f, 0.03f, 0.07f };
+//     BNMaterial mat = bnMaterialCreate(global->model,slot,"metallic_paint");
+//     bnSet3fc(mat,"shadeColor",(const float3&)metallicPaint->shadeColor);
+//     bnSet3fc(mat,"glitterColor",(const float3&)metallicPaint->glitterColor);
+//     bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
+//     bnSet1f(mat,"eta",metallicPaint->eta);
+// #endif
     bnCommit(mat);
     return mat;
   }
@@ -611,6 +610,12 @@ namespace hs {
     }
     // if (disney->alphaTexture)
     //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
+
+    if (disney->colorTexture)
+      PRINT(disney->colorTexture->toString());
+    if (disney->alphaTexture)
+      PRINT(disney->alphaTexture->toString());
+    
     bnCommit(mat);
     return mat;
   }
@@ -658,6 +663,7 @@ namespace hs {
     anari::setParameter(device,material,"roughness",disney->roughness);
     anari::setParameter(device,material,"metallic", disney->metallic);
     anari::setParameter(device,material,"ior",      disney->ior);
+    anari::setParameter(device,material,"opacityMode","mask");
 
     if (disney->colorTexture) {
       anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
@@ -863,8 +869,6 @@ namespace hs {
       anari::commitParameters(device, inst);
       instances.push_back(inst);
     }
-    PING;
-    PRINT(instances.size());
     anari::setAndReleaseParameter
       (device,
        model,
@@ -904,6 +908,45 @@ namespace hs {
   {
   }
 
+      BNLight BarneyBackend::Slot::create(const mini::QuadLight &ml)
+      {
+        BNLight light = bnLightCreate(global->model,this->slot,"quad");
+        assert(light);
+        bnSet3fc(light,"corner",(const float3&)ml.corner);
+        bnSet3fc(light,"edge0",(const float3&)ml.edge0);
+        bnSet3fc(light,"edge1",(const float3&)ml.edge1);
+        bnSet3fc(light,"emission",(const float3&)ml.emission);
+        bnCommit(light);
+        return light;
+      }
+  
+  BNLight BarneyBackend::Slot::create(const mini::DirLight &ml)
+  {
+    BNLight light = bnLightCreate(global->model,this->slot,"directional");
+    assert(light);
+    bnSet3fc(light,"direction",(const float3&)ml.direction);
+    bnSet3fc(light,"radiance",(const float3&)ml.radiance);
+    bnCommit(light);
+    return light;
+  }
+  
+  anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
+  {
+    auto device = global->device;
+    anari::Light light = anari::newObject<anari::Light>(device,"directional");
+    assert(light);
+    anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
+    anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
+    anari::commitParameters(device,light);
+    PING; PRINT(ml.radiance);
+    return light;
+  }
+  
+      BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
+      {
+        return {};
+      }
+
   void BarneyBackend::Slot::setLights(BNGroup rootGroup,
                                       const std::vector<BNLight> &lights)
   {
@@ -918,39 +961,23 @@ namespace hs {
     bnGroupBuild(rootGroup);
   }
   
-      BNLight BarneyBackend::Slot::create(const mini::QuadLight &ml)
-      {
-        BNLight light = bnLightCreate(global->model,this->slot,"quad");
-        assert(light);
-        bnSet3fc(light,"corner",(const float3&)ml.corner);
-        bnSet3fc(light,"edge0",(const float3&)ml.edge0);
-        bnSet3fc(light,"edge1",(const float3&)ml.edge1);
-        bnSet3fc(light,"emission",(const float3&)ml.emission);
-        bnCommit(light);
-        return light;
-      }
-  
-      BNLight BarneyBackend::Slot::create(const mini::DirLight &ml)
-      {
-        BNLight light = bnLightCreate(global->model,this->slot,"directional");
-        assert(light);
-        bnSet3fc(light,"direction",(const float3&)ml.direction);
-        bnSet3fc(light,"radiance",(const float3&)ml.radiance);
-        PRINT(ml.direction);
-        PRINT(ml.radiance);
-        bnCommit(light);
-        return light;
-      }
-  
-      BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
-      {
-        return {};
-      }
-
 
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
   {
+    auto device = global->device;
+    PRINT(lights.size());
+    if (!lights.empty()) {
+      anari::setParameterArray1D
+        (device, global->model, "light", lights.data(),lights.size());
+      // BNData lightsData
+      //   = bnDataCreate(global->model,this->slot,
+      //                                  BN_OBJECT,lights.size(),lights.data());
+      // bnSetData(rootGroup,"lights",lightsData);
+      // bnRelease(lightsData);
+    }
+    PING;
+    anari::commitParameters(device,global->model);
   }
 
 
