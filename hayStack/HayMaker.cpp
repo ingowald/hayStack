@@ -663,7 +663,7 @@ namespace hs {
     anari::setParameter(device,material,"roughness",disney->roughness);
     anari::setParameter(device,material,"metallic", disney->metallic);
     anari::setParameter(device,material,"ior",      disney->ior);
-    anari::setParameter(device,material,"opacityMode","mask");
+    anari::setParameter(device,material,"alphaMode","mask");
 
     if (disney->colorTexture) {
       anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
