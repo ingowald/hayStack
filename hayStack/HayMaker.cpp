@@ -72,6 +72,10 @@ namespace hs {
     anari::setParameterArray1D(device, mesh, "primitive.index",
                                (const anari::math::uint3*)miniMesh->indices.data(),
                                miniMesh->indices.size());
+    if (!miniMesh->texcoords.empty())
+      anari::setParameterArray1D(device, mesh, "vertex.attribute0",
+                                 (const anari::math::float2*)miniMesh->texcoords.data(),
+                               miniMesh->texcoords.size());
     anari::commitParameters(device, mesh);
             
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
@@ -356,12 +360,13 @@ namespace hs {
   {}
 
   template<typename Backend>
-  BNSampler TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
+  typename Backend::TextureHandle
+  TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
   {
     auto it = alreadyCreated.find(miniTex);
     if (it != alreadyCreated.end()) return it->second;
 
-    BNSampler bnTex = backend->create(miniTex);
+    auto bnTex = backend->create(miniTex);
     alreadyCreated[miniTex] = bnTex;
     return bnTex;
   }
@@ -381,7 +386,8 @@ namespace hs {
       texelFormat = BN_TEXEL_FORMAT_RGBA8;
       break;
     default:
-      std::cout << "warning: unsupported mini::Texture format #" << (int)miniTex->format << std::endl;
+      std::cout << "warning: unsupported mini::Texture format #"
+                << (int)miniTex->format << std::endl;
       return 0;
     }
       
@@ -396,13 +402,13 @@ namespace hs {
       filterMode = BN_TEXTURE_NEAREST;
       break;
     default:
-      std::cout << "warning: unsupported mini::Texture filter mode #" << (int)miniTex->filterMode << std::endl;
+      std::cout << "warning: unsupported mini::Texture filter mode #"
+                << (int)miniTex->filterMode << std::endl;
       return 0;
     }
 
-    BNTextureAddressMode wrapMode = BN_TEXTURE_WRAP;
-    BNTextureColorSpace  colorSpace  = BN_COLOR_SPACE_LINEAR;
-#if 1
+    BNTextureAddressMode wrapMode   = BN_TEXTURE_MIRROR;//WRAP;
+    BNTextureColorSpace  colorSpace = BN_COLOR_SPACE_LINEAR;
     BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
                                                   texelFormat,
                                                   miniTex->size.x,miniTex->size.y,
@@ -412,19 +418,76 @@ namespace hs {
     bnSetString(sampler,"inAttribute","attribute0");
     bnSet1i(sampler,"wrapMode0",(int)wrapMode);
     bnSet1i(sampler,"wrapMode1",(int)wrapMode);
+    bnSet1i(sampler,"wrapMode2",(int)wrapMode);
     bnSet1i(sampler,"filterMode",(int)filterMode);
     bnSetObject(sampler,"textureData",texData);
     bnRelease(texData);
     bnCommit(sampler);
     return sampler;
-#else
-    BNTexture newTex
-      = bnTexture2DCreate(global->model,this->slot,texelFormat,
-                          miniTex->size.x,miniTex->size.y,
-                          miniTex->data.data(),
-                          filterMode,addressMode,colorSpace);
-    return newTex;
-#endif
+  }
+  
+
+  anari::Sampler AnariBackend::Slot::create(mini::Texture::SP miniTex)
+  {
+    if (!miniTex) return 0;
+
+    auto device = global->device;
+    std::string filterMode;
+    switch (miniTex->filterMode) {
+    case mini::Texture::FILTER_BILINEAR:
+      /*! default filter mode - bilinear */
+      filterMode = "linear";
+      break;
+    case mini::Texture::FILTER_NEAREST:
+      /*! explicitly request nearest-filtering */
+      filterMode = "nearest";
+      break;
+    default:
+      std::cout << "warning: unsupported mini::Texture filter mode #"
+                << (int)miniTex->filterMode << std::endl;
+      return 0;
+    }
+
+    std::string wrapMode   = "mirror";
+    // BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
+    //                                               texelFormat,
+    //                                               miniTex->size.x,miniTex->size.y,
+    //                                               miniTex->data.data());
+
+    anari::Array2D image;
+    switch (miniTex->format) {
+    case mini::Texture::FLOAT4:
+      image = anariNewArray2D(device, (const void *)miniTex->data.data(),
+                              nullptr,nullptr,ANARI_FLOAT32_VEC4,
+                              (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    case mini::Texture::FLOAT1:
+      image = anariNewArray2D(device, (const void **)miniTex->data.data(),
+                                0,0,ANARI_FLOAT32,
+                                (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    case mini::Texture::RGBA_UINT8:
+      image = anariNewArray2D(device, (const void *)miniTex->data.data(),
+                                0,0,ANARI_UFIXED8_VEC4,
+                                (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    default:
+      std::cout << "warning: unsupported mini::Texture format #"
+                << (int)miniTex->format << std::endl;
+      return 0;
+    }
+    anari::commitParameters(device,image);
+    
+    anari::Sampler sampler
+      = anari::newObject<anari::Sampler>(device,"image2D");
+    assert(sampler);
+    // anari::setParameter(device,sampler,"inAttribute","attribute0");
+    // anari::setParameter(device,sampler,"wrapMode1",wrapMode);
+    // anari::setParameter(device,sampler,"wrapMode2",wrapMode);
+    // anari::setParameter(device,sampler,"filterMode",filterMode);
+    anari::setParameter(device,sampler,"image",image);
+    anari::commitParameters(device,sampler);
+    return sampler;
   }
   
 
@@ -586,27 +649,21 @@ namespace hs {
 
   anari::Material AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
-    // BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
-    // bnSet3fc(mat,"emission",(const float3&)disney->emission);
-    // PING; PRINT(disney->baseColor);
-    // bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
-    // bnSet1f(mat,"roughness",   disney->roughness);
-    // bnSet1f(mat,"metallic",    disney->metallic);
-    // bnSet1f(mat,"transmission",disney->transmission);
-    // bnSet1f(mat,"ior",         disney->ior);
-    // // if (disney->colorTexture)
-    // //   bnSetObject(mat,"colorTexture",backend->getOrCreate(slot, disney->colorTexture));
-    // // if (disney->alphaTexture)
-    // //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
-    // bnCommit(mat);
-    // return mat;
     auto device = global->device;
     
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-    anari::setParameter(device,material,"baseColor",(const anari::math::float3&)disney->baseColor);
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)disney->baseColor);
     anari::setParameter(device,material,"roughness",disney->roughness);
-    anari::setParameter(device,material,"metallic",disney->metallic);
+    anari::setParameter(device,material,"metallic", disney->metallic);
+    anari::setParameter(device,material,"ior",      disney->ior);
+
+    if (disney->colorTexture) {
+      anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
+      if (tex) anari::setParameter(device,material,"baseColor",tex);
+    }
+    
     anari::commitParameters(device, material);
     return material;
   }
@@ -664,7 +721,22 @@ namespace hs {
     if (!rootInstances.groups.empty())
       // already rendererd ...
       return;
+    auto impl = this->impl;
 
+    // ==================================================================
+    // first, "render" all content in the sense that we create
+    // geometries, lights, instances, etc, and simply 'append' them to
+    // two global lists for all lights and all instances, respectively
+    // ==================================================================
+
+    // ------------------------------------------------------------------
+    // create a group that can hold all kind of 'global' stuff that's
+    // not an instance
+    // ------------------------------------------------------------------
+    rootGroup = impl->createGroup({});
+    rootInstances.groups.push_back(rootGroup);
+    rootInstances.xfms.push_back(affine3f{});
+    
     // ------------------------------------------------------------------
     // render all mini::Scene formatted geometry - however many there
     // may be
@@ -673,6 +745,22 @@ namespace hs {
     for (auto miniScene : myData.minis)
       renderMiniScene(miniScene);
 
+    // ==================================================================
+    // ==================================================================
+    
+    // ------------------------------------------------------------------
+    // render all lights, mini::Scene formatted geometry - however many there
+    // may be
+    // -----------------------------------------------------------------
+
+    // ==================================================================
+    // now that all light and instances have been _created_ and
+    // appended to the respective arrays, add these to the model
+    // ==================================================================
+
+    // 'attach' the lights to the root group
+    impl->setLights(rootGroup,lights);
+    
     // ------------------------------------------------------------------
     // finally - specify top-level instances for all the stuff we
     // generated
@@ -790,8 +878,6 @@ namespace hs {
   void BarneyBackend::Slot::setInstances(const std::vector<BNGroup> &groups,
                                          const std::vector<affine3f> &xfms)
   {
-    PING; PRINT(xfms.size());
-    
     bnSetInstances(global->model,this->slot,
                    (BNGroup*)groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
@@ -817,7 +903,57 @@ namespace hs {
   void BarneyBackend::Global::finalizeRender()
   {
   }
+
+  void BarneyBackend::Slot::setLights(BNGroup rootGroup,
+                                      const std::vector<BNLight> &lights)
+  {
+    PING; PRINT(lights.size());
+    if (!lights.empty()) {
+      BNData lightsData = bnDataCreate(global->model,this->slot,
+                                       BN_OBJECT,lights.size(),lights.data());
+      bnSetData(rootGroup,"lights",lightsData);
+      bnRelease(lightsData);
+    }
+    bnCommit(rootGroup);
+    bnGroupBuild(rootGroup);
+  }
   
+      BNLight BarneyBackend::Slot::create(const mini::QuadLight &ml)
+      {
+        BNLight light = bnLightCreate(global->model,this->slot,"quad");
+        assert(light);
+        bnSet3fc(light,"corner",(const float3&)ml.corner);
+        bnSet3fc(light,"edge0",(const float3&)ml.edge0);
+        bnSet3fc(light,"edge1",(const float3&)ml.edge1);
+        bnSet3fc(light,"emission",(const float3&)ml.emission);
+        bnCommit(light);
+        return light;
+      }
+  
+      BNLight BarneyBackend::Slot::create(const mini::DirLight &ml)
+      {
+        BNLight light = bnLightCreate(global->model,this->slot,"directional");
+        assert(light);
+        bnSet3fc(light,"direction",(const float3&)ml.direction);
+        bnSet3fc(light,"radiance",(const float3&)ml.radiance);
+        PRINT(ml.direction);
+        PRINT(ml.radiance);
+        bnCommit(light);
+        return light;
+      }
+  
+      BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
+      {
+        return {};
+      }
+
+
+  void AnariBackend::Slot::setLights(anari::Group rootGroup,
+                                     const std::vector<anari::Light> &lights)
+  {
+  }
+
+
   template struct HayMakerT<BarneyBackend>;
   template struct HayMakerT<AnariBackend>;
 }

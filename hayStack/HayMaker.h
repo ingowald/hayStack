@@ -53,7 +53,7 @@ namespace hs {
     using TextureHandle = typename Backend::TextureHandle;
     
     TextureLibrary(typename Backend::Slot *backend);
-    BNSampler getOrCreate(mini::Texture::SP miniTex);
+    TextureHandle getOrCreate(mini::Texture::SP miniTex);
     
   private:
     TextureHandle create(mini::Texture::SP miniTex);
@@ -123,6 +123,7 @@ namespace hs {
         std::vector<affine3f>    xfms;
         std::vector<GroupHandle> groups;
       } rootInstances;
+      GroupHandle rootGroup;
 
       LightHandle envLight;
       std::vector<LightHandle> lights;
@@ -190,9 +191,9 @@ namespace hs {
       void setTransferFunction(const std::vector<VolumeHandle> &volumes,
                                const TransferFunction &xf);
 
-      BNLight create(const mini::QuadLight &ml) { return {}; }
-      BNLight create(const mini::DirLight &ml) { return {}; }
-      BNLight create(const mini::EnvMapLight &ml) { return {}; }
+      BNLight create(const mini::QuadLight &ml);
+      BNLight create(const mini::DirLight &ml);
+      BNLight create(const mini::EnvMapLight &ml);
 
       BNGroup    createGroup(const std::vector<BNGeom> &geoms);
       BNMaterial create(mini::Plastic::SP plastic);
@@ -211,7 +212,8 @@ namespace hs {
 
       void setInstances(const std::vector<BNGroup> &groups,
                         const std::vector<affine3f> &xfms);
-      
+      void setLights(BNGroup rootGroup, const std::vector<BNLight> &lights);
+
       inline void release(BNSampler t) { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
 
@@ -275,7 +277,9 @@ namespace hs {
 
       void setInstances(const std::vector<anari::Group> &groups,
                         const std::vector<affine3f> &xfms);
+      void setLights(anari::Group rootGroup, const std::vector<anari::Light> &lights);
       
+      anari::Sampler create(mini::Texture::SP miniTex);
       GeomHandle create(mini::Mesh::SP miniMesh, MaterialLibrary<AnariBackend> *materialLib);
 
       inline void release(anari::Sampler t) { anari::release(global->device, t); }
