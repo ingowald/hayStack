@@ -47,6 +47,9 @@ namespace hs {
       = anari::newObject<anari::Group>(global->device);
     anari::setParameterArray1D(global->device, meshGroup, "surface", geoms.data(),geoms.size());
     anari::setParameterArray1D(global->device, meshGroup, "volume", volumes.data(),volumes.size());
+    PING;
+    PRINT(volumes.size());
+    PRINT(geoms.size());
     anari::commitParameters(global->device, meshGroup);
     return meshGroup;
   }
@@ -161,7 +164,7 @@ namespace hs {
 
       anari::setAndReleaseParameter
         (device, model, "volume", anari::newArray1D(device, &vol));
-      anari::release(device, vol);
+      // anari::release(device, vol);
     }
 
     anari::commitParameters(device, impl->volumeGroup);
@@ -337,8 +340,6 @@ namespace hs {
     auto device = global->device;
     auto model  = global->model;
     std::vector<anari::Instance> instances;
-    PRINT(groups.size());
-    PRINT((int*)groups[0]);
     for (int i=0;i<groups.size();i++) {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
@@ -388,7 +389,6 @@ namespace hs {
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
     anari::commitParameters(device,light);
-    PING; PRINT(ml.radiance);
     return light;
   }
 
@@ -396,7 +396,6 @@ namespace hs {
                                      const std::vector<anari::Light> &lights)
   {
     auto device = global->device;
-    PRINT(lights.size());
     if (!lights.empty()) {
       anari::setParameterArray1D
         (device, global->model, "light", lights.data(),lights.size());
@@ -406,12 +405,12 @@ namespace hs {
       // bnSetData(rootGroup,"lights",lightsData);
       // bnRelease(lightsData);
     }
-    PING;
     anari::commitParameters(device,global->model);
   }
 
   anari::Volume AnariBackend::Slot::create(const StructuredVolume::SP &vol)
   {
+    std::cout << "*HAYSTACK* createing new structured volume" << std::endl;
     auto device = global->device;
 
     anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
@@ -449,7 +448,9 @@ namespace hs {
     anari::commitParameters(device, field);
 
     auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
-    anari::setAndReleaseParameter(device, volume, "field", field);
+    PRINT(field);
+    anari::setAndReleaseParameter(device, volume, "value", field);
+    anari::commitParameters(device, volume);
 
     return volume;
   }
