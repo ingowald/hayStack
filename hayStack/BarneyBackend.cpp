@@ -106,6 +106,7 @@ namespace hs {
   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
                                                 const TransferFunction &xf)
   {
+    PING;
     if (rootVolumes.empty())
       return;
 
@@ -116,6 +117,7 @@ namespace hs {
                     (int)xf.colorMap.size(),
                     xf.baseDensity);
     }
+    PING;
     bnGroupBuild(impl->volumeGroup);
     bnBuild(global->model,this->slot);
   }
@@ -396,14 +398,15 @@ namespace hs {
                           vol->rawData.data());
     BNScalarField sf
       = bnScalarFieldCreate(global->model,this->slot,"structured");
+    assert(sf);
     bnSetObject(sf,"texture",texture);
     bnRelease(texture);
     bnSet3ic(sf,"dims",(const int3&)vol->dims);
     bnSet3fc(sf,"gridOrigin",(const float3&)vol->gridOrigin);
     bnSet3fc(sf,"gridSpacing",(const float3&)vol->gridSpacing);
     bnCommit(sf);
-    bnRelease(sf);
     BNVolume volume = bnVolumeCreate(global->model,this->slot,sf);
+    bnRelease(sf);
     return volume;
   }
 

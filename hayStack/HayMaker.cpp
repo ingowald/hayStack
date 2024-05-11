@@ -135,6 +135,7 @@ namespace hs {
 
     rootGroup = impl->createGroup(rootGeoms,{});
     rootInstances.groups.push_back(rootGroup);
+    rootInstances.xfms.push_back(affine3f{});
 
     
     // 'attach' the lights to the root group
@@ -219,6 +220,7 @@ namespace hs {
   {
     for (auto slot : perSlot)
       slot->renderAll();
+    PING;
     global.finalizeRender();
   }
 
