@@ -437,17 +437,28 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
-  HayMaker *hayMaker = 0;
-  if (hanari)
-    hayMaker = new HayMakerT<AnariBackend>(world,
+  HayMaker *hayMaker
+    = hanari
+    ? HayMaker::createAnariImplementation(world,
+                                          /* the workers */workers,
+                                          thisRankData,
+                                          verbose())
+    : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            thisRankData,
                                            verbose());
-  else 
-    hayMaker = new HayMakerT<BarneyBackend>(world,
-                                            /* the workers */workers,
-                                            thisRankData,
-                                            verbose());
+// #if HANARI
+//     hayMaker = new HayMakerT<AnariBackend>(world,
+//                                            /* the workers */workers,
+//                                            thisRankData,
+//                                            verbose());
+// #else
+// #endif
+//   } else 
+//     hayMaker = new HayMakerT<BarneyBackend>(world,
+//                                             /* the workers */workers,
+//                                             thisRankData,
+//                                             verbose());
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();

@@ -40,7 +40,18 @@ namespace hs {
              bool verbose);
 
     virtual void buildSlots() = 0;
-    
+
+    /*! creates a renderer that uses anari to render; will throw if
+        anari support was not built in */
+    static HayMaker *createAnariImplementation(Comm &world,
+                                               Comm &workers,
+                                               ThisRankData &thisRankData,
+                                               bool verbose);
+    /*! creates a "native" barney renderer */
+    static HayMaker *createBarneyImplementation(Comm &world,
+                                                Comm &workers,
+                                                ThisRankData &thisRankData,
+                                                bool verbose);
     Comm        &world;
     Comm         workers;
     ThisRankData rankData;
@@ -125,15 +136,16 @@ namespace hs {
       } rootInstances;
       GroupHandle rootGroup;
 
+      std::vector<VolumeHandle> rootVolumes;
+      std::vector<GeomHandle>   rootGeoms;
+      
       LightHandle envLight;
       std::vector<LightHandle> lights;
 
-      // list of created volumes, so we can set transfer function
-      std::vector<VolumeHandle> createdVolumes;
       GroupHandle volumeGroup = 0;
 
       void setTransferFunction(const TransferFunction &xf)
-      { Backend::Slot::setTransferFunction(createdVolumes,xf); }
+      { Backend::Slot::setTransferFunction(rootVolumes,xf); }
       
       void renderAll();
       void renderMiniScene(mini::Scene::SP miniScene);
@@ -149,155 +161,4 @@ namespace hs {
     std::vector<Slot *> perSlot;
   };
 
-  struct BarneyBackend {
-    typedef BNMaterial MaterialHandle;
-    typedef BNSampler  TextureHandle;
-    typedef BNGroup    GroupHandle;
-    typedef BNLight    LightHandle;
-    typedef BNVolume   VolumeHandle;
-    typedef BNGeom     GeomHandle;
-    
-    struct Global {
-      Global(HayMaker *base);
-
-      void init();
-      void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
-      void resetAccumulation();
-      void setCamera(const Camera &camera);
-      void finalizeRender();
-      
-      HayMaker *const base;
-      BNContext     barney = 0;
-      BNModel       model  = 0;
-      BNFrameBuffer fb     = 0;
-      BNCamera      camera = 0;
-      vec2i        fbSize;
-    };
-    
-    void resize(const vec2i &fbSize, uint32_t *hostRgba);
-    void renderFrame(int pathsPerPixel);
-    void resetAccumulation();
-    void setCamera(const Camera &camera);
-    
-
-    // void buildDataGroup(int dgID);
-    
-    struct Slot {
-      Slot(Global *global, int slot,
-           typename HayMakerT<BarneyBackend>::Slot *impl)
-        : global(global), slot(slot), impl(impl) {}
-    
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
-
-      BNLight create(const mini::QuadLight &ml);
-      BNLight create(const mini::DirLight &ml);
-      BNLight create(const mini::EnvMapLight &ml);
-
-      BNGroup    createGroup(const std::vector<BNGeom> &geoms);
-      BNMaterial create(mini::Plastic::SP plastic);
-      BNMaterial create(mini::Velvet::SP velvet);
-      BNMaterial create(mini::Matte::SP matte);
-      BNMaterial create(mini::Metal::SP metal);
-      BNMaterial create(mini::ThinGlass::SP thinGlass);
-      BNMaterial create(mini::Dielectric::SP dielectric);
-      BNMaterial create(mini::MetallicPaint::SP metallicPaint);
-      BNMaterial create(mini::DisneyMaterial::SP disney);
-      BNMaterial create(mini::Material::SP miniMat);
-
-      BNSampler create(mini::Texture::SP miniTex);
-      GeomHandle create(mini::Mesh::SP miniMesh,
-                        MaterialLibrary<BarneyBackend> *materialLib);
-
-      void setInstances(const std::vector<BNGroup> &groups,
-                        const std::vector<affine3f> &xfms);
-      void setLights(BNGroup rootGroup, const std::vector<BNLight> &lights);
-
-      inline void release(BNSampler t) { bnRelease(t); }
-      inline void release(BNMaterial m) { bnRelease(m); }
-
-      typename HayMakerT<BarneyBackend>::Slot *const impl;
-      Global *const global;
-      int     const slot;
-    };
-  };
-
-  struct AnariBackend {
-    typedef anari::Material MaterialHandle;
-    typedef anari::Sampler  TextureHandle;
-    typedef anari::Group    GroupHandle;
-    typedef anari::Light    LightHandle;
-    typedef anari::Surface  GeomHandle;
-    typedef anari::Volume   VolumeHandle;
-
-    struct Global {
-      Global(HayMaker *base);
-
-      void init();
-      void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
-      void resetAccumulation();
-      void setCamera(const Camera &camera);
-      void finalizeRender();
-
-      HayMaker *const base;
-
-      anari::Device device = 0;
-      anari::Frame  frame  = 0;
-      anari::World  model  = 0;
-      anari::Camera camera = 0;
-      uint32_t *hostRGBA   = 0;
-      vec2i        fbSize;
-    };
-
-    struct Slot {
-      Slot(Global *global, int slot,
-           typename HayMakerT<AnariBackend>::Slot *impl)
-        : global(global), slot(slot), impl(impl) {}
-    
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
-      
-      anari::Light create(const mini::QuadLight &ml) { return {}; }
-      anari::Light create(const mini::DirLight &ml);
-      anari::Light create(const mini::EnvMapLight &ml) { return {}; }
-      
-      anari::Group createGroup(const std::vector<anari::Surface> &geoms);
-
-      anari::Material create(mini::Plastic::SP plastic);
-      anari::Material create(mini::Velvet::SP velvet);
-      anari::Material create(mini::Matte::SP matte);
-      anari::Material create(mini::Metal::SP metal);
-      anari::Material create(mini::ThinGlass::SP thinGlass);
-      anari::Material create(mini::Dielectric::SP dielectric);
-      anari::Material create(mini::MetallicPaint::SP metallicPaint);
-      anari::Material create(mini::DisneyMaterial::SP disney);
-      anari::Material create(mini::Material::SP miniMat);
-
-      void setInstances(const std::vector<anari::Group> &groups,
-                        const std::vector<affine3f> &xfms);
-      void setLights(anari::Group rootGroup, const std::vector<anari::Light> &lights);
-      
-      anari::Sampler create(mini::Texture::SP miniTex);
-      GeomHandle create(mini::Mesh::SP miniMesh, MaterialLibrary<AnariBackend> *materialLib);
-
-      inline void release(anari::Sampler t) { anari::release(global->device, t); }
-      inline void release(anari::Material m) { anari::release(global->device, m); }
-      
-      
-      typename HayMakerT<AnariBackend>::Slot *const impl;
-      Global *const global;
-      int     const slot;
-      std::vector<anari::Volume> createdVolumes;
-      anari::Group volumeGroup = 0;
-    };
-
-    // void buildDataGroup(int dgID);
-    
-    // struct PerDG {
-    // };
-    // std::vector<PerDG> perDG;
-  };
-  
 }
