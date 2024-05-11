@@ -125,10 +125,8 @@ namespace hs {
     // -----------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
       VolumeHandle createdVolume = impl->create(vol);
-      PING;
-      PRINT((int*)createdVolume);
-      if (createdVolume) rootVolumes.push_back(createdVolume);
-      PRINT(rootVolumes.size());
+      if (createdVolume)
+        rootVolumes.push_back(createdVolume);
     }
 
     // ==================================================================
@@ -145,8 +143,6 @@ namespace hs {
     impl->setLights(rootGroup,lights);
 
     // attach volumes to instances
-    
-    PRINT(rootVolumes.size());
     volumeGroup = impl->createGroup({},rootVolumes);
     rootInstances.groups.push_back(volumeGroup);
     rootInstances.xfms.push_back(affine3f{});
@@ -224,7 +220,6 @@ namespace hs {
   {
     for (auto slot : perSlot)
       slot->renderAll();
-    PING;
     global.finalizeRender();
   }
 

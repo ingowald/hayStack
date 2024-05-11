@@ -47,9 +47,6 @@ namespace hs {
       = anari::newObject<anari::Group>(global->device);
     anari::setParameterArray1D(global->device, meshGroup, "surface", geoms.data(),geoms.size());
     anari::setParameterArray1D(global->device, meshGroup, "volume", volumes.data(),volumes.size());
-    PING;
-    PRINT(volumes.size());
-    PRINT(geoms.size());
     anari::commitParameters(global->device, meshGroup);
     return meshGroup;
   }
@@ -399,18 +396,12 @@ namespace hs {
     if (!lights.empty()) {
       anari::setParameterArray1D
         (device, global->model, "light", lights.data(),lights.size());
-      // BNData lightsData
-      //   = bnDataCreate(global->model,this->slot,
-      //                                  BN_OBJECT,lights.size(),lights.data());
-      // bnSetData(rootGroup,"lights",lightsData);
-      // bnRelease(lightsData);
     }
     anari::commitParameters(device,global->model);
   }
 
   anari::Volume AnariBackend::Slot::create(const StructuredVolume::SP &vol)
   {
-    std::cout << "*HAYSTACK* createing new structured volume" << std::endl;
     auto device = global->device;
 
     anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
@@ -448,7 +439,6 @@ namespace hs {
     anari::commitParameters(device, field);
 
     auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
-    PRINT(field);
     anari::setAndReleaseParameter(device, volume, "value", field);
     anari::commitParameters(device, volume);
 
