@@ -41,7 +41,7 @@ namespace hs {
     size_t projectedSize() override
     { return 2 * fileSize; }
     
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override
+    void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       mini::Scene::SP ms = mini::Scene::load(fileName);
       dataGroup.minis.push_back(ms);

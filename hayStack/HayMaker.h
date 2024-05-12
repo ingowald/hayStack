@@ -20,7 +20,7 @@
 #pragma once
 
 #include "hayStack/HayStack.h"
-#include "hayStack/DataGroup.h"
+#include "hayStack/LocalModel.h"
 #include "hayStack/MPIRenderer.h"
 #if HANARI
 # include <anari/anari_cpp.hpp>
@@ -38,7 +38,7 @@ namespace hs {
     
     HayMaker(Comm &world,
              Comm &workers,
-             ThisRankData &thisRankData,
+             LocalModel &localModel,
              bool verbose);
 
     virtual void buildSlots() = 0;
@@ -47,16 +47,16 @@ namespace hs {
         anari support was not built in */
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
-                                               ThisRankData &thisRankData,
+                                               LocalModel &localModel,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
-                                                ThisRankData &thisRankData,
+                                                LocalModel &localModel,
                                                 bool verbose);
     Comm        &world;
     Comm         workers;
-    ThisRankData rankData;
+    LocalModel localModel;
     bool         verbose;
   };
   
@@ -108,7 +108,7 @@ namespace hs {
   {
     HayMakerT(Comm &world,
              Comm &workers,
-             ThisRankData &thisRankData,
+             LocalModel &localModel,
              bool verbose);
 
     void init();

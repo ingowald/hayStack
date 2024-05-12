@@ -426,7 +426,7 @@ int main(int ac, char **av)
   
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
-  ThisRankData thisRankData;
+  LocalModel thisRankData;
   if (!isHeadNode) {
     loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }

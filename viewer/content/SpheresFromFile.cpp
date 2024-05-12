@@ -69,7 +69,7 @@ namespace hs {
   }
  
   
-  void   SpheresFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   SpheresFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
     spheres->radius = radius;

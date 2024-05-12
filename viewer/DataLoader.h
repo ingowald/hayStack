@@ -16,8 +16,9 @@
 
 #pragma once
 
-#include "hayStack/DataGroup.h"
+#include "hayStack/DataRank.h"
 #include "hayStack/MPIWrappers.h"
+#include "hayStack/LocalModel.h"
 
 namespace hs {
 
@@ -76,19 +77,19 @@ namespace hs {
       different pieces of content */
     void addContent(LoadableContent *);
     
-    virtual void assignGroups(int numDataGroups) = 0;
+    virtual void assignGroups(int numDataRanks) = 0;
     
     /*! interface for the app to load one particular rank's data
       group(s) */
-    virtual void loadDataGroup(DataGroup &dg,
+    virtual void loadDataRank(DataRank &dg,
                                int dataGroupID,
                                bool verbose) = 0;
 
     /*! actually loads one rank's data, based on which content got
         assigned to which rank. must get called on every worker
         collaboratively - but only on active workers */
-    void loadData(ThisRankData &rankData,
-                  int numDataGroups,
+    void loadData(LocalModel &localModel,
+                  int numDataRanks,
                   int dataPerRank,
                   bool verbose);
     
@@ -124,7 +125,7 @@ namespace hs {
 
     /*! make this content execute the actual load, and add the
       actually loaded content to the specific data group */
-    virtual void   executeLoad(DataGroup &dataGroup, bool verbose) = 0;
+    virtual void   executeLoad(DataRank &dataGroup, bool verbose) = 0;
   };
 
   /*! a data loader that assigns objects dynamically to data groups
@@ -133,9 +134,9 @@ namespace hs {
     DynamicDataLoader(hs::mpi::Comm &workers)
       : DataLoader(workers)
     {}
-    void assignGroups(int numDataGroups) override;
+    void assignGroups(int numDataRanks) override;
 
-    void loadDataGroup(DataGroup &dg,
+    void loadDataRank(DataRank &dg,
                        int dataGroupID,
                        bool verbose) override;
   private:

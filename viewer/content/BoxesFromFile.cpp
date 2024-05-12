@@ -45,7 +45,7 @@ namespace hs {
   size_t BoxesFromFile::projectedSize() 
   { return (100/12) * divRoundUp(fileSize, (size_t)data.numParts); }
     
-  void   BoxesFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   BoxesFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     std::vector<box3f> boxes;
     FILE *file = fopen(data.where.c_str(),"rb");

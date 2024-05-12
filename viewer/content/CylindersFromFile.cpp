@@ -149,7 +149,7 @@ namespace hs {
   size_t CylindersFromFile::projectedSize() 
   { return 100; }
     
-  void   CylindersFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   CylindersFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     hs::Cylinders::SP cs = hs::Cylinders::create();
     if (fileName == "sample") {

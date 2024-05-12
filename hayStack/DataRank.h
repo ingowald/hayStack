@@ -31,7 +31,7 @@ namespace hs {
       is goind to be split into. for multi-gpu data parallel multi-gpu
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
-  struct DataGroup {
+  struct DataRank {
     BoundsData getBounds() const;
     
     /*! this is an optimization in particular for models (like lander)
@@ -41,7 +41,7 @@ namespace hs {
         negative side effects on performance */
     void mergeUnstructuredMeshes();
 
-    DataGroup() {
+    DataRank() {
       defaultMaterial = mini::DisneyMaterial::create();
     };
     mini::Material::SP                defaultMaterial;
@@ -57,34 +57,4 @@ namespace hs {
     int                               dataGroupID = -1;
   };
 
-  /*! data for one mpi rank - each mpi rank can still have multiple
-      data groups (for local multi-gpu data parallel rendering, for
-      example - so it has multiple data groups */
-  struct ThisRankData {
-    BoundsData getBounds() const;
-
-    /*! returns whether this rank does *not* have any data; in this
-        case it's a passive (head?-)node */
-    bool empty() const { return dataGroups.empty(); }
-    
-    void resize(int numDataGroups)
-    { dataGroups.resize(numDataGroups); }
-
-    /*! returns the number of data groups *on this rank* */
-    int size() const { return (int)dataGroups.size(); }
-
-    /*! this is an optimization in particular for models (like lander)
-        where one rank might get multiple "smaller" unstructured
-        meshes -- if each of these become their own volumes, with
-        their own acceleration strcutre, etc, then that may have some
-        negative side effects on performance */
-    void mergeUnstructuredMeshes()
-    {
-      for (auto &dg : dataGroups) dg.mergeUnstructuredMeshes();
-      for (auto &dg : dataGroups) PRINT(dg.unsts.size());
-    }
-      
-    std::vector<DataGroup> dataGroups;
-  };
-
-}
+} // ::hs

@@ -145,7 +145,7 @@ namespace hs {
     return numVoxels.x*size_t(numVoxels.y)*numVoxels.z*numChannels*sizeOf(texelFormat);
   }
   
-  void RAWVolumeContent::executeLoad(DataGroup &dataGroup, bool verbose)
+  void RAWVolumeContent::executeLoad(DataRank &dataGroup, bool verbose)
   {
     vec3i numVoxels = (cellRange.size()+1);
     size_t numScalars = //numChannels*

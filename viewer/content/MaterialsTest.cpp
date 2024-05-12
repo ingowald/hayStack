@@ -43,7 +43,7 @@ namespace hs {
   size_t MaterialsTest::projectedSize() 
   { return 100 * (size_t)data.numParts; }
 
-  void   MaterialsTest::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   MaterialsTest::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     for (int iy=0;iy<gridRes;iy++)
       for (int ix=0;ix<gridRes;ix++) {

@@ -18,6 +18,7 @@
 #include "BarneyBackend.h"
 #if HANARI
 #include "AnariBackend.h"
+
 #endif
 // #include "hayStack/TransferFunction.h"
 // #include <map>
@@ -26,29 +27,29 @@ namespace hs {
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
-                     ThisRankData &thisRankData,
+                     LocalModel &_localModel,
                      bool verbose)
     : world(world),
       workers(workers),
-      rankData(std::move(thisRankData)),
+      localModel(std::move(_localModel)),
       verbose(verbose)
   {}
 
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
-                                ThisRankData &thisRankData,
+                                LocalModel &localModel,
                                 bool verbose)
-    : HayMaker(world,workers,thisRankData,verbose),
+    : HayMaker(world,workers,localModel,verbose),
       global(this)
   {
-    for (int i=0;i<this->rankData.size();i++)
+    for (int i=0;i<this->localModel.size();i++)
       perSlot.push_back(new Slot(&global,i));
   }
 
   BoundsData HayMaker::getWorldBounds() const
   {
-    BoundsData bb = rankData.getBounds();
+    BoundsData bb = localModel.getBounds();
     bb.spatial.lower = world.allReduceMin(bb.spatial.lower);
     bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
@@ -116,7 +117,7 @@ namespace hs {
     // may be; this also includes lights because those are currently
     // stored in mini::Scene'
     // -----------------------------------------------------------------
-    auto &myData = this->global->base->rankData.dataGroups[this->slot];
+    auto &myData = this->global->base->localModel.dataGroups[this->slot];
     for (auto miniScene : myData.minis)
       renderMiniScene(miniScene);
 
@@ -225,13 +226,13 @@ namespace hs {
 
   HayMaker *HayMaker::createAnariImplementation(Comm &world,
                                                 Comm &workers,
-                                               ThisRankData &thisRankData,
+                                               LocalModel &localModel,
                                                 bool verbose)
   {
 #if HANARI
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
-                                       thisRankData,
+                                       localModel,
                                        verbose);
 #else
     throw std::runtime_error("ANARI support not compiled in");
@@ -240,12 +241,12 @@ namespace hs {
   
   HayMaker *HayMaker::createBarneyImplementation(Comm &world,
                                                 Comm &workers,
-                                                ThisRankData &thisRankData,
+                                                LocalModel &localModel,
                                                 bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
                                         /* the workers */workers,
-                                        thisRankData,
+                                        localModel,
                                         verbose);
   }
   

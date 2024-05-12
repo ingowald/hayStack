@@ -318,7 +318,7 @@ namespace mini {
 
 namespace hs {
 
-  void OBJContent::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void OBJContent::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     dataGroup.minis.push_back(mini::loadOBJ(fileName));
   }

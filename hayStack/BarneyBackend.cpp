@@ -67,10 +67,10 @@ namespace hs {
   BarneyBackend::Global::Global(HayMaker *base)
     : base(base)
   {
-    bool isActiveWorker = !base->rankData.empty();
+    bool isActiveWorker = !base->localModel.empty();
     if (isActiveWorker) {
       std::vector<int> dataGroupIDs;
-      for (auto dg : base->rankData.dataGroups)
+      for (auto dg : base->localModel.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
 #if HS_FAKE_MPI
       barney = bnContextCreate

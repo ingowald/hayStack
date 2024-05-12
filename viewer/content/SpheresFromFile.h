@@ -28,7 +28,7 @@ namespace hs {
     static void create(DataLoader *loader,
                        const ResourceSpecifier &dataURL);
     size_t projectedSize() override;
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
+    void   executeLoad(DataRank &dataGroup, bool verbose) override;
 
     std::string toString() override;
 

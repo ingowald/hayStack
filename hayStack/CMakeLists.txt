@@ -29,8 +29,10 @@ add_library(hayStack
   
   HayStack.h
 
-  DataGroup.h
-  DataGroup.cpp
+  LocalModel.h
+  LocalModel.cpp
+  DataRank.h
+  DataRank.cpp
   Cylinders.h
   Cylinders.cpp
   Spheres.h

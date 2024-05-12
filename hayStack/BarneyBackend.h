@@ -83,6 +83,7 @@ namespace hs {
                         MaterialLibrary<BarneyBackend> *materialLib);
 
       BNVolume create(const StructuredVolume::SP &v);
+      // BNVolume create(const UMeshVolume::SP &v);
       
       void setInstances(const std::vector<BNGroup> &groups,
                         const std::vector<affine3f> &xfms);

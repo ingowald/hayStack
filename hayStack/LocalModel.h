@@ -14,37 +14,38 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+/*! a "LocalModel" describes the kind of data -- organized in one or
+    more data ranks -- that a given app / mpi rank has loaded. note
+    that while 'regular' ranks do have at least one data rank, for
+    certain processes (like a head node) it is allowd to not have any
+    data at all */
+
 #pragma once
 
-#include "viewer/DataLoader.h"
+#include "DataRank.h"
 
 namespace hs {
 
-  /*! a 'umesh' file of unstructured mesh data */
-  struct OBJContent : public LoadableContent {
-    OBJContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
-    {}
+  struct LocalModel {
+    BoundsData getBounds() const;
 
-    static void create(DataLoader *loader,
-                       const std::string &dataURL)
-    {
-      loader->addContent(new OBJContent(/* this is a plain filename for umesh:*/dataURL));
-    }
+    /*! returns whether this rank does *not* have any data; in this
+      case it's a passive (head?-)node */
+    bool empty() const;
     
-    std::string toString() override
-    {
-      return "OBJ{fileName="+fileName+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    size_t projectedSize() override
-    { return 2 * fileSize; }
-    
-    void   executeLoad(DataRank &dataGroup, bool verbose) override;
+    void resize(int numDataRanks);
 
-    const std::string fileName;
-    const size_t      fileSize;
+    /*! returns the number of data groups *on this rank* */
+    int size() const;
+
+    /*! this is an optimization in particular for models (like lander)
+      where one rank might get multiple "smaller" unstructured
+      meshes -- if each of these become their own volumes, with
+      their own acceleration strcutre, etc, then that may have some
+      negative side effects on performance */
+    void mergeUnstructuredMeshes();
+
+    std::vector<DataRank> dataGroups;
   };
 
-}
+} // ::hs

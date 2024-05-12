@@ -42,7 +42,7 @@ namespace hs {
     size_t projectedSize() override
     { return 2 * fileSize; }
     
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override
+    void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(fileName);
 #if 0
@@ -110,7 +110,7 @@ namespace hs {
     size_t projectedSize() override
     { return 2 * fileSize; }
     
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override
+    void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       dataGroup.unsts.push_back({umesh::UMesh::loadFrom(fileName),domain});
     }

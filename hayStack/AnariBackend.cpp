@@ -82,10 +82,10 @@ namespace hs {
   AnariBackend::Global::Global(HayMaker *base)
     : base(base)
   {
-    bool isActiveWorker = !base->rankData.empty();
+    bool isActiveWorker = !base->localModel.empty();
     if (isActiveWorker) {
       std::vector<int> dataGroupIDs;
-      for (auto dg : base->rankData.dataGroups)
+      for (auto dg : base->localModel.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
       char *envlib = getenv("ANARI_LIBRARY");
       std::string libname = envlib ? "environment" : "barney";
