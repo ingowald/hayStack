@@ -31,6 +31,8 @@
 
 namespace hs {
 
+  /*! base class for anything that can do (data-parallel) rendering of
+      haystack data */
   struct HayMaker : public Renderer {
     BoundsData getWorldBounds() const;
     
@@ -58,6 +60,10 @@ namespace hs {
     bool         verbose;
   };
   
+  /*! keeps track of which frontend textures have already been
+      created on the backend, and returns handle to already created
+      backend variant if it exists -- or creates one if this is not
+      yet the case */
   template<typename Backend>
   struct TextureLibrary
   {
@@ -71,7 +77,11 @@ namespace hs {
     typename Backend::Slot *const backend;
     std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
   };
-  
+
+  /*! keeps track of which frontend materials have already been
+      created on the backend, and returns handle to already created
+      backend variant if it exists -- or creates one if this is not
+      yet the case */
   template<typename Backend>
   struct MaterialLibrary {
     using MaterialHandle = typename Backend::MaterialHandle;
@@ -85,7 +95,14 @@ namespace hs {
     typename Backend::Slot *const backend;
   };
   
-  
+  /*! implementation of the haymaker 'api' using one or more
+      (templated) funtions to do individual basic opertaion. In
+      general, it is this class that maintains material and template
+      libraries, does scene graph traversal, keeps track of which
+      volumes have been created (to be able to assign a new transfer
+      function), etc; then this class refers to the (template-param)
+      "backend" to do individual operations like "create structured
+      volume" or "create disney material", etc */
   template<typename Backend>
   struct HayMakerT : public HayMaker
   {
