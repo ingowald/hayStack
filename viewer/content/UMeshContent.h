@@ -23,36 +23,12 @@ namespace hs {
 
   /*! a 'umesh' file of unstructured mesh data */
   struct UMeshContent : public LoadableContent {
-    UMeshContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
-    {}
-
+    UMeshContent(const std::string &fileName);
     static void create(DataLoader *loader,
-                       const std::string &dataURL)
-    {
-      loader->addContent(new UMeshContent(/* this is a plain filename for umesh:*/dataURL));
-    }
-    
-    std::string toString() override
-    {
-      return "UMesh{fileName="+fileName+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    size_t projectedSize() override
-    { return 2 * fileSize; }
-    
-    void   executeLoad(DataRank &dataGroup, bool verbose) override
-    {
-      umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(fileName);
-#if 0
-      std::cout << "KILLING ALL NON-TETS!" << std::endl;
-      mesh->pyrs.clear();
-      mesh->hexes.clear();
-      mesh->wedges.clear();
-#endif
-      dataGroup.unsts.push_back({mesh,box3f()});
-    }
+                       const std::string &dataURL);
+    std::string toString() override;
+    size_t projectedSize() override;
+    void   executeLoad(DataRank &dataGroup, bool verbose) override;
 
     const std::string fileName;
     const size_t      fileSize;
@@ -61,59 +37,12 @@ namespace hs {
   /*! a 'umesh' file of unstructured mesh data */
   struct SpatiallyPartitionedUMeshContent : public LoadableContent {
     SpatiallyPartitionedUMeshContent(const std::string umeshFileName,
-                                    const box3f &domain)
-    : fileName(umeshFileName),
-      fileSize(getFileSize(umeshFileName)),
-      domain(domain)
-    {}
-    
+                                     const box3f &domain);
     static void create(DataLoader *loader,
-                       const ResourceSpecifier &dataURL)
-    {
-      const std::string domainsFileName = dataURL.where+".domains";
-      size_t domainsFileSize = getFileSize(domainsFileName.c_str());
-      int numParts = (domainsFileSize - 2*sizeof(size_t)) / (sizeof(box3f)+sizeof(range1f));
-      std::vector<box3f> domains(numParts);
-      std::vector<range1f> valueRanges(numParts);
-      std::ifstream in(domainsFileName.c_str(),std::ios::binary);
-      size_t numDomains;
-      in.read((char*)&numDomains,sizeof(numDomains));
-      if (numParts != numDomains)
-        throw std::runtime_error("fishy results from reading domains");
-      std::cout << "#hs.spumesh: reading " << numParts << " domains" << std::endl;
-      in.read((char*)domains.data(),domains.size()*sizeof(domains[0]));
-
-      size_t numRanges;
-      in.read((char*)&numRanges,sizeof(numRanges));
-      if (numParts != numRanges)
-        throw std::runtime_error("fishy results from reading value ranges");
-      std::cout << "#hs.spumesh: reading " << numParts << " value ranges" << std::endl;
-      in.read((char*)valueRanges.data(),valueRanges.size()*sizeof(valueRanges[0]));
-      for (int i=0;i<numParts;i++) {
-        char suffix[100];
-        sprintf(suffix,"_%05i",i);
-        std::string partFileName = dataURL.where+suffix+".umesh";
-        loader->addContent(new SpatiallyPartitionedUMeshContent(partFileName,domains[i]));
-
-        // umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(partFileName);
-        // loader->dataGroups.unsts.push_back({mesh,domains[i]});
-      }
-    }
-    // {
-    //   loader->addContent(new SpatiallyParitionedUMeshContent(dataURL));
-    // }
-    
-    std::string toString() override
-    {
-      return "SpatiallyParitionedUMesh{}";
-    }
-    size_t projectedSize() override
-    { return 2 * fileSize; }
-    
-    void   executeLoad(DataRank &dataGroup, bool verbose) override
-    {
-      dataGroup.unsts.push_back({umesh::UMesh::loadFrom(fileName),domain});
-    }
+                       const ResourceSpecifier &dataURL);
+    std::string toString() override;
+    size_t      projectedSize() override;
+    void        executeLoad(DataRank &dataGroup, bool verbose) override;
 
     const std::string fileName;
     const size_t      fileSize;

@@ -45,6 +45,8 @@ set(SOURCES
   content/TSTris.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/UMeshContent.h
+  content/UMeshContent.cpp
   )  
 
 set(TFE_SOURCES
