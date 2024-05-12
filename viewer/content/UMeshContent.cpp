@@ -39,7 +39,7 @@ namespace hs {
   size_t UMeshContent::projectedSize() 
   { return 2 * fileSize; }
     
-  void   UMeshContent::executeLoad(DataRank &dataGroup, bool verbose) 
+  void   UMeshContent::executeLoad(DataRank &dataRank, bool verbose) 
   {
     umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(fileName);
 #if 0
@@ -48,7 +48,7 @@ namespace hs {
     mesh->hexes.clear();
     mesh->wedges.clear();
 #endif
-    dataGroup.unsts.push_back({mesh,box3f()});
+    dataRank.unsts.push_back({mesh,box3f()});
   }
 
 
@@ -92,7 +92,7 @@ namespace hs {
       loader->addContent(new SpatiallyPartitionedUMeshContent(partFileName,domains[i]));
 
       // umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(partFileName);
-      // loader->dataGroups.unsts.push_back({mesh,domains[i]});
+      // loader->dataRanks.unsts.push_back({mesh,domains[i]});
     }
   }
   // {
@@ -106,9 +106,9 @@ namespace hs {
   size_t SpatiallyPartitionedUMeshContent::projectedSize() 
   { return 2 * fileSize; }
     
-  void SpatiallyPartitionedUMeshContent::executeLoad(DataRank &dataGroup, bool verbose) 
+  void SpatiallyPartitionedUMeshContent::executeLoad(DataRank &dataRank, bool verbose) 
   {
-    dataGroup.unsts.push_back({umesh::UMesh::loadFrom(fileName),domain});
+    dataRank.unsts.push_back({umesh::UMesh::loadFrom(fileName),domain});
   }
 
   

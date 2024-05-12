@@ -83,13 +83,14 @@ namespace hs {
                         MaterialLibrary<BarneyBackend> *materialLib);
 
       BNVolume create(const StructuredVolume::SP &v);
+      BNVolume create(const std::pair<umesh::UMesh::SP,box3f> &v);
       // BNVolume create(const UMeshVolume::SP &v);
       
       void setInstances(const std::vector<BNGroup> &groups,
                         const std::vector<affine3f> &xfms);
       void setLights(BNGroup rootGroup, const std::vector<BNLight> &lights);
 
-      inline void release(BNSampler t) { bnRelease(t); }
+      inline void release(BNSampler t)  { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
 
       typename HayMakerT<BarneyBackend>::Slot *const impl;

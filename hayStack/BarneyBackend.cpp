@@ -106,7 +106,6 @@ namespace hs {
   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
                                                 const TransferFunction &xf)
   {
-    PING;
     if (rootVolumes.empty())
       return;
 
@@ -117,7 +116,6 @@ namespace hs {
                     (int)xf.colorMap.size(),
                     xf.baseDensity);
     }
-    PING;
     bnGroupBuild(impl->volumeGroup);
     bnBuild(global->model,this->slot);
   }
@@ -379,7 +377,6 @@ namespace hs {
   void BarneyBackend::Slot::setLights(BNGroup rootGroup,
                                       const std::vector<BNLight> &lights)
   {
-    PING; PRINT(lights.size());
     if (!lights.empty()) {
       BNData lightsData = bnDataCreate(global->model,this->slot,
                                        BN_OBJECT,lights.size(),lights.data());
@@ -408,6 +405,11 @@ namespace hs {
     BNVolume volume = bnVolumeCreate(global->model,this->slot,sf);
     bnRelease(sf);
     return volume;
+  }
+
+  BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &v)
+  {
+    return {};
   }
 
 } // ::hs

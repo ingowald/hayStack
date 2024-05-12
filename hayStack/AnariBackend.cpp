@@ -445,6 +445,11 @@ namespace hs {
     return volume;
   }
 
+  anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &v)
+  {
+    return {};
+  }
+  
 } // ::hs
 #endif
 

@@ -129,6 +129,11 @@ namespace hs {
       if (createdVolume)
         rootVolumes.push_back(createdVolume);
     }
+    for (auto vol : myData.unsts) {
+      VolumeHandle createdVolume = impl->create(vol);
+      if (createdVolume)
+        rootVolumes.push_back(createdVolume);
+    }
 
     // ==================================================================
     // now that all light and instances have been _created_ and

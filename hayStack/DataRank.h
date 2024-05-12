@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2022-2024 Ingo Wald                                            //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -32,8 +32,6 @@ namespace hs {
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
   struct DataRank {
-    BoundsData getBounds() const;
-    
     /*! this is an optimization in particular for models (like lander)
         where one rank might get multiple "smaller" unstructured
         meshes -- if each of these become their own volumes, with
@@ -44,13 +42,15 @@ namespace hs {
     DataRank() {
       defaultMaterial = mini::DisneyMaterial::create();
     };
+    BoundsData getBounds() const;
+    
     mini::Material::SP                defaultMaterial;
     struct {
       std::vector<mini::DirLight>     directional;
     }                                 sharedLights;
     std::vector<mini::Scene::SP>      minis;
     /*! mesh AND domain. domain being empty means 'no clip box' */
-    std::vector<std::pair<umesh::UMesh::SP,box3f>>     unsts;
+    std::vector<std::pair<umesh::UMesh::SP,box3f>> unsts;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<StructuredVolume::SP> structuredVolumes;

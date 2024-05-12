@@ -74,6 +74,7 @@ namespace hs {
       anari::Material create(mini::Material::SP miniMat);
 
       anari::Volume create(const StructuredVolume::SP &v);
+      anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
       void setInstances(const std::vector<anari::Group> &groups,
                         const std::vector<affine3f> &xfms);
