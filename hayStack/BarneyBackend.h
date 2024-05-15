@@ -78,6 +78,9 @@ namespace hs {
       BNMaterial create(mini::DisneyMaterial::SP disney);
       BNMaterial create(mini::Material::SP miniMat);
 
+      std::vector<BNGeom> createSpheres(SphereSet::SP content);
+      std::vector<BNGeom> createCylinders(Cylinders::SP content);
+
       BNSampler create(mini::Texture::SP miniTex);
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<BarneyBackend> *materialLib);
