@@ -407,9 +407,55 @@ namespace hs {
     return volume;
   }
 
-  BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &v)
+  BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &up)
   {
-    return {};
+    umesh::UMesh::SP mesh = up.first;
+    int tetBegin = 0;
+    int pyrBegin = tetBegin + 4 * mesh->tets.size();
+    int wedBegin = pyrBegin + 5 * mesh->pyrs.size();
+    int hexBegin = wedBegin + 6 * mesh->wedges.size();
+    int numIndices = hexBegin + 8 * mesh->hexes.size();
+    std::vector<int> indices(numIndices);
+    memcpy(indices.data()+tetBegin,mesh->tets.data(),  4*sizeof(int)*mesh->tets.size());
+    memcpy(indices.data()+pyrBegin,mesh->pyrs.data(),  5*sizeof(int)*mesh->pyrs.size());
+    memcpy(indices.data()+wedBegin,mesh->wedges.data(),6*sizeof(int)*mesh->wedges.size());
+    memcpy(indices.data()+hexBegin,mesh->hexes.data(), 8*sizeof(int)*mesh->hexes.size());
+    std::vector<int>     elementOffsets;
+    // std::vector<uint8_t> elementTypes;
+    for (int i=0;i<mesh->tets.size();i++) {
+      elementOffsets.push_back(tetBegin+4*i);
+      // elementTypes.push_back(VTK_TETRA);
+    }
+    for (int i=0;i<mesh->pyrs.size();i++) {
+      elementOffsets.push_back(pyrBegin+5*i);
+      // elementTypes.push_back(VTK_PYRAMID);
+    }
+    for (int i=0;i<mesh->wedges.size();i++) {
+      elementOffsets.push_back(wedBegin+6*i);
+      // elementTypes.push_back(VTK_WEDGE);
+    }
+    for (int i=0;i<mesh->hexes.size();i++) {
+      elementOffsets.push_back(hexBegin+8*i);
+      // elementTypes.push_back(VTK_HEXAHEDRON);
+    }
+
+    assert(mesh->perVertex);
+    assert(mesh->perVertex->values.size() == mesh->vertices.size());
+    std::vector<vec4f> vertices;
+    for (int i=0;i<mesh->vertices.size();i++) {
+      vec4f v;
+      (umesh::vec3f&)v = mesh->vertices[i];
+      v.w = mesh->perVertex->values[i];
+      vertices.push_back(v);
+    }
+    BNScalarField sf = bnUMeshCreate(global->model,this->slot,
+                                     (float4*)vertices.data(),vertices.size(),
+                                     indices.data(),indices.size(),
+                                     elementOffsets.data(),elementOffsets.size(),
+                                     nullptr);
+    BNVolume volume = bnVolumeCreate(global->model,this->slot,sf);
+    bnRelease(sf);
+    return volume;
   }
 
 } // ::hs
