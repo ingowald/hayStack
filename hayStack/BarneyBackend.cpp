@@ -458,6 +458,64 @@ namespace hs {
     return volume;
   }
 
+  std::vector<BNGeom>
+  BarneyBackend::Slot::createSpheres(SphereSet::SP content)
+  { return {}; }
+  
+  std::vector<BNGeom>
+  BarneyBackend::Slot::createCylinders(Cylinders::SP content)
+  {
+    BNGeom geom = bnGeometryCreate(global->model,this->slot,"cylinders");
+    if (!geom) return {};
+    // std::vector<vec3f> vertices;
+    // std::vector<vec3f> colors;
+    // std::vector<vec2i>  indices;
+    // std::vector<float> radii;
+
+    // bool colorPerVertex  = false;
+    // bool radiusPerVertex = false;
+    // bool roundedCap      = false;
+    BNData vertices = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                                   content->vertices.size(),
+                                   content->vertices.data());
+    bnSetAndRelease(geom,"vertices",vertices);
+
+    if (content->indices.empty()) {
+      std::cout << OWL_TERMINAL_RED
+                << "#hs.bn.cyl: warning - empty indices array, creating default one"
+                << OWL_TERMINAL_DEFAULT << std::endl;
+      for (int i=0;i<content->vertices.size();i+=2)
+        content->indices.push_back(vec2i(i,i+1));
+    }
+    BNData indices = bnDataCreate(global->model,this->slot,BN_INT2,
+                                  content->indices.size(),
+                                  content->indices.data());
+    bnSetAndRelease(geom,"indices",indices);
+
+    BNData radii = bnDataCreate(global->model,this->slot,BN_FLOAT,
+                                content->radii.size(),
+                                content->radii.data());
+    bnSetAndRelease(geom,"radii",radii);
+    
+    bnSet1i(geom,"radiusPerVertex",content->radiusPerVertex);
+    // bnSet1i(geom,"colorPerVertex",content->colorPerVertex);
+    // bnSet1i(geom,"roundedCap",0);
+    
+    BNData colors
+      = content->colors.empty()
+      ? nullptr
+      : bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                     content->colors.size(),
+                     content->colors.data());
+    PRINT(content->colors.size());
+    PRINT(colors);
+    if (colors)
+      bnSetAndRelease(geom,"primitive.color",colors);
+
+    bnCommit(geom);
+    return { geom };
+  }
+
 } // ::hs
 
 

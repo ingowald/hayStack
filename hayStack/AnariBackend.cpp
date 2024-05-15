@@ -450,6 +450,15 @@ namespace hs {
     return {};
   }
   
+  std::vector<anari::Surface>
+  AnariBackend::Slot::createSpheres(SphereSet::SP content)
+  { return {}; }
+    
+  std::vector<anari::Surface>
+  AnariBackend::Slot::createCylinders(Cylinders::SP content)
+  { return {}; }
+  
+
 } // ::hs
 #endif
 

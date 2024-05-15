@@ -122,7 +122,21 @@ namespace hs {
       renderMiniScene(miniScene);
 
     // ------------------------------------------------------------------
-    // render all structured voluems
+    // render all spheres
+    // -----------------------------------------------------------------
+    for (auto content : myData.sphereSets)
+      for (auto created : this->createSpheres(content))
+        rootGeoms.push_back(created);
+    
+    // ------------------------------------------------------------------
+    // render all cyliders
+    // -----------------------------------------------------------------
+    for (auto content : myData.cylinderSets)
+      for (auto created : impl->createCylinders(content))
+        rootGeoms.push_back(created);
+    
+    // ------------------------------------------------------------------
+    // render all structured volumes
     // -----------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
       VolumeHandle createdVolume = impl->create(vol);

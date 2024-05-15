@@ -170,6 +170,8 @@ namespace hs {
       void render(const mini::QuadLight &ml);
       void render(const mini::DirLight &ml);
       void render(const mini::EnvMapLight::SP &ml);
+      // std::vector<GeomHandle> render(SphereSet::SP content);
+      // std::vector<GeomHandle> render(Cylinders::SP content);
       
       TextureLibrary<Backend>  textureLibrary;
       MaterialLibrary<Backend> materialLibrary;
