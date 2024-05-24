@@ -44,7 +44,7 @@ namespace hs {
     return 100*numTriangles;
   }
     
-  void   TSTriContent::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   TSTriContent::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     size_t sizeOfTri = 3*sizeof(vec3f);
     size_t numTrisTotal = fileSize / sizeOfTri;

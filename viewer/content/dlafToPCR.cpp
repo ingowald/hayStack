@@ -1,5 +1,6 @@
 #include "owl/common/owl-common.h"
 #include "owl/common/math/vec.h"
+#include <array>
 #include <vector>
 #include <fstream>
 
@@ -36,16 +37,16 @@ void importDLAFFile(const char *filename, DLAFScene &s)
 
 
   inline float saturate(float f) { return min(1.f,max(0.f,f)); }
-  
+
   inline vec3f hue_to_rgb(float hue)
   {
     float s = saturate( hue ) * 6.0f;
     float r = saturate( fabsf(s - 3.f) - 1.0f );
     float g = saturate( 2.0f - fabsf(s - 2.0f) );
     float b = saturate( 2.0f - fabsf(s - 4.0f) );
-    return vec3f(r, g, b); 
+    return vec3f(r, g, b);
   }
-    
+
   inline vec3f temperature_to_rgb(float t)
   {
     float K = 4.0f / 6.0f;
@@ -53,7 +54,7 @@ void importDLAFFile(const char *filename, DLAFScene &s)
     float v = .5f + 0.5f * t;
     return v * hue_to_rgb(h);
   }
- 
+
 
 vec3f colorMap(float f)
 {

@@ -20,7 +20,7 @@
 #pragma once
 
 #include "hayStack/HayStack.h"
-#include "hayStack/DataGroup.h"
+#include "hayStack/LocalModel.h"
 #include "hayStack/MPIRenderer.h"
 #if HANARI
 # include <anari/anari_cpp.hpp>
@@ -31,61 +31,153 @@
 
 namespace hs {
 
-  struct HayMaker : public Renderer
-  {
+  /*! base class for anything that can do (data-parallel) rendering of
+      haystack data */
+  struct HayMaker : public Renderer {
+    BoundsData getWorldBounds() const;
+    
     HayMaker(Comm &world,
              Comm &workers,
-             ThisRankData &thisRankData,
+             LocalModel &localModel,
              bool verbose);
-    
-    void createBarney();
-    
-    void buildDataGroup(int dgID);
-    
-    void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
 
-    void renderFrame(int pathsPerPixel) override;
-    BoundsData getWorldBounds() const;
-    void resetAccumulation() override;
-    void setTransferFunction(const TransferFunction &xf) override;
+    virtual void buildSlots() = 0;
 
-    void setCamera(const Camera &camera);
-
-
-    /*! need this for the camera aspect ratio */
-    vec2i        fbSize;
+    /*! creates a renderer that uses anari to render; will throw if
+        anari support was not built in */
+    static HayMaker *createAnariImplementation(Comm &world,
+                                               Comm &workers,
+                                               LocalModel &localModel,
+                                               bool verbose);
+    /*! creates a "native" barney renderer */
+    static HayMaker *createBarneyImplementation(Comm &world,
+                                                Comm &workers,
+                                                LocalModel &localModel,
+                                                bool verbose);
     Comm        &world;
-    const bool   isActiveWorker;
     Comm         workers;
-    ThisRankData rankData;
+    LocalModel localModel;
     bool         verbose;
-
-    struct PerDG {
-#if HANARI
-      std::vector<anari::Volume> createdVolumes;
-      anari::Group volumeGroup = 0;
-#else
-      std::vector<BNVolume> createdVolumes;
-      BNGroup volumeGroup = 0;
-#endif
-    };
-    std::vector<PerDG> perDG;
+  };
+  
+  /*! keeps track of which frontend textures have already been
+      created on the backend, and returns handle to already created
+      backend variant if it exists -- or creates one if this is not
+      yet the case */
+  template<typename Backend>
+  struct TextureLibrary
+  {
+    using TextureHandle = typename Backend::TextureHandle;
     
-#if HANARI
-    // ANARIDevice
-    anari::Device device = 0;
-        // m_state.world = anari::newObject<anari::World>(device);
-    //m_frame = anari::newObject<anari::Frame>(m_device);
-    anari::Frame  frame  = 0;
-    anari::World  model  = 0;
-    anari::Camera camera = 0;
-    uint32_t *hostRGBA   = 0;
-#else
-    BNContext barney = 0;
-    BNModel   model = 0;
-    BNFrameBuffer fb = 0;
-    BNCamera     camera;
-#endif
+    TextureLibrary(typename Backend::Slot *backend);
+    TextureHandle getOrCreate(mini::Texture::SP miniTex);
+    
+  private:
+    TextureHandle create(mini::Texture::SP miniTex);
+    typename Backend::Slot *const backend;
+    std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
+  };
+
+  /*! keeps track of which frontend materials have already been
+      created on the backend, and returns handle to already created
+      backend variant if it exists -- or creates one if this is not
+      yet the case */
+  template<typename Backend>
+  struct MaterialLibrary {
+    using MaterialHandle = typename Backend::MaterialHandle;
+    
+    MaterialLibrary(typename Backend::Slot *backend);
+    ~MaterialLibrary();
+    MaterialHandle getOrCreate(mini::Material::SP miniMat);
+
+  private:
+    std::map<mini::Material::SP,MaterialHandle> alreadyCreated;
+    typename Backend::Slot *const backend;
+  };
+  
+  /*! implementation of the haymaker 'api' using one or more
+      (templated) funtions to do individual basic opertaion. In
+      general, it is this class that maintains material and template
+      libraries, does scene graph traversal, keeps track of which
+      volumes have been created (to be able to assign a new transfer
+      function), etc; then this class refers to the (template-param)
+      "backend" to do individual operations like "create structured
+      volume" or "create disney material", etc */
+  template<typename Backend>
+  struct HayMakerT : public HayMaker
+  {
+    HayMakerT(Comm &world,
+             Comm &workers,
+             LocalModel &localModel,
+             bool verbose);
+
+    void init();
+
+    void buildSlots() override;
+    
+    void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
+    { global.resize(fbSize,hostRGBA); }
+    void setTransferFunction(const TransferFunction &xf) override
+    {
+      for (auto slot : perSlot)
+        slot->setTransferFunction(xf);
+    }
+    void renderFrame(int pathsPerPixel) override
+    { global.renderFrame(pathsPerPixel); }
+    
+    void resetAccumulation() override
+    { global.resetAccumulation(); }
+    
+    void setCamera(const Camera &camera) override
+    { global.setCamera(camera); }
+
+    using Global = typename Backend::Global;
+
+    Global              global;
+
+    struct Slot : public Backend::Slot {
+      using GroupHandle = typename Backend::GroupHandle;
+      using LightHandle = typename Backend::LightHandle;
+      using VolumeHandle = typename Backend::VolumeHandle;
+      using GeomHandle = typename Backend::GeomHandle;
+      
+      Slot(Global *global, int slot)
+        : Backend::Slot(global,slot,this),
+          textureLibrary(this),
+          materialLibrary(this)
+      {}
+
+      struct {
+        std::vector<affine3f>    xfms;
+        std::vector<GroupHandle> groups;
+      } rootInstances;
+      GroupHandle rootGroup;
+
+      std::vector<VolumeHandle> rootVolumes;
+      std::vector<GeomHandle>   rootGeoms;
+      
+      LightHandle envLight;
+      std::vector<LightHandle> lights;
+
+      GroupHandle volumeGroup = 0;
+
+      void setTransferFunction(const TransferFunction &xf)
+      { Backend::Slot::setTransferFunction(rootVolumes,xf); }
+      
+      void renderAll();
+      void renderMiniScene(mini::Scene::SP miniScene);
+      GroupHandle render(const mini::Object::SP &miniObject);
+      void render(const mini::QuadLight &ml);
+      void render(const mini::DirLight &ml);
+      void render(const mini::EnvMapLight::SP &ml);
+      // std::vector<GeomHandle> render(SphereSet::SP content);
+      // std::vector<GeomHandle> render(Cylinders::SP content);
+      
+      TextureLibrary<Backend>  textureLibrary;
+      MaterialLibrary<Backend> materialLibrary;
+    };
+    
+    std::vector<Slot *> perSlot;
   };
 
 }

@@ -35,6 +35,8 @@ set(SOURCES
   content/OBJContent.cpp
   content/SpheresFromFile.h
   content/SpheresFromFile.cpp
+  content/MaterialsTest.h
+  content/MaterialsTest.cpp
   content/BoxesFromFile.h
   content/BoxesFromFile.cpp
   content/CylindersFromFile.h
@@ -43,6 +45,8 @@ set(SOURCES
   content/TSTris.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/UMeshContent.h
+  content/UMeshContent.cpp
   )  
 
 set(TFE_SOURCES

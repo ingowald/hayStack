@@ -49,7 +49,7 @@ namespace hs {
         loader->addContent(new ENDumpContent(fileName,fileSize,i,numPartsToSplitInto));
     }
     size_t projectedSize() override { return fileSize; }
-    void   executeLoad(DataGroup &dataGroup, bool verbose) override;
+    void   executeLoad(DataRank &dataGroup, bool verbose) override;
 
     std::string toString() override
     {
@@ -63,7 +63,7 @@ namespace hs {
     const int numPartsToSplitInto = 1;
   };
 
-  inline void ENDumpContent::executeLoad(DataGroup &dg, bool verbose)
+  inline void ENDumpContent::executeLoad(DataRank &dg, bool verbose)
   {
     std::ifstream in(fileName.c_str(),std::ios::binary);
     size_t numVertices, numIndices, numPoints;
