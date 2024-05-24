@@ -511,7 +511,7 @@ int main(int ac, char **av)
 #if HS_VIEWER
   Viewer viewer(renderer);
   
-  viewer.enableFlyMode();
+   viewer.enableFlyMode();
   viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
   viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
   viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
