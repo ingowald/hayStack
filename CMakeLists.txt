@@ -29,10 +29,11 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
 endif()
 
 if (WIN32)
-option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
+  option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
 else()
-option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
+  option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
 endif()
+option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up

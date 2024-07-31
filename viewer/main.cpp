@@ -333,7 +333,15 @@ namespace hs {
 # endif
 #endif
 
-#endif  
+#endif
+
+  inline vec3f get3f(char **av, int &i)
+  {
+    float x = std::stof(av[++i]);
+    float y = std::stof(av[++i]);
+    float z = std::stof(av[++i]);
+    return vec3f(x,y,z);
+  }
 }
 
 using namespace hs;
@@ -354,7 +362,7 @@ int main(int ac, char **av)
 
   // FromCL fromCL;
   // BarnConfig config;
-
+  bool hanari = false;
   DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -374,16 +382,19 @@ int main(int ac, char **av)
       fromCL.measure = true;
     } else if (arg == "-o") {
       fromCL.outFileName = av[++i];
+    } else if (arg == "--dir-light") {
+      mini::DirLight light;
+      light.direction = get3f(av,i);
+      light.radiance  = get3f(av,i);
+      loader.sharedLights.directional.push_back(light);
+    } else if (arg == "--camera-pdu") {
+      fromCL.camera.vp = get3f(av,i);
+      fromCL.camera.vi = fromCL.camera.vp + get3f(av,i);
+      fromCL.camera.vu = get3f(av,i);
     } else if (arg == "--camera") {
-      fromCL.camera.vp.x = std::stof(av[++i]);
-      fromCL.camera.vp.y = std::stof(av[++i]);
-      fromCL.camera.vp.z = std::stof(av[++i]);
-      fromCL.camera.vi.x = std::stof(av[++i]);
-      fromCL.camera.vi.y = std::stof(av[++i]);
-      fromCL.camera.vi.z = std::stof(av[++i]);
-      fromCL.camera.vu.x = std::stof(av[++i]);
-      fromCL.camera.vu.y = std::stof(av[++i]);
-      fromCL.camera.vu.z = std::stof(av[++i]);
+      fromCL.camera.vp = get3f(av,i);
+      fromCL.camera.vi = get3f(av,i);
+      fromCL.camera.vu = get3f(av,i);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
@@ -402,6 +413,8 @@ int main(int ac, char **av)
       fromCL.createHeadNode = true;
     } else if (arg == "-h" || arg == "--help") {
       usage();
+    } else if (arg == "-anari" || arg == "--hanari") {
+      hanari = true;
     } else {
       usage("unknown cmd-line argument '"+arg+"'");
     }    
@@ -413,7 +426,7 @@ int main(int ac, char **av)
   
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
-  ThisRankData thisRankData;
+  LocalModel thisRankData;
   if (!isHeadNode) {
     loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
@@ -424,14 +437,31 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
-  HayMaker hayMaker(/* the ring that binds them all : */world,
-                    /* the workers */workers,
-                    thisRankData,
-                    verbose());
+  HayMaker *hayMaker
+    = hanari
+    ? HayMaker::createAnariImplementation(world,
+                                          /* the workers */workers,
+                                          thisRankData,
+                                          verbose())
+    : HayMaker::createBarneyImplementation(world,
+                                           /* the workers */workers,
+                                           thisRankData,
+                                           verbose());
+// #if HANARI
+//     hayMaker = new HayMakerT<AnariBackend>(world,
+//                                            /* the workers */workers,
+//                                            thisRankData,
+//                                            verbose());
+// #else
+// #endif
+//   } else 
+//     hayMaker = new HayMakerT<BarneyBackend>(world,
+//                                             /* the workers */workers,
+//                                             thisRankData,
+//                                             verbose());
   
-
   world.barrier();
-  const BoundsData worldBounds = hayMaker.getWorldBounds();
+  const BoundsData worldBounds = hayMaker->getWorldBounds();
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -449,27 +479,29 @@ int main(int ac, char **av)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: creating barney context"
               << OWL_TERMINAL_DEFAULT << std::endl;
-  hayMaker.createBarney();
+  // hayMaker->createBarney();
   world.barrier();
   if (world.rank == 0)
     std::cout << OWL_TERMINAL_CYAN
               << "#hs: building barney data groups"
               << OWL_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
-    for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
-      hayMaker.buildDataGroup(dgID);
+    hayMaker->buildSlots();
+    // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
+    //   hayMaker->buildDataGroup(dgID);
+  
   world.barrier();
   
   Renderer *renderer = nullptr;
   if (world.size == 1)
     // no MPI, render direcftly
-    renderer = &hayMaker;
+    renderer = hayMaker;
   else if (world.rank == 0)
     // we're in MPI mode, _and_ the rank that runs the viewer
-    renderer = new MPIRenderer(world,&hayMaker);
+    renderer = new MPIRenderer(world,hayMaker);
   else {
     // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
-    MPIRenderer::runWorker(world,&hayMaker);
+    MPIRenderer::runWorker(world,hayMaker);
     world.barrier();
     hs::mpi::finalize();
 
@@ -479,7 +511,7 @@ int main(int ac, char **av)
 #if HS_VIEWER
   Viewer viewer(renderer);
   
-  viewer.enableFlyMode();
+   viewer.enableFlyMode();
   viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
   viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
   viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,

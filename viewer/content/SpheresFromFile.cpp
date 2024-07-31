@@ -67,18 +67,25 @@ namespace hs {
     float h = K - K * t;
     float v = .5f + 0.5f * t;    return v * hue_to_rgb(h);
   }
-
+ 
   
-  void   SpheresFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   SpheresFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
     spheres->radius = radius;
     FILE *file = fopen(data.where.c_str(),"rb");
     assert(file);
-    size_t sizeOfSphere
-      = (data.get("format")=="xyzf")
-      ? sizeof(vec4f)
-      : sizeof(vec3f);
+    const std::string format = data.get("format","<not set>");
+    size_t sizeOfSphere = 0;
+    if (format == "xyz") {
+      sizeOfSphere = sizeof(vec3f);
+    } else if (format == "xyzf" ||
+          format == "xyzi") {
+      sizeOfSphere = sizeof(vec4f);
+    } else if (format == "pcr" /*! pr = position color radius :-/ */) {
+      sizeOfSphere = 7*sizeof(float);
+    } else
+      throw std::runtime_error("unsupported format '"+format+"'");
 
     int64_t numSpheresInFile = fileSize / sizeOfSphere;
     int64_t numSpheresToLoad
@@ -96,7 +103,6 @@ namespace hs {
     size_t my_count = my_end - my_begin;
     // spheres->origins.resize(my_count);
     fseek(file,my_begin*sizeOfSphere,SEEK_SET);
-    const std::string format = data.get("format","xyz");
     range1f scalarRange;
     if (format =="xyzf") {
       vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
@@ -147,6 +153,27 @@ namespace hs {
         int rc = fread((char*)&v,sizeof(v),1,file);
         assert(rc);
         spheres->origins.push_back(vec3f{v.x,v.y,v.z});
+      }
+    } else if (format == "pcr") {
+      vec3f pos;
+      vec3f col;
+      float rad;
+      for (size_t i=0;i<my_count;i++) {
+        {
+          int rc = fread((char*)&pos,sizeof(pos),1,file);
+          assert(rc);
+        }
+        {
+          int rc = fread((char*)&col,sizeof(col),1,file);
+          assert(rc);
+        }
+        {
+          int rc = fread((char*)&rad,sizeof(rad),1,file);
+          assert(rc);
+        }
+        spheres->origins.push_back(pos);
+        spheres->colors.push_back(col);
+        spheres->radii.push_back(rad);
       }
     } else
       throw std::runtime_error("un-recognized spheres format '"+format+"'");

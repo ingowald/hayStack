@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2022-2024 Ingo Wald                                            //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,7 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "hayStack/DataGroup.h"
+#include "hayStack/DataRank.h"
 
 namespace hs {
 
@@ -23,7 +23,7 @@ namespace hs {
     meshes -- if each of these become their own volumes, with
     their own acceleration strcutre, etc, then that may have some
     negative side effects on performance */
-  void DataGroup::mergeUnstructuredMeshes()
+  void DataRank::mergeUnstructuredMeshes()
   {
     if (unsts.empty())
       // dont have any unstructured meshes - done.
@@ -38,15 +38,7 @@ namespace hs {
     this->unsts.push_back({merged,box3f()});
   }
       
-  BoundsData ThisRankData::getBounds() const
-  {
-    BoundsData bounds;
-    for (auto &dg : dataGroups)
-      bounds.extend(dg.getBounds());
-    return bounds;
-  }
-
-  BoundsData DataGroup::getBounds() const
+  BoundsData DataRank::getBounds() const
   {
     BoundsData bounds;
     for (auto mini : minis)

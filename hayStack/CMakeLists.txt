@@ -28,9 +28,11 @@ add_library(hayStack
   MPIWrappers.cpp
   
   HayStack.h
-  HayStack.cpp
-  DataGroup.h
-  DataGroup.cpp
+
+  LocalModel.h
+  LocalModel.cpp
+  DataRank.h
+  DataRank.cpp
   Cylinders.h
   Cylinders.cpp
   Spheres.h
@@ -43,6 +45,10 @@ add_library(hayStack
   MPIRenderer.cpp
   HayMaker.h
   HayMaker.cpp
+  BarneyBackend.h
+  BarneyBackend.cpp
+  AnariBackend.h
+  AnariBackend.cpp
   TransferFunction.h
   TransferFunction.cpp
   )

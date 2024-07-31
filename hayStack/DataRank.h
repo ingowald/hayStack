@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2022-2024 Ingo Wald                                            //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -31,53 +31,30 @@ namespace hs {
       is goind to be split into. for multi-gpu data parallel multi-gpu
       rendering a single application process (or given mpi rank) could
       still have multiple such data groups */
-  struct DataGroup {
-    BoundsData getBounds() const;
-    
+  struct DataRank {
     /*! this is an optimization in particular for models (like lander)
         where one rank might get multiple "smaller" unstructured
         meshes -- if each of these become their own volumes, with
         their own acceleration strcutre, etc, then that may have some
         negative side effects on performance */
     void mergeUnstructuredMeshes();
+
+    DataRank() {
+      defaultMaterial = mini::DisneyMaterial::create();
+    };
+    BoundsData getBounds() const;
     
+    mini::Material::SP                defaultMaterial;
+    struct {
+      std::vector<mini::DirLight>     directional;
+    }                                 sharedLights;
     std::vector<mini::Scene::SP>      minis;
     /*! mesh AND domain. domain being empty means 'no clip box' */
-    std::vector<std::pair<umesh::UMesh::SP,box3f>>     unsts;
+    std::vector<std::pair<umesh::UMesh::SP,box3f>> unsts;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
     int                               dataGroupID = -1;
   };
 
-  /*! data for one mpi rank - each mpi rank can still have multiple
-      data groups (for local multi-gpu data parallel rendering, for
-      example - so it has multiple data groups */
-  struct ThisRankData {
-    BoundsData getBounds() const;
-
-    /*! returns whether this rank does *not* have any data; in this
-        case it's a passive (head?-)node */
-    bool empty() const { return dataGroups.empty(); }
-    
-    void resize(int numDataGroups)
-    { dataGroups.resize(numDataGroups); }
-
-    /*! returns the number of data groups *on this rank* */
-    int size() const { return (int)dataGroups.size(); }
-
-    /*! this is an optimization in particular for models (like lander)
-        where one rank might get multiple "smaller" unstructured
-        meshes -- if each of these become their own volumes, with
-        their own acceleration strcutre, etc, then that may have some
-        negative side effects on performance */
-    void mergeUnstructuredMeshes()
-    {
-      for (auto &dg : dataGroups) dg.mergeUnstructuredMeshes();
-      for (auto &dg : dataGroups) PRINT(dg.unsts.size());
-    }
-      
-    std::vector<DataGroup> dataGroups;
-  };
-
-}
+} // ::hs

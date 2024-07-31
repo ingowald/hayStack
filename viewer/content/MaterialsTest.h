@@ -19,32 +19,22 @@
 #include "viewer/DataLoader.h"
 
 namespace hs {
-
-  /*! a 'umesh' file of unstructured mesh data */
-  struct OBJContent : public LoadableContent {
-    OBJContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
-    {}
-
+  
+  /*! a file of 'raw' spheres */
+  struct MaterialsTest : public LoadableContent {
+    enum { gridRes = 10 };
+    
+    MaterialsTest(const ResourceSpecifier &data,
+                  int thisPartID);
     static void create(DataLoader *loader,
-                       const std::string &dataURL)
-    {
-      loader->addContent(new OBJContent(/* this is a plain filename for umesh:*/dataURL));
-    }
-    
-    std::string toString() override
-    {
-      return "OBJ{fileName="+fileName+", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    size_t projectedSize() override
-    { return 2 * fileSize; }
-    
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
     void   executeLoad(DataRank &dataGroup, bool verbose) override;
-
-    const std::string fileName;
-    const size_t      fileSize;
+    
+    std::string toString() override;
+    
+    const ResourceSpecifier data;
+    const int thisPartID = 0;
   };
-
+  
 }

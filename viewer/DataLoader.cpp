@@ -19,6 +19,7 @@
 #include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
+#include "viewer/content/MaterialsTest.h"
 #include "viewer/content/BoxesFromFile.h"
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
@@ -203,31 +204,31 @@ namespace hs {
   /*! actually loads one rank's data, based on which content got
     assigned to which rank. must get called on every worker
     collaboratively - but only on active workers */
-  void DataLoader::loadData(ThisRankData &rankData,
-                            int numDataGroups,
+  void DataLoader::loadData(LocalModel &localModel,
+                            int numDataRanks,
                             int dataPerRank,
                             bool verbose)
   {
     if (dataPerRank == 0) {
-      if (workers.size < numDataGroups) {
-        dataPerRank = numDataGroups / workers.size;
+      if (workers.size < numDataRanks) {
+        dataPerRank = numDataRanks / workers.size;
       } else {
         dataPerRank = 1;
       }
     }
 
-    if (numDataGroups % dataPerRank) {
+    if (numDataRanks % dataPerRank) {
       std::cout << "warning - num data groups is not a "
                 << "multiple of data groups per rank?!" << std::endl;
-      std::cout << "increasing num data groups to " << numDataGroups
+      std::cout << "increasing num data groups to " << numDataRanks
                 << " to ensure equal num data groups for each rank" << std::endl;
     }
   
-    assignGroups(numDataGroups);
-    rankData.resize(dataPerRank);
+    assignGroups(numDataRanks);
+    localModel.resize(dataPerRank);
 
     for (int i=0;i<dataPerRank;i++) {
-      int dataGroupID = (workers.rank*dataPerRank+i) % numDataGroups;
+      int dataGroupID = (workers.rank*dataPerRank+i) % numDataRanks;
       if (verbose) {
         std::stringstream ss;
         ss << "#hv: worker #" << workers.rank
@@ -246,13 +247,22 @@ namespace hs {
       //   usleep(100);
       //   fflush(0);
       // }
-      loadDataGroup(rankData.dataGroups[i],
+      loadDataRank(localModel.dataGroups[i],
                     dataGroupID,
                     verbose);
       // if (verbose) 
       //   for (int r=workers.rank;r<workers.size;r++) 
       //     workers.barrier();
     }
+
+
+    if (!sharedLights.directional.empty())
+      for (int i=0;i<localModel.dataGroups.size();i++) {
+        mini::Scene::SP lights = mini::Scene::create();
+        lights->dirLights = sharedLights.directional;
+        localModel.dataGroups[i].minis.push_back(lights);
+      }
+           
     if (verbose) {
       workers.barrier();
       if (workers.rank == 0)
@@ -294,6 +304,8 @@ namespace hs {
         SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
+      else if (url.type == "materialsTest") 
+        MaterialsTest::create(this,contentDescriptor);
       // else if (url.type == "en-dump")
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
@@ -317,12 +329,12 @@ namespace hs {
     //   throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }
     
-  void DynamicDataLoader::assignGroups(int numDifferentDataGroups)
+  void DynamicDataLoader::assignGroups(int numDifferentDataRanks)
   {
-    contentOfGroup.resize(numDifferentDataGroups);
+    contentOfGroup.resize(numDifferentDataRanks);
 
     std::priority_queue<std::pair<double,int>> loadedGroups;
-    for (int i=0;i<numDifferentDataGroups;i++)
+    for (int i=0;i<numDifferentDataRanks;i++)
       loadedGroups.push({0,i});
 
     std::sort(allContent.begin(),allContent.end());
@@ -337,7 +349,7 @@ namespace hs {
     }
   }
     
-  void DynamicDataLoader::loadDataGroup(DataGroup &dataGroup,
+  void DynamicDataLoader::loadDataRank(DataRank &dataGroup,
                                         int dataGroupID,
                                         bool verbose)
   {

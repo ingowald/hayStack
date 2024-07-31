@@ -16,6 +16,7 @@
 
 #include "viewer/DataLoader.h"
 #include "viewer/content/CylindersFromFile.h"
+#include <fstream>
 
 namespace hs {
 
@@ -149,7 +150,7 @@ namespace hs {
   size_t CylindersFromFile::projectedSize() 
   { return 100; }
     
-  void   CylindersFromFile::executeLoad(DataGroup &dataGroup, bool verbose) 
+  void   CylindersFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     hs::Cylinders::SP cs = hs::Cylinders::create();
     if (fileName == "sample") {
@@ -180,9 +181,47 @@ namespace hs {
         cs->vertices.push_back(a);
         cs->vertices.push_back(b);
         cs->radii.push_back(r);
+        static int primID = 1231234;
+        cs->colors.push_back(randomColor(++primID));
       }
       cs->radiusPerVertex = false;
-      
+    } else if (endsWith(fileName,".raw")) {
+      // serkan dumped files
+      std::ifstream in(fileName.c_str(),std::ios::binary);
+      size_t numTransforms;
+      in.read((char*)&numTransforms,sizeof(numTransforms));
+      for (int i=0;i<std::min(1000000,(int)numTransforms);i++) {
+        affine3f xfm;
+        in.read((char*)&xfm,sizeof(xfm));
+        float thick = .002f;//1000.f;//1e10f;
+
+        // xfm = rcp(xfm);
+        float scale = 1.f;///100000.f;
+        thick *=scale;
+        xfm.l.vx *= scale;
+        xfm.l.vy *= scale;
+        xfm.l.vz *= scale;
+        // thick = std::min(thick,length(xfm.l.vx));
+        // thick = std::min(thick,length(xfm.l.vy));
+        // thick = std::min(thick,length(xfm.l.vz));
+        // PRINT(thick);
+        // thick *= .3f;
+        int idx = cs->vertices.size();
+        cs->vertices.push_back(xfm.p);
+        cs->vertices.push_back(xfm.p+xfm.l.vx);
+        cs->vertices.push_back(xfm.p+xfm.l.vy);
+        cs->vertices.push_back(xfm.p+xfm.l.vz);
+        cs->indices.push_back(vec2i(idx,idx+1));
+        cs->indices.push_back(vec2i(idx,idx+2));
+        cs->indices.push_back(vec2i(idx,idx+3));
+        cs->radii.push_back(thick);
+        cs->radii.push_back(thick);
+        cs->radii.push_back(thick);
+        cs->colors.push_back(randomColor(idx));
+        cs->colors.push_back(randomColor(idx));
+        cs->colors.push_back(randomColor(idx));
+      }
+      cs->radiusPerVertex = false;
     } else {
       loadSWC(cs,fileName);
       for (auto &vtx : cs->vertices)

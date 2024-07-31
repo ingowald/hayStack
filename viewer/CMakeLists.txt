@@ -35,6 +35,8 @@ set(SOURCES
   content/OBJContent.cpp
   content/SpheresFromFile.h
   content/SpheresFromFile.cpp
+  content/MaterialsTest.h
+  content/MaterialsTest.cpp
   content/BoxesFromFile.h
   content/BoxesFromFile.cpp
   content/CylindersFromFile.h
@@ -43,6 +45,8 @@ set(SOURCES
   content/TSTris.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/UMeshContent.h
+  content/UMeshContent.cpp
   )  
 
 set(TFE_SOURCES
@@ -85,7 +89,9 @@ if (WIN32)
 else()
   target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
 endif()
-target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+if (HS_USE_IMGUI)
+  target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+endif()
 
 # ------------------------------------------------------------------
 add_executable(hsOffline
@@ -94,6 +100,16 @@ add_executable(hsOffline
 target_link_libraries(hsOffline
   PUBLIC
   hayStack
+  )
+
+# ------------------------------------------------------------------
+add_executable(hsMakeMaterialTestModel
+  makeMaterialTest.cpp
+  )
+target_link_libraries(hsMakeMaterialTestModel
+  PUBLIC
+  hayStack
+  miniScene_import_obj
   )
 
 # ------------------------------------------------------------------
@@ -123,3 +139,12 @@ if (HT_CUTEE)
   
 endif()
 
+
+# ------------------------------------------------------------------
+add_executable(hsDLAFtoPCR
+  content/dlafToPCR.cpp
+  )
+target_link_libraries(hsDLAFtoPCR
+  PUBLIC
+  hayStack
+  )
