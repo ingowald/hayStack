@@ -59,6 +59,7 @@ namespace hs {
       // bnSetAndRelease(geom,"texcoords",_texcoords);
       bnRelease(_texcoords);
     }
+    PING; PRINT(mat);
     bnSetObject(geom,"material",mat);
     bnCommit(geom);
     return geom;
@@ -231,6 +232,17 @@ namespace hs {
     bnSet1f (mat,"roughness",metal->roughness);
     return mat;
   }
+  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender)
+  {
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
+    bnSet1f(mat,"metallic",blender->metallic);
+    bnSet1f(mat,"ior",blender->ior);
+    bnSet1f(mat,"roughness",blender->roughness);
+    bnSet3fc(mat,"baseColor",(const float3&)blender->baseColor);
+    PING; PRINT(mat);
+    bnCommit(mat);
+    return mat;
+  }
   BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"matte");
@@ -313,6 +325,8 @@ namespace hs {
         << OWL_TERMINAL_DEFAULT << std::endl;
       typesCreated.insert(miniMat->toString());
     }
+    if (mini::BlenderMaterial::SP blender = miniMat->as<mini::BlenderMaterial>())
+      return create(blender);
     if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
       return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())

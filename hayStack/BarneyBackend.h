@@ -72,6 +72,7 @@ namespace hs {
       BNMaterial create(mini::Velvet::SP velvet);
       BNMaterial create(mini::Matte::SP matte);
       BNMaterial create(mini::Metal::SP metal);
+      BNMaterial create(mini::BlenderMaterial::SP blender);
       BNMaterial create(mini::ThinGlass::SP thinGlass);
       BNMaterial create(mini::Dielectric::SP dielectric);
       BNMaterial create(mini::MetallicPaint::SP metallicPaint);
