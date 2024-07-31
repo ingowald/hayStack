@@ -59,7 +59,6 @@ namespace hs {
       // bnSetAndRelease(geom,"texcoords",_texcoords);
       bnRelease(_texcoords);
     }
-    PING; PRINT(mat);
     bnSetObject(geom,"material",mat);
     bnCommit(geom);
     return geom;
