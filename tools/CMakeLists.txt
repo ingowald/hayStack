@@ -16,3 +16,6 @@
 
 add_executable(miniSplitObjectSpace miniSplitObjectSpace.cpp)
 target_link_libraries(miniSplitObjectSpace miniScene)
+
+add_executable(miniSetMaterial miniSetMaterial.cpp)
+target_link_libraries(miniSetMaterial miniScene)
