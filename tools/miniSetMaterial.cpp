@@ -21,8 +21,8 @@ using namespace mini;
 
 float getFloat(int &i, int ac, char **av)
 {
-  if (i >= ac) throw std::runtime_error("cannot find cmdline argument");
-  float f = std::stof(av[i++]);
+  if (i+1 >= ac) throw std::runtime_error("cannot find cmdline argument");
+  float f = std::stof(av[++i]);
   return f;
 }
 
@@ -39,7 +39,8 @@ int main(int ac, char **av)
   std::string inFileName;
   std::string outFileName;
 
-  mini::BlenderMaterial::SP mat = mini::BlenderMaterial::create();
+  // mini::BlenderMaterial::SP mat = mini::BlenderMaterial::create();
+  mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
   
   for (int i=1;i<ac;i++) {
     std::string arg = av[i];
@@ -51,6 +52,10 @@ int main(int ac, char **av)
       mat->roughness = getFloat(i,ac,av);
     else if (arg == "-base" || arg == "--basecolor")
       mat->baseColor = getFloat3(i,ac,av);
+    else if (arg == "-m" || arg == "--metallic")
+      mat->metallic = getFloat(i,ac,av);
+    else if (arg == "-i" || arg == "--ior")
+      mat->ior = getFloat(i,ac,av);
     else
       throw std::runtime_error("./miniSplitObjectSpace inFile.mini <args>\n"
                                "--roughness <float>\n"

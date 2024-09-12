@@ -69,6 +69,13 @@ namespace hs {
       anari::setParameterArray1D(device, mesh, "vertex.attribute0",
                                  (const anari::math::float2*)miniMesh->texcoords.data(),
                                  miniMesh->texcoords.size());
+#if 1
+    if (!miniMesh->normals.empty()) {
+      anari::setParameterArray1D(device, mesh, "vertex.normal",
+                                 (const anari::math::float3*)miniMesh->normals.data(),
+                                 miniMesh->normals.size());
+    }
+#endif
     anari::commitParameters(device, mesh);
 
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
@@ -100,7 +107,8 @@ namespace hs {
     anari::commitParameters(device, model);
 
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", 10.f);
+    anari::setParameter(device, renderer, "ambientRadiance", 0.f);
+    //anari::setParameter(device, renderer, "ambientRadiance", 10.f);
     anari::commitParameters(device, renderer);
 
     frame = anari::newObject<anari::Frame>(device);
@@ -269,13 +277,28 @@ namespace hs {
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
+    PING; PRINT((const vec3f&)disney->baseColor);
+    
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)disney->baseColor);
+#if 1
+    // anari::setParameter(device,material,"metallic",1.f);
+    anari::setParameter(device,material,"metallic",disney->metallic);
+    anari::setParameter(device,material,"opacity",1.f);
+    // anari::setParameter(device,material,"roughness",.02f);
+    anari::setParameter(device,material,"roughness",disney->roughness);
+    // anari::setParameter(device,material,"specular",.0f);
+    anari::setParameter(device,material,"specular",.0f);
+    anari::setParameter(device,material,"clearcoat",.0f);
+    anari::setParameter(device,material,"transmission",.0f);
+    // anari::setParameter(device,material,"transmission",disney->transmission);
+    anari::setParameter(device,material,"ior",1.45f);
+#else
     anari::setParameter(device,material,"roughness",disney->roughness);
     anari::setParameter(device,material,"metallic", disney->metallic);
     anari::setParameter(device,material,"ior",      disney->ior);
     anari::setParameter(device,material,"alphaMode","mask");
-
+#endif
     if (disney->colorTexture) {
       anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
       if (tex) anari::setParameter(device,material,"baseColor",tex);
@@ -378,13 +401,19 @@ namespace hs {
     anari::commitParameters(device, frame);
   }
 
+  float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
+  
   anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
   {
+    PING;
     auto device = global->device;
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
-    anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
+    anari::setParameter(device,light,"irradiance",average(ml.radiance));
+    // anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
+    PRINT((vec3f&)ml.direction);
+    PRINT((vec3f&)ml.radiance);
     anari::commitParameters(device,light);
     return light;
   }
@@ -392,6 +421,7 @@ namespace hs {
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
   {
+    PING; PRINT(lights.size());
     auto device = global->device;
     if (!lights.empty()) {
       anari::setParameterArray1D
