@@ -384,7 +384,28 @@ namespace hs {
 
   BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
   {
-    return {};
+    std::cout << OWL_TERMINAL_YELLOW
+              << "#hs: creating env-map light ..."
+              << OWL_TERMINAL_DEFAULT << std::endl;
+    vec2i size = ml.texture->size;
+    assert(ml.texture);
+
+    BNTexture2D texture
+      = bnTexture2DCreate(global->model,this->slot,
+                          BN_TEXEL_FORMAT_RGBA32F,
+                          size.x,size.y,
+                          ml.texture->data.data());
+    
+    BNLight light = bnLightCreate(global->model,this->slot,"envmap");
+
+    bnSetObject(light,"texture", texture);
+    bnRelease(texture);
+
+    bnSet3fc(light,"direction",(const float3&)ml.transform.l.vx);
+    bnSet3fc(light,"up",(const float3&)ml.transform.l.vz);
+    
+    bnCommit(light);
+    return light;
   }
 
   void BarneyBackend::Slot::setLights(BNGroup rootGroup,

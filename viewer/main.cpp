@@ -70,6 +70,7 @@ namespace hs {
       float fovy = 60.f;
     } camera;
     bool measure = 0;
+    std::string envMapFileName;
   };
   FromCL fromCL;
   
@@ -368,6 +369,8 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
+    } else if (arg == "-env" || arg == "--env-map") {
+      fromCL.envMapFileName = av[++i];
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {

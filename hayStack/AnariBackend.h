@@ -58,7 +58,7 @@ namespace hs {
       
       anari::Light create(const mini::QuadLight &ml) { return {}; }
       anari::Light create(const mini::DirLight &ml);
-      anari::Light create(const mini::EnvMapLight &ml) { return {}; }
+      anari::Light create(const mini::EnvMapLight &ml);
       
       anari::Group createGroup(const std::vector<anari::Surface> &geoms,
                                const std::vector<anari::Volume> &volumes);
