@@ -410,16 +410,19 @@ namespace hs {
               << OWL_TERMINAL_DEFAULT << std::endl;
     auto device = global->device;
     vec2i size = ml.texture->size;
-    std::vector<vec3f> as3f(size.x*size.y);
-    for (int i=0;i<as3f.size();i++)
-      as3f[i] = (const vec3f&)((vec4f*)ml.texture->data.data())[i];
     anari::Array2D radiance
-      = anariNewArray2D(device, (const void *)as3f.data(), nullptr,nullptr,
+      = anariNewArray2D(device, nullptr,nullptr,nullptr,
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
+    vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
+    for (int i=0;i<size.x*size.y;i++)
+      as3f[i]
+        = (const vec3f&)((vec4f*)ml.texture->data.data())[i];
+    anariUnmapArray(device,radiance);
+    anari::commitParameters(device,radiance);
     
     anari::Light light = anari::newObject<anari::Light>(device,"hdri");
-    anari::setParameter(device,light,"radiance",radiance);
+    anari::setAndReleaseParameter(device,light,"radiance",radiance);
     anari::setParameter(device,light,"up",
                         (const anari::math::float3&)ml.transform.l.vz);
     anari::setParameter(device,light,"direction",
