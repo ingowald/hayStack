@@ -390,11 +390,13 @@ namespace hs {
     vec2i size = ml.texture->size;
     assert(ml.texture);
 
+    const vec4f *texels
+      = (const vec4f *)ml.texture->data.data();
     BNTexture2D texture
       = bnTexture2DCreate(global->model,this->slot,
                           BN_TEXEL_FORMAT_RGBA32F,
                           size.x,size.y,
-                          ml.texture->data.data());
+                          texels);
     
     BNLight light = bnLightCreate(global->model,this->slot,"envmap");
 
