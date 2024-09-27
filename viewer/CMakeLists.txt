@@ -99,14 +99,6 @@ target_link_libraries(hsOffline
   )
 
 # ------------------------------------------------------------------
-add_executable(hsMakeMaterialTestModel
-  makeMaterialTest.cpp
-  )
-target_link_libraries(hsMakeMaterialTestModel
-  PUBLIC
-  hayStack
-  miniScene_import_obj
-  )
 
 # ------------------------------------------------------------------
 
