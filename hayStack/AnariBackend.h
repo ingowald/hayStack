@@ -76,7 +76,10 @@ namespace hs {
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
-      std::vector<anari::Surface> createSpheres(SphereSet::SP content);
+      std::vector<anari::Surface>
+      createSpheres(SphereSet::SP content,
+                    MaterialLibrary<AnariBackend> *materialLib);
+      
       std::vector<anari::Surface> createCylinders(Cylinders::SP content);
 
       void setInstances(const std::vector<anari::Group> &groups,
@@ -85,7 +88,8 @@ namespace hs {
                      const std::vector<anari::Light> &lights);
       
       anari::Sampler create(mini::Texture::SP miniTex);
-      GeomHandle create(mini::Mesh::SP miniMesh, MaterialLibrary<AnariBackend> *materialLib);
+      GeomHandle create(mini::Mesh::SP miniMesh,
+                        MaterialLibrary<AnariBackend> *materialLib);
 
       inline void release(anari::Sampler t) { anari::release(global->device, t); }
       inline void release(anari::Material m) { anari::release(global->device, m); }

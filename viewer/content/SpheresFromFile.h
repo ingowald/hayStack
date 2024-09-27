@@ -19,7 +19,7 @@
 #include "viewer/DataLoader.h"
 
 namespace hs {
-  
+
   /*! a file of 'raw' spheres */
   struct SpheresFromFile : public LoadableContent {
     SpheresFromFile(const ResourceSpecifier &data,

@@ -511,8 +511,32 @@ namespace hs {
   }
   
   std::vector<anari::Surface>
-  AnariBackend::Slot::createSpheres(SphereSet::SP content)
-  { return {}; }
+  AnariBackend::Slot::createSpheres(SphereSet::SP content,
+                                    MaterialLibrary<AnariBackend> *materialLib)
+  { 
+    auto device = global->device;
+    anari::Material material = materialLib->getOrCreate(content->material);
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "sphere");
+    anari::setParameterArray1D
+      (device, geom, "vertex.position",
+       (const anari::math::float3*)content->origins.data(),
+       content->origins.size());
+    if (!content->colors.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.color",
+         (const anari::math::float3*)content->colors.data(),
+         content->origins.size());
+    }
+    anari::commitParameters(device, geom);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+
+    return { surface };
+  }
     
   std::vector<anari::Surface>
   AnariBackend::Slot::createCylinders(Cylinders::SP content)

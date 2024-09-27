@@ -130,7 +130,7 @@ namespace hs {
     // render all spheres
     // -----------------------------------------------------------------
     for (auto content : myData.sphereSets)
-      for (auto created : this->createSpheres(content))
+      for (auto created : this->createSpheres(content,&this->materialLibrary))
         rootGeoms.push_back(created);
     
     // ------------------------------------------------------------------
@@ -202,7 +202,8 @@ namespace hs {
   }
 
   template<typename Backend>
-  typename Backend::GroupHandle HayMakerT<Backend>::Slot::render(const mini::Object::SP &object)
+  typename Backend::GroupHandle
+  HayMakerT<Backend>::Slot::render(const mini::Object::SP &object)
   {
     std::vector<typename Backend::GeomHandle> meshes;
     for (auto mesh : object->meshes) {

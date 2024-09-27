@@ -29,8 +29,9 @@ namespace hs {
     return group;
   }
   
-  BarneyBackend::GeomHandle BarneyBackend::Slot::create(mini::Mesh::SP miniMesh,
-                                                        MaterialLibrary<BarneyBackend> *materialLib)
+  BarneyBackend::GeomHandle
+  BarneyBackend::Slot::create(mini::Mesh::SP miniMesh,
+                              MaterialLibrary<BarneyBackend> *materialLib)
   {
     auto model = global->model;
     BNMaterial mat = materialLib->getOrCreate(miniMesh->material);
@@ -495,8 +496,52 @@ namespace hs {
   }
 
   std::vector<BNGeom>
-  BarneyBackend::Slot::createSpheres(SphereSet::SP content)
-  { return {}; }
+  BarneyBackend::Slot::createSpheres(SphereSet::SP content,
+                                     MaterialLibrary<BarneyBackend> *materialLib)
+  { 
+
+    // this is what minicontent looks like:
+    // std::vector<vec3f> origins;
+    // std::vector<vec3f> colors;
+    // std::vector<float> radii;
+    // mini::Material::SP material;
+    // float radius = .1f;
+    
+    BNGeom geom
+      = bnGeometryCreate(global->model,this->slot,"spheres");
+    BNData origins
+      = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                     content->origins.size(),
+                     content->origins.data());
+    bnSetAndRelease(geom,"origins",origins);
+
+    if (content->radii.empty()) {
+      bnSet1f(geom,"radius",content->radius);
+    } else {
+      BNData radii
+        = bnDataCreate(global->model,this->slot,BN_FLOAT,
+                       content->radii.size(),
+                       content->radii.data());
+      bnSetAndRelease(geom,"radii",radii);
+    }
+
+    if (content->colors.empty()) {
+    } else {
+      BNData colors
+        = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                       content->colors.size(),
+                       content->colors.data());
+      // bnSetAndRelease(geom,"colors",colors);
+      bnSetAndRelease(geom,"primitive.color",colors);
+    }
+    
+    BNMaterial mat
+      = materialLib->getOrCreate(content->material);
+    bnSetObject(geom,"material",mat);
+    
+    bnCommit(geom);
+    return { geom };
+  }
   
   std::vector<BNGeom>
   BarneyBackend::Slot::createCylinders(Cylinders::SP content)
