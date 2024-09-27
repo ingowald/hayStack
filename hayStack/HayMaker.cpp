@@ -98,6 +98,8 @@ namespace hs {
     if (alreadyCreated.find(miniMat) != alreadyCreated.end())
       return alreadyCreated[miniMat];
 
+    PRINT(miniMat->toString());
+    
     auto mat = backend->create(miniMat);
     alreadyCreated[miniMat] = mat;
     return mat;

@@ -199,11 +199,19 @@ namespace hs {
 
   BNMaterial BarneyBackend::Slot::create(mini::Plastic::SP plastic)
   {
+#if 1
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
+    bnSet3fc(mat,"baseColor",(const float3&)plastic->pigmentColor);
+    bnSet1f(mat,"specular",plastic->Ks.x);
+    bnSet1f(mat,"roughness",plastic->roughness);
+    bnSet1f(mat,"ior",plastic->eta);
+#else
     BNMaterial mat = bnMaterialCreate(global->model,slot,"plastic");
     bnSet3fc(mat,"pigmentColor",(const float3&)plastic->pigmentColor);
     bnSet3fc(mat,"Ks",(const float3&)plastic->Ks);
     bnSet1f(mat,"roughness",plastic->roughness);
     bnSet1f(mat,"eta",plastic->eta);
+#endif
     bnCommit(mat);
     return mat;
   }
@@ -245,14 +253,33 @@ namespace hs {
   }
   BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
+#if 1
+    PING;
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
+    bnSet1f (mat,"ior",1.45f);
+    bnSet1f (mat,"transmission",1.f);
+    bnSet1f (mat,"metallic",0.f);
+    bnSet1f (mat,"specular",0.f);
+    bnSet1f (mat,"roughness",0.f);
+#else
     BNMaterial mat = bnMaterialCreate(global->model,slot,"matte");
     vec3f gray(.5f);
     bnSet3fc(mat,"reflectance",(const float3&)gray);
+#endif
     bnCommit(mat);
     return mat;
   }
   BNMaterial BarneyBackend::Slot::create(mini::Dielectric::SP dielectric)
   {
+#if 1
+    PING;
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
+    bnSet1f (mat,"ior",dielectric->etaInside);
+    bnSet1f (mat,"transmission",1.f);
+    bnSet1f (mat,"metallic",0.f);
+    bnSet1f (mat,"specular",0.f);
+    bnSet1f (mat,"roughness",0.f);
+#else
     BNMaterial mat = bnMaterialCreate(global->model,slot,"glass");
     bnSet3fc(mat,"attenuationColorInside",(const float3&)dielectric->transmission);
     bnSet1f (mat,"etaInside",dielectric->etaInside);
@@ -261,6 +288,7 @@ namespace hs {
     // bnSet3fc(mat,"transmission",(const float3&)dielectric->transmission);
     // bnSet1f (mat,"etaInside",dielectric->etaInside);
     // bnSet1f (mat,"etaOutside",dielectric->etaOutside);
+#endif
     bnCommit(mat);
     return mat;
   }
