@@ -202,7 +202,7 @@ namespace hs {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
     bnSet3fc(mat,"baseColor",(const float3&)plastic->pigmentColor);
-    bnSet1f(mat,"specular",plastic->Ks.x);
+    bnSet1f(mat,"specular",.1f*plastic->Ks.x);
     bnSet1f(mat,"roughness",plastic->roughness);
     bnSet1f(mat,"ior",plastic->eta);
 #else
@@ -227,17 +227,31 @@ namespace hs {
   }
   BNMaterial BarneyBackend::Slot::create(mini::Matte::SP matte)
   {
+#if 1
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariMatte");
+    vec3f color = matte->reflectance / 3.14f;
+    bnSet3fc(mat,"color",(const float3&)color);
+#else
     BNMaterial mat = bnMaterialCreate(global->model,slot,"matte");
     bnSet3fc(mat,"reflectance",(const float3&)matte->reflectance);
+#endif
+    std::cout << "committing " << (int*)mat << std::endl;
     bnCommit(mat);
+    
     return mat;
   }
   BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal)
   {
+#if 0
+    BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariMatte");
+    bnSet3f(mat,"color",1.f,0.f,0.f);
+#else
     BNMaterial mat = bnMaterialCreate(global->model,slot,"metal");
     bnSet3fc(mat,"eta",(const float3&)metal->eta);
     bnSet3fc(mat,"k",(const float3&)metal->k);
     bnSet1f (mat,"roughness",metal->roughness);
+#endif
+    bnCommit(mat);
     return mat;
   }
   BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender)
@@ -247,13 +261,12 @@ namespace hs {
     bnSet1f(mat,"ior",blender->ior);
     bnSet1f(mat,"roughness",blender->roughness);
     bnSet3fc(mat,"baseColor",(const float3&)blender->baseColor);
-    PING; PRINT(mat);
     bnCommit(mat);
     return mat;
   }
   BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
-#if 1
+#if 0
     PING;
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
     bnSet1f (mat,"ior",1.45f);
@@ -272,7 +285,6 @@ namespace hs {
   BNMaterial BarneyBackend::Slot::create(mini::Dielectric::SP dielectric)
   {
 #if 1
-    PING;
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
     bnSet1f (mat,"ior",dielectric->etaInside);
     bnSet1f (mat,"transmission",1.f);
@@ -343,7 +355,6 @@ namespace hs {
 
   BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat)
   {
-    // PRINT(miniMat->toString());
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
       std::cout
@@ -616,8 +627,6 @@ namespace hs {
       : bnDataCreate(global->model,this->slot,BN_FLOAT3,
                      content->colors.size(),
                      content->colors.data());
-    PRINT(content->colors.size());
-    PRINT(colors);
     if (colors)
       bnSetAndRelease(geom,"primitive.color",colors);
 
