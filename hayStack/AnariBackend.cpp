@@ -308,6 +308,23 @@ namespace hs {
     return material;
   }
 
+  anari::Material AnariBackend::Slot::create(mini::Dielectric::SP dielectric)
+  {
+    auto device = global->device;
+
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+    anari::setParameter(device,material,"ior",dielectric->etaInside);
+    anari::setParameter(device,material,"transmission",1.f);
+    anari::setParameter(device,material,"metallic",0.f);
+    anari::setParameter(device,material,"specular",0.f);
+    anari::setParameter(device,material,"roughness",0.f);
+
+    anari::commitParameters(device, material);
+    return material;
+  }
+
   anari::Material AnariBackend::Slot::create(mini::Material::SP miniMat)
   {
     static std::set<std::string> typesCreated;
@@ -326,6 +343,8 @@ namespace hs {
     //   return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
       return create(disney);
+    if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+      return create(dielectric);
     // if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
     //   return create(velvet);
     // if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
