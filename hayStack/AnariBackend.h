@@ -94,6 +94,7 @@ namespace hs {
       inline void release(anari::Sampler t) { anari::release(global->device, t); }
       inline void release(anari::Material m) { anari::release(global->device, m); }
       
+      void finalizeSlot() { PING; }
       
       typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;

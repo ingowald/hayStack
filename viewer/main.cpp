@@ -299,7 +299,7 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = r; 
+    xf.domain = r;
     xfDirty = true;
   }
   
@@ -582,9 +582,9 @@ int main(int ac, char **av)
   renderer->setCamera(camera);
 
   if (fromCL.xfFileName.length() > 0) {
-      hs::TransferFunction xf;
-      xf.load(fromCL.xfFileName);
-      renderer->setTransferFunction(xf);
+    hs::TransferFunction xf;
+    xf.load(fromCL.xfFileName);
+    renderer->setTransferFunction(xf);
   }
 
   for (int i=0;i<fromCL.numFramesAccum;i++) 

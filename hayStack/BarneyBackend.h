@@ -99,6 +99,9 @@ namespace hs {
       inline void release(BNSampler t)  { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
 
+      void finalizeSlot();
+      
+      bool needRebuild = true;
       typename HayMakerT<BarneyBackend>::Slot *const impl;
       Global *const global;
       int     const slot;

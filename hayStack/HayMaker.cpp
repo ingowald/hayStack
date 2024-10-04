@@ -106,76 +106,78 @@ namespace hs {
   template<typename Backend>
   void HayMakerT<Backend>::Slot::renderAll()
   {
-    if (!rootInstances.groups.empty())
-      // already rendererd ...
-      return;
     auto impl = this->impl;
+    if (!dirty) return;
+    dirty = false;
+       
+    if (rootInstances.groups.empty()) {
 
-    // ==================================================================
-    // first, "render" all content in the sense that we create
-    // geometries, lights, instances, etc, and simply 'append' them to
-    // two global lists for all lights and all instances, respectively
-    // ==================================================================
+      // ==================================================================
+      // first, "render" all content in the sense that we create
+      // geometries, lights, instances, etc, and simply 'append' them to
+      // two global lists for all lights and all instances, respectively
+      // ==================================================================
 
-    // ------------------------------------------------------------------
-    // render all mini::Scene formatted geometry - however many there
-    // may be; this also includes lights because those are currently
-    // stored in mini::Scene'
-    // -----------------------------------------------------------------
-    auto &myData = this->global->base->localModel.dataGroups[this->slot];
-    for (auto miniScene : myData.minis)
-      renderMiniScene(miniScene);
+      // ------------------------------------------------------------------
+      // render all mini::Scene formatted geometry - however many there
+      // may be; this also includes lights because those are currently
+      // stored in mini::Scene'
+      // -----------------------------------------------------------------
+      auto &myData = this->global->base->localModel.dataGroups[this->slot];
+      for (auto miniScene : myData.minis)
+        renderMiniScene(miniScene);
 
-    // ------------------------------------------------------------------
-    // render all spheres
-    // -----------------------------------------------------------------
-    for (auto content : myData.sphereSets)
-      for (auto created : this->createSpheres(content,&this->materialLibrary))
-        rootGeoms.push_back(created);
+      // ------------------------------------------------------------------
+      // render all spheres
+      // -----------------------------------------------------------------
+      for (auto content : myData.sphereSets)
+        for (auto created : this->createSpheres(content,&this->materialLibrary))
+          rootGeoms.push_back(created);
     
-    // ------------------------------------------------------------------
-    // render all cyliders
-    // -----------------------------------------------------------------
-    for (auto content : myData.cylinderSets)
-      for (auto created : impl->createCylinders(content))
-        rootGeoms.push_back(created);
+      // ------------------------------------------------------------------
+      // render all cyliders
+      // -----------------------------------------------------------------
+      for (auto content : myData.cylinderSets)
+        for (auto created : impl->createCylinders(content))
+          rootGeoms.push_back(created);
     
-    // ------------------------------------------------------------------
-    // render all structured volumes
-    // -----------------------------------------------------------------
-    for (auto vol : myData.structuredVolumes) {
-      VolumeHandle createdVolume = impl->create(vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      // ------------------------------------------------------------------
+      // render all structured volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.structuredVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+      for (auto vol : myData.unsts) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+
+      // ==================================================================
+      // now that all light and instances have been _created_ and
+      // appended to the respective arrays, add these to the model
+      // ==================================================================
+
+      rootGroup = impl->createGroup(rootGeoms,{});
+      rootInstances.groups.push_back(rootGroup);
+      rootInstances.xfms.push_back(affine3f{});
+
+    
+      // 'attach' the lights to the root group
+      impl->setLights(rootGroup,lights);
+
+      // attach volumes to instances
+      volumeGroup = impl->createGroup({},rootVolumes);
+      rootInstances.groups.push_back(volumeGroup);
+      rootInstances.xfms.push_back(affine3f{});
+      
+      // ------------------------------------------------------------------
+      // finally - specify top-level instances for all the stuff we
+      // generated
+      // -----------------------------------------------------------------
     }
-    for (auto vol : myData.unsts) {
-      VolumeHandle createdVolume = impl->create(vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
-    }
-
-    // ==================================================================
-    // now that all light and instances have been _created_ and
-    // appended to the respective arrays, add these to the model
-    // ==================================================================
-
-    rootGroup = impl->createGroup(rootGeoms,{});
-    rootInstances.groups.push_back(rootGroup);
-    rootInstances.xfms.push_back(affine3f{});
-
-    
-    // 'attach' the lights to the root group
-    impl->setLights(rootGroup,lights);
-
-    // attach volumes to instances
-    volumeGroup = impl->createGroup({},rootVolumes);
-    rootInstances.groups.push_back(volumeGroup);
-    rootInstances.xfms.push_back(affine3f{});
-    
-    // ------------------------------------------------------------------
-    // finally - specify top-level instances for all the stuff we
-    // generated
-    // -----------------------------------------------------------------
     this->setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
@@ -246,6 +248,7 @@ namespace hs {
   {
     for (auto slot : perSlot)
       slot->renderAll();
+    
     global.finalizeRender();
   }
 

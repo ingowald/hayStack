@@ -123,7 +123,11 @@ namespace hs {
         slot->setTransferFunction(xf);
     }
     void renderFrame(int pathsPerPixel) override
-    { global.renderFrame(pathsPerPixel); }
+    {
+      // if (needRebuild)
+      buildSlots();
+      global.renderFrame(pathsPerPixel);
+    }
     
     void resetAccumulation() override
     { global.resetAccumulation(); }
@@ -162,7 +166,10 @@ namespace hs {
       GroupHandle volumeGroup = 0;
 
       void setTransferFunction(const TransferFunction &xf)
-      { Backend::Slot::setTransferFunction(rootVolumes,xf); }
+      {
+        Backend::Slot::setTransferFunction(rootVolumes,xf);
+        dirty = true;
+      }
       
       void renderAll();
       void renderMiniScene(mini::Scene::SP miniScene);
@@ -175,6 +182,7 @@ namespace hs {
       
       TextureLibrary<Backend>  textureLibrary;
       MaterialLibrary<Backend> materialLibrary;
+      bool dirty = true;
     };
     
     std::vector<Slot *> perSlot;

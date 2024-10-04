@@ -116,9 +116,10 @@ namespace hs {
                     (const float4*)xf.colorMap.data(),
                     (int)xf.colorMap.size(),
                     xf.baseDensity);
-    }
+      }
     bnGroupBuild(impl->volumeGroup);
-    bnBuild(global->model,this->slot);
+    needRebuild = true;
+    // bnBuild(global->model,this->slot);
   }
 
   void BarneyBackend::Global::renderFrame(int pathsPerPixel)
@@ -267,7 +268,6 @@ namespace hs {
   BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
 #if 0
-    PING;
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
     bnSet1f (mat,"ior",1.45f);
     bnSet1f (mat,"transmission",1.f);
@@ -395,9 +395,18 @@ namespace hs {
     bnBuild(global->model,slot);
   }
 
-
+  
   void BarneyBackend::Global::finalizeRender()
   {
+  }
+  
+  void BarneyBackend::Slot::finalizeSlot()
+  {
+    PING; PRINT(needRebuild);
+   if (needRebuild) {
+      bnBuild(global->model,slot);
+      needRebuild = false;
+    }
   }
 
   BNLight BarneyBackend::Slot::create(const mini::QuadLight &ml)
