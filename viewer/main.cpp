@@ -211,7 +211,7 @@ namespace hs {
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
         measure_t0 = getCurrentTime();
-      
+
       static double t0 = getCurrentTime();
       renderer->renderFrame(fromCL.spp);
       ++numFramesRendered;

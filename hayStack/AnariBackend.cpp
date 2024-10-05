@@ -166,10 +166,6 @@ namespace hs {
       anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &valueRange.lower);
 
       anari::commitParameters(device, vol);
-
-      anari::setAndReleaseParameter
-        (device, model, "volume", anari::newArray1D(device, &vol));
-      // anari::release(device, vol);
     }
 
     anari::commitParameters(device, impl->volumeGroup);
@@ -409,14 +405,12 @@ namespace hs {
        model,
        "instance",
        anari::newArray1D(device, instances.data(),instances.size()));
-    std::cout << "### COMMITTING MODEL" << std::endl;
     anari::commitParameters(device, model);
   }
 
   void AnariBackend::Global::finalizeRender()
   {
     anari::setParameter(device, frame, "world",    model);
-    std::cout << "### COMMITTING FRAME" << std::endl;
     anari::commitParameters(device, frame);
   }
 
@@ -524,9 +518,73 @@ namespace hs {
     return volume;
   }
 
-  anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &v)
+  anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
-    return {};
+    auto mesh = meshAndDomain.first;
+    assert(mesh);
+    auto device = global->device;
+
+    auto field = anari::newObject<anari::SpatialField>(device, "unstructured");
+
+    anari::setParameterArray1D
+      (device, field, "vertex.position",
+       (const anari::math::float3 *)mesh->vertices.data(),
+       mesh->vertices.size());
+    anari::setParameterArray1D
+      (device, field, "vertex.data",
+       (const float *)mesh->perVertex->values.data(),
+       mesh->perVertex->values.size());
+    std::vector<uint8_t>  cellTypeData;
+    std::vector<uint32_t> cellBeginData;
+    std::vector<uint32_t> indexData;
+
+    // this isn't fully spec'ed yet
+    enum { _ANARI_TET = 0, _ANARI_HEX=1, _ANARI_WEDGE=2, _ANARI_PYR=3 };
+    for (auto prim : mesh->tets) {
+      cellTypeData.push_back(_ANARI_TET);
+      cellBeginData.push_back((uint32_t)indexData.size());
+      for (int i=0;i<prim.numVertices;i++)
+        indexData.push_back(prim[i]);
+    }
+    for (auto prim : mesh->pyrs) {
+      cellTypeData.push_back(_ANARI_PYR);
+      cellBeginData.push_back((uint32_t)indexData.size());
+      for (int i=0;i<prim.numVertices;i++)
+        indexData.push_back(prim[i]);
+    }
+    for (auto prim : mesh->wedges) {
+      cellTypeData.push_back(_ANARI_WEDGE);
+      cellBeginData.push_back((uint32_t)indexData.size());
+      for (int i=0;i<prim.numVertices;i++)
+        indexData.push_back(prim[i]);
+    }
+    for (auto prim : mesh->hexes) {
+      cellTypeData.push_back(_ANARI_HEX);
+      cellBeginData.push_back((uint32_t)indexData.size());
+      for (int i=0;i<prim.numVertices;i++)
+        indexData.push_back(prim[i]);
+    }
+    
+    anari::setParameterArray1D
+      (device, field, "cell.type",
+       (const uint8_t *)cellTypeData.data(),
+       cellTypeData.size());
+    anari::setParameterArray1D
+      (device, field, "cell.begin",
+       (const uint32_t *)cellBeginData.data(),
+       cellBeginData.size());
+    anari::setParameterArray1D
+      (device, field, "index",
+       (const uint32_t *)indexData.data(),
+       indexData.size());
+
+    anari::commitParameters(device, field);
+    
+    auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
+    anari::setAndReleaseParameter(device, volume, "value", field);
+    anari::commitParameters(device, volume);
+
+    return volume;
   }
   
   std::vector<anari::Surface>
