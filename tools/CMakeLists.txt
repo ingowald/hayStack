@@ -19,3 +19,6 @@ target_link_libraries(miniSplitObjectSpace miniScene)
 
 add_executable(miniSetMaterial miniSetMaterial.cpp)
 target_link_libraries(miniSetMaterial miniScene)
+
+add_executable(swcMakeBinaries swcMakeBinaries.cpp)
+target_link_libraries(swcMakeBinaries miniScene)
