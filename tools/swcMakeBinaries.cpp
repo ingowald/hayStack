@@ -38,8 +38,10 @@ std::vector<Node> nodes;
 
 std::map<int,size_t> swcPointToNodeID;
 
-void importSWC(const std::string &fileName)
+void importSWC(const std::string &fileName, bool colorByFile)
 {
+  static int fileID = 123;
+  int thisFileID = fileID++;
   std::cout << "# importing " << fileName << "... " << std::flush;
   std::ifstream in(fileName.c_str());
   std::string line;
@@ -59,6 +61,7 @@ void importSWC(const std::string &fileName)
                &node.radius,
                &connectsTo) != 7)
       continue;
+    if (colorByFile) node.label = thisFileID;
     node.connectsTo = connectsTo;
     swcPointToNodeID[nodeID] = nodes.size();
     nodes.push_back(node);
@@ -114,25 +117,23 @@ int main(int ac, char **av)
   }
   
   for (auto fileName : inFileNames)
-    importSWC(fileName);
+    importSWC(fileName,colorByFile);
 
   if (!outFileName.empty()) {
     std::ofstream out(outFileName.c_str(),std::ios::binary);
     if (storeAsCapsules) {
-      static int fileID = 123;
-      vec3f fileColor = randomColor(fileID++);
       for (auto node : nodes) {
         if (node.connectsTo < 0)
           continue;
         FatCapsule fc;
         fc.vertex[0].pos    = node.pos;
         fc.vertex[0].radius = node.radius;
-        fc.vertex[0].color  = colorByFile?fileColor:randomColor(node.label);
+        fc.vertex[0].color  = randomColor(node.label);
 
         auto &other = nodes[node.connectsTo];
         fc.vertex[1].pos    = other.pos;
         fc.vertex[1].radius = other.radius;
-        fc.vertex[1].color  = colorByFile?fileColor:randomColor(other.label);
+        fc.vertex[1].color  = randomColor(other.label);
 
         out.write((const char *)&fc,sizeof(fc));
       }
