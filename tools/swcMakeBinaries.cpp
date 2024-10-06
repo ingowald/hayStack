@@ -125,9 +125,9 @@ int main(int ac, char **av)
         fc.vertex[0].color  = randomColor(node.label);
 
         auto &other = nodes[node.connectsTo];
-        fc.vertex[0].pos    = other.pos;
-        fc.vertex[0].radius = other.radius;
-        fc.vertex[0].color  = randomColor(other.label);
+        fc.vertex[1].pos    = other.pos;
+        fc.vertex[1].radius = other.radius;
+        fc.vertex[1].color  = randomColor(other.label);
 
         out.write((const char *)&fc,sizeof(fc));
       }

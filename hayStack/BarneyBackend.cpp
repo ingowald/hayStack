@@ -548,6 +548,43 @@ namespace hs {
   ::createCapsules(hs::Capsules::SP content,
                    MaterialLibrary<BarneyBackend> *materialLib)
   {
+#if 1
+    BNGeom geom
+      = bnGeometryCreate(global->model,this->slot,"cylinders");
+    if (!geom) {
+      std::cout << "barney backend doesn't support 'cylinders' geometry"
+                << std::endl;
+      return {};
+    }
+    bnSet1i(geom,"radiusPerVertex",1);
+    bnSet1i(geom,"colorPerVertex",1);
+    std::vector<float> _radii;
+    std::vector<vec3f> _vertices;
+    std::vector<vec3f> &_colors = content->vertexColors;
+    for (auto v : content->vertices) {
+      _radii.push_back(v.w);
+      _vertices.push_back({v.x,v.y,v.z});
+    }
+    BNData vertices
+      = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                     _vertices.size(),
+                     _vertices.data());
+    bnSetAndRelease(geom,"vertices",vertices);
+    BNData colors
+      = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                     _colors.size(),
+                     _colors.data());
+    bnSetAndRelease(geom,"colors",colors);
+    BNData radii
+      = bnDataCreate(global->model,this->slot,BN_FLOAT,
+                     _radii.size(),
+                     _radii.data());
+    bnSetAndRelease(geom,"radii",radii);
+    for (int i=0;i<std::min(10,int(_radii.size()));i++) {
+      PRINT(_vertices[i]);
+      PRINT(_radii[i]);
+    }
+#else
     BNGeom geom
       = bnGeometryCreate(global->model,this->slot,"capsules");
     if (!geom) {
@@ -569,14 +606,16 @@ namespace hs {
       bnSetAndRelease(geom,"vertexColors",vertexColors);
     }
 
+#endif
     BNData indices
       = bnDataCreate(global->model,this->slot,BN_INT2,
                      content->indices.size(),
                      content->indices.data());
     bnSetAndRelease(geom,"indices",indices);
-    
     BNMaterial mat
       = materialLib->getOrCreate(content->material);
+    bnSetString(mat,"baseColor","color");
+    bnSetString(mat,"color","color");
     bnSetObject(geom,"material",mat);
     
     bnCommit(geom);

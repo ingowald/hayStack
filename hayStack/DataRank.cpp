@@ -58,6 +58,9 @@ namespace hs {
     for (auto &sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());
+    for (auto &capsuleSet : capsuleSets)
+      if (capsuleSet)
+        bounds.spatial.extend(capsuleSet->getBounds());
     for (auto &cylinderSet : cylinderSets)
       if (cylinderSet)
         bounds.spatial.extend(cylinderSet->getBounds());

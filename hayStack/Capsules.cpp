@@ -31,6 +31,7 @@ namespace hs {
       bounds.extend(getSphere(index.x));
       bounds.extend(getSphere(index.y));
     }
+    PING; PRINT(bounds);
     return bounds;
   }
   
