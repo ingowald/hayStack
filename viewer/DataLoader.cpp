@@ -25,6 +25,7 @@
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DistData.h"
+#include "viewer/content/Capsules.h"
 
 namespace hs {
 
@@ -306,6 +307,8 @@ namespace hs {
         TSTriContent::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 
         MaterialsTest::create(this,contentDescriptor);
+      else if (url.type == "capsules") 
+        content::Capsules::create(this,contentDescriptor);
       // else if (url.type == "en-dump")
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 

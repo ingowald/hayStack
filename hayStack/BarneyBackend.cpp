@@ -395,7 +395,7 @@ namespace hs {
     bnBuild(global->model,slot);
   }
 
-  
+
   void BarneyBackend::Global::finalizeRender()
   {
   }
@@ -544,8 +544,50 @@ namespace hs {
   }
 
   std::vector<BNGeom>
-  BarneyBackend::Slot::createSpheres(SphereSet::SP content,
-                                     MaterialLibrary<BarneyBackend> *materialLib)
+  BarneyBackend::Slot
+  ::createCapsules(hs::Capsules::SP content,
+                   MaterialLibrary<BarneyBackend> *materialLib)
+  {
+    BNGeom geom
+      = bnGeometryCreate(global->model,this->slot,"capsules");
+    if (!geom) {
+      std::cout << "barney backend doesn't support 'capsules' geometry"
+                << std::endl;
+      return {};
+    }
+    BNData vertices
+      = bnDataCreate(global->model,this->slot,BN_FLOAT4,
+                     content->vertices.size(),
+                     content->vertices.data());
+    bnSetAndRelease(geom,"vertices",vertices);
+
+    if (!content->vertexColors.empty()) {
+      BNData vertexColors
+        = bnDataCreate(global->model,this->slot,BN_FLOAT3,
+                       content->vertexColors.size(),
+                       content->vertexColors.data());
+      bnSetAndRelease(geom,"vertexColors",vertexColors);
+    }
+
+    BNData indices
+      = bnDataCreate(global->model,this->slot,BN_INT2,
+                     content->indices.size(),
+                     content->indices.data());
+    bnSetAndRelease(geom,"indices",indices);
+    
+    BNMaterial mat
+      = materialLib->getOrCreate(content->material);
+    bnSetObject(geom,"material",mat);
+    
+    bnCommit(geom);
+    return { geom };
+  }
+  
+  
+  std::vector<BNGeom>
+  BarneyBackend::Slot
+  ::createSpheres(SphereSet::SP content,
+                  MaterialLibrary<BarneyBackend> *materialLib)
   { 
 
     // this is what minicontent looks like:

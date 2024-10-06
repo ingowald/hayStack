@@ -80,8 +80,13 @@ namespace hs {
       createSpheres(SphereSet::SP content,
                     MaterialLibrary<AnariBackend> *materialLib);
       
-      std::vector<anari::Surface> createCylinders(Cylinders::SP content);
+      std::vector<anari::Surface>
+      createCylinders(Cylinders::SP content);
 
+      std::vector<anari::Surface>
+      createCapsules(hs::Capsules::SP caps,
+                     MaterialLibrary<AnariBackend> *materialLib) { return {}; }
+      
       void setInstances(const std::vector<anari::Group> &groups,
                         const std::vector<affine3f> &xfms);
       void setLights(anari::Group rootGroup,

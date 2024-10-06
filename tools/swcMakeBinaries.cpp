@@ -26,6 +26,14 @@ struct Node {
   int     label;
 };
 
+struct FatCapsule {
+  struct {
+    vec3f   pos;
+    float   radius;
+    vec3f   color;
+  } vertex[2];
+};
+
 std::vector<Node> nodes;
 
 std::map<int,size_t> swcPointToNodeID;
@@ -67,6 +75,7 @@ void importSWC(const std::string &fileName)
                 << std::to_string(node.connectsTo) << " !?" << std::endl;
     node.connectsTo = swcPointToNodeID[node.connectsTo];
   }
+  // std::cout << "now have " << prettyNumber(fatCapsules.size()) << " capsules" << std::endl;
   std::cout << "now have " << prettyNumber(nodes.size()) << " nodes" << std::endl;
 }
 
@@ -75,6 +84,7 @@ int main(int ac, char **av)
   std::vector<std::string> inFileNames;
   std::string inFilesFileName;
   std::string outFileName;
+  bool storeAsCapsules = false;
 
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -82,11 +92,13 @@ int main(int ac, char **av)
       inFilesFileName = av[++i];
     else if (arg == "-o")
       outFileName = av[++i];
+    else if (arg == "-c" || arg == "-fc" || arg == "--fat-capsules" || arg == "--capsules")
+      storeAsCapsules = true;
     else if (arg[0] != '-')
       inFileNames.push_back(arg);
     else
       throw std::runtime_error
-        ("usage: ./swcMakeBinaries [-o out.swcbin]"
+        ("usage: ./swcMakeBinaries [-o out.fcbin]"
          " [-i fileWithFileNames] file.swc*");
   }
 
@@ -103,7 +115,25 @@ int main(int ac, char **av)
 
   if (!outFileName.empty()) {
     std::ofstream out(outFileName.c_str(),std::ios::binary);
-    out.write((const char *)nodes.data(),nodes.size()*sizeof(nodes[0]));
+    if (storeAsCapsules) {
+      for (auto node : nodes) {
+        if (node.connectsTo < 0)
+          continue;
+        FatCapsule fc;
+        fc.vertex[0].pos    = node.pos;
+        fc.vertex[0].radius = node.radius;
+        fc.vertex[0].color  = randomColor(node.label);
+
+        auto &other = nodes[node.connectsTo];
+        fc.vertex[0].pos    = other.pos;
+        fc.vertex[0].radius = other.radius;
+        fc.vertex[0].color  = randomColor(other.label);
+
+        out.write((const char *)&fc,sizeof(fc));
+      }
+    } else {
+      out.write((const char *)nodes.data(),nodes.size()*sizeof(nodes[0]));
+    }
   }
     
 }

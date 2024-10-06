@@ -131,9 +131,15 @@ namespace hs {
       // render all spheres
       // -----------------------------------------------------------------
       for (auto content : myData.sphereSets)
-        for (auto created : this->createSpheres(content,&this->materialLibrary))
+        for (auto created : this->createSpheres
+               (content,&this->materialLibrary))
           rootGeoms.push_back(created);
-    
+      
+      for (auto content : myData.capsuleSets)
+        for (auto created : this->createCapsules
+               (content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+      
       // ------------------------------------------------------------------
       // render all cyliders
       // -----------------------------------------------------------------

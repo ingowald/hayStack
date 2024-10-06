@@ -35,6 +35,8 @@ add_library(hayStack
   DataRank.cpp
   Cylinders.h
   Cylinders.cpp
+  Capsules.h
+  Capsules.cpp
   Spheres.h
   Spheres.cpp
   StructuredVolume.h

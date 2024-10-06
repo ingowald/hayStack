@@ -37,6 +37,8 @@ set(SOURCES
   content/BoxesFromFile.cpp
   content/CylindersFromFile.h
   content/CylindersFromFile.cpp
+  content/Capsules.h
+  content/Capsules.cpp
   content/TSTris.h
   content/TSTris.cpp
   content/RAWVolumeContent.h
