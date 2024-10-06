@@ -55,12 +55,12 @@ namespace hs {
     }
   
     size_t Capsules::projectedSize() 
-    { return fileSize; }
+    { return fileSize*40; }
   
     void   Capsules::executeLoad(DataRank &dataGroup, bool verbose) 
     {
       hs::Capsules::SP cs = hs::Capsules::create();
-      cs->material = mini::DisneyMaterial::create();
+      cs->material = mini::Matte::create();
       
       size_t numCapsulesTotal = fileSize / sizeof(FatCapsule);
       size_t begin = (thisPartID * numCapsulesTotal) / numPartsToSplitInto;

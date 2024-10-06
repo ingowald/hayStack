@@ -85,6 +85,7 @@ int main(int ac, char **av)
   std::string inFilesFileName;
   std::string outFileName;
   bool storeAsCapsules = false;
+  bool colorByFile = false;
 
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -92,6 +93,8 @@ int main(int ac, char **av)
       inFilesFileName = av[++i];
     else if (arg == "-o")
       outFileName = av[++i];
+    else if (arg == "--color-by-file")
+      colorByFile = true;
     else if (arg == "-c" || arg == "-fc" || arg == "--fat-capsules" || arg == "--capsules")
       storeAsCapsules = true;
     else if (arg[0] != '-')
@@ -116,18 +119,20 @@ int main(int ac, char **av)
   if (!outFileName.empty()) {
     std::ofstream out(outFileName.c_str(),std::ios::binary);
     if (storeAsCapsules) {
+      static int fileID = 123;
+      vec3f fileColor = randomColor(fileID++);
       for (auto node : nodes) {
         if (node.connectsTo < 0)
           continue;
         FatCapsule fc;
         fc.vertex[0].pos    = node.pos;
         fc.vertex[0].radius = node.radius;
-        fc.vertex[0].color  = randomColor(node.label);
+        fc.vertex[0].color  = colorByFile?fileColor:randomColor(node.label);
 
         auto &other = nodes[node.connectsTo];
         fc.vertex[1].pos    = other.pos;
         fc.vertex[1].radius = other.radius;
-        fc.vertex[1].color  = randomColor(other.label);
+        fc.vertex[1].color  = colorByFile?fileColor:randomColor(other.label);
 
         out.write((const char *)&fc,sizeof(fc));
       }

@@ -282,7 +282,15 @@ namespace hs {
   {
     allContent.push_back({(double)content->projectedSize(),int(allContent.size()),content});
   }
-    
+
+  std::string addIfRequired(std::string prefix, std::string s)
+  {
+    if (s.substr(0,prefix.size()) == prefix)
+      return s;
+    else
+      return prefix+s;
+  }
+  
   void DataLoader::addContent(const std::string &contentDescriptor)
   {
     // if (startsWith(contentDescriptor,"spheres://")) {
@@ -297,6 +305,8 @@ namespace hs {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
       OBJContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".caps")) {
+      content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else {
