@@ -91,14 +91,14 @@ namespace hs {
           if (knownVertices.find(key) == knownVertices.end()) {
             knownVertices[key] = cs->vertices.size();
             cs->vertices.push_back(vertex);
-            cs->vertexColors.push_back(color);
+            cs->colors.push_back(vec4f(color.x,color.y,color.z,0.f));
           }
           segmentIndices[i] = knownVertices[key];
         }
         cs->indices.push_back(vec2i(segmentIndices[0],segmentIndices[1]));
       }
       if (hadNanColors)
-        cs->vertexColors.clear();
+        cs->colors.clear();
       
       dataGroup.capsuleSets.push_back(cs);
     }

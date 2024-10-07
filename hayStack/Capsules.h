@@ -31,13 +31,13 @@ namespace hs {
     std::vector<vec4f> vertices;
       
       /*! per-elelemnt of per-vertex colors */
-    std::vector<vec3f> vertexColors;
+    std::vector<vec4f> colors;
 
     /*! array of index pair; each such pair refers to two points in
         the points[] array; those are the begin/end of that
         capsule. If this array is empty, it is to be treated as if it
         contained {(0,1)(2,3),...,(numPoints-2,numPoints-1)} */
-    std::vector<vec2i>  indices;
+    std::vector<vec2i> indices;
     mini::Material::SP material;
   };
 

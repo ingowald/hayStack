@@ -548,67 +548,23 @@ namespace hs {
   ::createCapsules(hs::Capsules::SP content,
                    MaterialLibrary<BarneyBackend> *materialLib)
   {
-// #if 1
     BNGeom geom
-      = bnGeometryCreate(global->model,this->slot,"cylinders");
+      = bnGeometryCreate(global->model,this->slot,"capsules");
     if (!geom) {
-      std::cout << "barney backend doesn't support 'cylinders' geometry"
+      std::cout << "barney backend doesn't support 'capsules' geometry"
                 << std::endl;
       return {};
     }
-    bnSet1i(geom,"radiusPerVertex",1);
-    bnSet1i(geom,"colorPerVertex",1);
-    std::vector<float> _radii;
-    std::vector<vec3f> _vertices;
-    std::vector<vec4f> _colors;
-    for (auto col : content->vertexColors)
-      _colors.push_back(vec4f(col.x,col.y,col.z,0.f));
-    for (auto v : content->vertices) {
-      _radii.push_back(v.w);
-      _vertices.push_back({v.x,v.y,v.z});
-    }
     BNData vertices
-      = bnDataCreate(global->model,this->slot,BN_FLOAT3,
-                     _vertices.size(),
-                     _vertices.data());
+      = bnDataCreate(global->model,this->slot,BN_FLOAT4,
+                     content->vertices.size(),
+                     content->vertices.data());
     bnSetAndRelease(geom,"vertices",vertices);
     BNData colors
       = bnDataCreate(global->model,this->slot,BN_FLOAT4,
-                     _colors.size(),
-                     _colors.data());
+                     content->colors.size(),
+                     content->colors.data());
     bnSetAndRelease(geom,"vertex.color",colors);
-    BNData radii
-      = bnDataCreate(global->model,this->slot,BN_FLOAT,
-                     _radii.size(),
-                     _radii.data());
-    bnSetAndRelease(geom,"radii",radii);
-    for (int i=0;i<std::min(10,int(_radii.size()));i++) {
-      PRINT(_vertices[i]);
-      PRINT(_radii[i]);
-    }
-// #else
-//     BNGeom geom
-//       = bnGeometryCreate(global->model,this->slot,"capsules");
-//     if (!geom) {
-//       std::cout << "barney backend doesn't support 'capsules' geometry"
-//                 << std::endl;
-//       return {};
-//     }
-//     BNData vertices
-//       = bnDataCreate(global->model,this->slot,BN_FLOAT4,
-//                      content->vertices.size(),
-//                      content->vertices.data());
-//     bnSetAndRelease(geom,"vertices",vertices);
-
-//     if (!content->vertexColors.empty()) {
-//       BNData vertexColors
-//         = bnDataCreate(global->model,this->slot,BN_FLOAT3,
-//                        content->vertexColors.size(),
-//                        content->vertexColors.data());
-//       bnSetAndRelease(geom,"vertexColors",vertexColors);
-//     }
-
-// #endif
     BNData indices
       = bnDataCreate(global->model,this->slot,BN_INT2,
                      content->indices.size(),
