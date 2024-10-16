@@ -104,24 +104,50 @@ namespace hs {
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,(base->world.rank==0)?hostRGBA:nullptr);
   }
 
-  void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
-                                                const TransferFunction &xf)
+//   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
+//                                                 const TransferFunction &xf)
+//   {
+// #if 1
+//     currentXF = xf;
+//     needRebuild = true;
+// #else
+//     if (rootVolumes.empty())
+//       return;
+
+//     for (auto vol : rootVolumes) {
+//       bnVolumeSetXF(vol,
+//                     (float2&)xf.domain,
+//                     (const float4*)xf.colorMap.data(),
+//                     (int)xf.colorMap.size(),
+//                     xf.baseDensity);
+//       }
+//     if (impl->volumeGroup)
+//       bnGroupBuild(impl->volumeGroup);
+//     needRebuild = true;
+//     // bnBuild(global->model,this->slot);
+// #endif
+//   }
+
+  void BarneyBackend::Slot::applyTransferFunction(const TransferFunction &xf)
   {
-    if (rootVolumes.empty())
+    if (impl->rootVolumes.empty())
       return;
 
-    for (auto vol : rootVolumes) {
+    for (auto vol : impl->rootVolumes) {
       bnVolumeSetXF(vol,
                     (float2&)xf.domain,
                     (const float4*)xf.colorMap.data(),
                     (int)xf.colorMap.size(),
                     xf.baseDensity);
       }
-    bnGroupBuild(impl->volumeGroup);
-    needRebuild = true;
+    if (impl->volumeGroup)  {
+      bnGroupBuild(impl->volumeGroup);
+      bnGroupBuild(impl->volumeGroup);
+    }
+    // needRebuild = true;
     // bnBuild(global->model,this->slot);
   }
-
+  
   void BarneyBackend::Global::renderFrame(int pathsPerPixel)
   {
     bnRender(model,camera,fb,pathsPerPixel);
@@ -134,6 +160,8 @@ namespace hs {
 
   void BarneyBackend::Global::setCamera(const Camera &camera)
   {
+    if (fbSize.x <= 0 || fbSize.y <= 0)
+      throw std::runtime_error("trying to set camera, but window size not yet set - can't compute aspect");
     vec3f dir = camera.vi - camera.vp;
     bnSet3fc(this->camera,"direction",(const float3&)dir);
     bnSet3fc(this->camera,"position", (const float3&)camera.vp);
@@ -401,7 +429,6 @@ namespace hs {
   
   void BarneyBackend::Slot::finalizeSlot()
   {
-    PING; PRINT(needRebuild);
    if (needRebuild) {
       bnBuild(global->model,slot);
       needRebuild = false;

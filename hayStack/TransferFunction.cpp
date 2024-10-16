@@ -22,6 +22,7 @@ namespace hs {
 
   void TransferFunction::load(const std::string &fileName)
   {
+    std::cout << "#hs: loading transfer function " << fileName << std::endl;
     // std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };
     // range1f domain = { 0.f, 0.f };
     // float   baseDensity = 1.f;
@@ -40,9 +41,6 @@ namespace hs {
     float absDomainSize = absDomain.upper - absDomain.lower;
     domain.lower = absDomain.lower + (relDomain.lower/100.f) * absDomainSize;
     domain.upper = absDomain.lower + (relDomain.upper/100.f) * absDomainSize;
-    PRINT(relDomain);
-    PRINT(absDomain);
-    PRINT(domain);
     // ColorMap colorMap;
     int numColorMapValues;
     in.read((char*)&numColorMapValues,sizeof(numColorMapValues));

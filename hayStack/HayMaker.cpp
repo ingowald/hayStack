@@ -176,6 +176,7 @@ namespace hs {
 
       // attach volumes to instances
       volumeGroup = impl->createGroup({},rootVolumes);
+      
       rootInstances.groups.push_back(volumeGroup);
       rootInstances.xfms.push_back(affine3f{});
       
@@ -184,6 +185,9 @@ namespace hs {
       // generated
       // -----------------------------------------------------------------
     }
+
+    impl->applyTransferFunction(currentXF);
+    
     this->setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
@@ -254,7 +258,7 @@ namespace hs {
   {
     for (auto slot : perSlot)
       slot->renderAll();
-    
+
     global.finalizeRender();
   }
 

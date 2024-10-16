@@ -117,6 +117,7 @@ namespace hs {
     
     void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
     { global.resize(fbSize,hostRGBA); }
+    
     void setTransferFunction(const TransferFunction &xf) override
     {
       for (auto slot : perSlot)
@@ -124,7 +125,6 @@ namespace hs {
     }
     void renderFrame(int pathsPerPixel) override
     {
-      // if (needRebuild)
       buildSlots();
       global.renderFrame(pathsPerPixel);
     }
@@ -167,7 +167,8 @@ namespace hs {
 
       void setTransferFunction(const TransferFunction &xf)
       {
-        Backend::Slot::setTransferFunction(rootVolumes,xf);
+        currentXF = xf;
+        // Backend::Slot::setTransferFunction(rootVolumes,xf);
         dirty = true;
       }
       
@@ -182,6 +183,8 @@ namespace hs {
       
       TextureLibrary<Backend>  textureLibrary;
       MaterialLibrary<Backend> materialLibrary;
+
+      TransferFunction currentXF;
       bool dirty = true;
     };
     

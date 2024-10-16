@@ -53,8 +53,9 @@ namespace hs {
            typename HayMakerT<AnariBackend>::Slot *impl)
         : global(global), slot(slot), impl(impl) {}
     
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
+      void applyTransferFunction(const TransferFunction &xf);
+      // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
+      //                          const TransferFunction &xf);
       
       anari::Light create(const mini::QuadLight &ml) { return {}; }
       anari::Light create(const mini::DirLight &ml);

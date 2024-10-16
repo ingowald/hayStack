@@ -134,6 +134,44 @@ namespace hs {
     anari::commitParameters(device, frame);
   }
 
+#if 1
+  void AnariBackend::Slot::applyTransferFunction(const TransferFunction &xf)
+  {
+    if (impl->rootVolumes.empty())
+      return;
+
+    auto device = global->device;
+    auto model = global->model;
+    
+    for (auto vol : impl->rootVolumes) {
+      std::vector<anari::math::float3> colors;
+      std::vector<float> opacities;
+
+      for (int i=0;i<xf.colorMap.size();i++) {
+        auto c = xf.colorMap[i];
+        colors.emplace_back(c.x,c.y,c.z);
+        opacities.emplace_back(c.w);
+      }
+      anari::setParameter(device, vol,
+                          "unitDistance",
+                          xf.baseDensity);
+
+      anari::setAndReleaseParameter
+        (device,vol,"color",
+         anari::newArray1D(device, colors.data(), colors.size()));
+      anari::setAndReleaseParameter
+        (device,vol,"opacity",
+         anari::newArray1D(device, opacities.data(), opacities.size()));
+      range1f valueRange = xf.domain;
+      anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &valueRange.lower);
+
+      anari::commitParameters(device, vol);
+    }
+
+    anari::commitParameters(device, impl->volumeGroup);
+    anari::commitParameters(device, global->model);
+  }
+#else
   void AnariBackend::Slot::setTransferFunction(const std::vector<anari::Volume> &rootVolumes,
                                                const TransferFunction &xf)
   {
@@ -171,7 +209,8 @@ namespace hs {
     anari::commitParameters(device, impl->volumeGroup);
     anari::commitParameters(device, global->model);
   }
-
+#endif
+  
   void AnariBackend::Global::renderFrame(int pathsPerPixel)
   {
     // anari::commitParameters(device, frame);

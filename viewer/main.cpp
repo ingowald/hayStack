@@ -580,14 +580,14 @@ int main(int ac, char **av)
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
-
+  
   if (fromCL.xfFileName.length() > 0) {
     hs::TransferFunction xf;
     xf.load(fromCL.xfFileName);
     renderer->setTransferFunction(xf);
+    renderer->resetAccumulation();
   }
 
-  
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame(fromCL.spp);
 

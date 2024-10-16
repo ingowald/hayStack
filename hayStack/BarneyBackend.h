@@ -59,8 +59,9 @@ namespace hs {
            typename HayMakerT<BarneyBackend>::Slot *impl)
         : global(global), slot(slot), impl(impl) {}
     
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
+      void applyTransferFunction(const TransferFunction &xf);
+      // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
+      //                          const TransferFunction &xf);
 
       BNLight create(const mini::QuadLight &ml);
       BNLight create(const mini::DirLight &ml);
