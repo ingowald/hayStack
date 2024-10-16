@@ -60,7 +60,7 @@ namespace hs {
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
-    int  numFramesAccum = 1024;
+    int  numFramesAccum = 1;
     int  spp            = 1;
     bool verbose = true;
     struct {
@@ -402,7 +402,7 @@ int main(int ac, char **av)
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
       fromCL.xfFileName = av[++i];
-    } else if (arg == "-res") {
+    } else if (arg == "-res" || arg == "-os" || arg == "--output-size") {
       fromCL.fbSize.x = std::stoi(av[++i]);
       fromCL.fbSize.y = std::stoi(av[++i]);
     } else if (arg == "-ndg") {
@@ -587,6 +587,7 @@ int main(int ac, char **av)
     renderer->setTransferFunction(xf);
   }
 
+  
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame(fromCL.spp);
 

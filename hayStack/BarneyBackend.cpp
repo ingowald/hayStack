@@ -330,25 +330,24 @@ namespace hs {
   BNMaterial BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
-    bnSet3fc(mat,"emission",(const float3&)disney->emission);
+    // bnSet3fc(mat,"emission",
+    //          (const float3&)disney->emission);
     bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
     bnSet1f(mat,"roughness",   disney->roughness);
     bnSet1f(mat,"metallic",    disney->metallic);
-    bnSet1f(mat,"transmission",disney->transmission);
+    bnSet1f(mat,"transmission",
+#if 0
+            disney->ior < 1.1f
+            ? 0.f
+            :
+#endif
+            disney->transmission);
     bnSet1f(mat,"ior",         disney->ior);
 
     if (disney->colorTexture) {
       BNSampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
-      if (tex) bnSetObject(mat,"baseColor",tex);
+      bnSetObject(mat,"baseColor",tex);
     }
-    // if (disney->alphaTexture)
-    //   bnSetObject(mat,"alphaTexture",backend->getOrCreate(slot, disney->alphaTexture));
-
-    // if (disney->colorTexture)
-    //   PRINT(disney->colorTexture->toString());
-    // if (disney->alphaTexture)
-    //   PRINT(disney->alphaTexture->toString());
-
     bnCommit(mat);
     return mat;
   }
