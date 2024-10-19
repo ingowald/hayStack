@@ -213,7 +213,7 @@ namespace hs {
         measure_t0 = getCurrentTime();
 
       static double t0 = getCurrentTime();
-      renderer->renderFrame(fromCL.spp);
+      renderer->renderFrame();
       ++numFramesRendered;
       double t1 = getCurrentTime();
 
@@ -444,10 +444,12 @@ int main(int ac, char **av)
     = hanari
     ? HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
+                                          fromCL.spp,
                                           thisRankData,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
+                                           fromCL.spp,
                                            thisRankData,
                                            verbose());
 // #if HANARI
@@ -589,7 +591,7 @@ int main(int ac, char **av)
   }
 
   for (int i=0;i<fromCL.numFramesAccum;i++) 
-    renderer->renderFrame(fromCL.spp);
+    renderer->renderFrame();
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,

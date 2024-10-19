@@ -43,7 +43,7 @@ namespace hs {
   struct Renderer {
 
     virtual void setTransferFunction(const TransferFunction &xf) {}
-    virtual void renderFrame(int pathsPerPixel) {}
+    virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
     virtual void resetAccumulation() {}
     virtual void setCamera(const Camera &camera) {}

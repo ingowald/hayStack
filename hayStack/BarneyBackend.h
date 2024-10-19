@@ -33,7 +33,7 @@ namespace hs {
 
       void init();
       void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
+      void renderFrame();
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
@@ -43,11 +43,11 @@ namespace hs {
       BNModel       model  = 0;
       BNFrameBuffer fb     = 0;
       BNCamera      camera = 0;
-      vec2i        fbSize;
+      vec2i         fbSize;
     };
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba);
-    void renderFrame(int pathsPerPixel);
+    void renderFrame();
     void resetAccumulation();
     void setCamera(const Camera &camera);
     

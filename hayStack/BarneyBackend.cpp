@@ -148,9 +148,9 @@ namespace hs {
     // bnBuild(global->model,this->slot);
   }
   
-  void BarneyBackend::Global::renderFrame(int pathsPerPixel)
+  void BarneyBackend::Global::renderFrame()
   {
-    bnRender(model,camera,fb,pathsPerPixel);
+    bnRender(model,camera,fb,base->pixelSamples);
   }
 
   void BarneyBackend::Global::resetAccumulation()

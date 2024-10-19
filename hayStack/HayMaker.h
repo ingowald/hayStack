@@ -38,6 +38,7 @@ namespace hs {
     
     HayMaker(Comm &world,
              Comm &workers,
+             int   pixelSamples,
              LocalModel &localModel,
              bool verbose);
 
@@ -47,17 +48,20 @@ namespace hs {
         anari support was not built in */
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
+                                               int pathsPerPixel,
                                                LocalModel &localModel,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
+                                                int pathsPerPixel,
                                                 LocalModel &localModel,
                                                 bool verbose);
     Comm        &world;
     Comm         workers;
     LocalModel localModel;
     bool         verbose;
+    const int    pixelSamples;
   };
   
   /*! keeps track of which frontend textures have already been
@@ -107,10 +111,11 @@ namespace hs {
   struct HayMakerT : public HayMaker
   {
     HayMakerT(Comm &world,
-             Comm &workers,
-             LocalModel &localModel,
-             bool verbose);
-
+              Comm &workers,
+              int pathsPerPixel,
+              LocalModel &localModel,
+              bool verbose);
+    
     void init();
 
     void buildSlots() override;
@@ -123,10 +128,10 @@ namespace hs {
       for (auto slot : perSlot)
         slot->setTransferFunction(xf);
     }
-    void renderFrame(int pathsPerPixel) override
+    void renderFrame() override
     {
       buildSlots();
-      global.renderFrame(pathsPerPixel);
+      global.renderFrame();
     }
     
     void resetAccumulation() override

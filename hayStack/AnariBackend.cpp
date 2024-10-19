@@ -107,8 +107,9 @@ namespace hs {
     anari::commitParameters(device, model);
 
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-    //anari::setParameter(device, renderer, "ambientRadiance", 10.f);
+    // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
+    anari::setParameter(device, renderer, "ambientRadiance", 10.f);
+    anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
     anari::commitParameters(device, renderer);
 
     frame = anari::newObject<anari::Frame>(device);
@@ -144,6 +145,24 @@ namespace hs {
     auto model = global->model;
     
     for (auto vol : impl->rootVolumes) {
+#if 1
+      int N = xf.colorMap.size();
+      auto colorArray = anari::newArray1D(device,ANARI_FLOAT32_VEC3,N);
+      auto alphaArray = anari::newArray1D(device,ANARI_FLOAT32,N);
+      vec3f *colors = (vec3f*)anariMapArray(device,colorArray);
+      float *alphas = (float*)anariMapArray(device,alphaArray);
+      for (int i=0;i<N;i++) {
+        auto c = xf.colorMap[i];
+        colors[i] = vec3f(c.x,c.y,c.z);
+        alphas[i] = c.w;
+      }
+      anariUnmapArray(device,colorArray);
+      anariUnmapArray(device,alphaArray);
+      anari::setAndReleaseParameter
+        (device,vol,"color",colorArray);
+      anari::setAndReleaseParameter
+        (device,vol,"opacity",alphaArray);
+#else
       std::vector<anari::math::float3> colors;
       std::vector<float> opacities;
 
@@ -152,18 +171,20 @@ namespace hs {
         colors.emplace_back(c.x,c.y,c.z);
         opacities.emplace_back(c.w);
       }
-      anari::setParameter(device, vol,
-                          "unitDistance",
-                          xf.baseDensity);
-
       anari::setAndReleaseParameter
         (device,vol,"color",
          anari::newArray1D(device, colors.data(), colors.size()));
       anari::setAndReleaseParameter
         (device,vol,"opacity",
          anari::newArray1D(device, opacities.data(), opacities.size()));
+#endif
+      anari::setParameter(device, vol,
+                          "unitDistance",
+                          xf.baseDensity);
       range1f valueRange = xf.domain;
-      anariSetParameter(device, vol, "valueRange", ANARI_FLOAT32_BOX1, &valueRange.lower);
+      anariSetParameter(device, vol, "valueRange",
+                        ANARI_FLOAT32_BOX1,
+                        &valueRange.lower);
 
       anari::commitParameters(device, vol);
     }
@@ -211,7 +232,7 @@ namespace hs {
   }
 #endif
   
-  void AnariBackend::Global::renderFrame(int pathsPerPixel)
+  void AnariBackend::Global::renderFrame()
   {
     // anari::commitParameters(device, frame);
     anari::render(device, frame);
@@ -312,7 +333,6 @@ namespace hs {
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-    PING; PRINT((const vec3f&)disney->baseColor);
     
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)disney->baseColor);
@@ -445,12 +465,16 @@ namespace hs {
        "instance",
        anari::newArray1D(device, instances.data(),instances.size()));
     anari::commitParameters(device, model);
+    
   }
 
   void AnariBackend::Global::finalizeRender()
   {
-    anari::setParameter(device, frame, "world",    model);
-    anari::commitParameters(device, frame);
+    if (dirty) {
+      anari::setParameter(device, frame, "world",    model);
+      anari::commitParameters(device, frame);
+      dirty = false;
+    }
   }
 
   float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
@@ -487,15 +511,12 @@ namespace hs {
   
   anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
   {
-    PING;
     auto device = global->device;
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",average(ml.radiance));
     // anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
-    PRINT((vec3f&)ml.direction);
-    PRINT((vec3f&)ml.radiance);
     anari::commitParameters(device,light);
     return light;
   }
@@ -503,7 +524,6 @@ namespace hs {
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
   {
-    PING; PRINT(lights.size());
     auto device = global->device;
     if (!lights.empty()) {
       anari::setParameterArray1D

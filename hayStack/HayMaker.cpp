@@ -27,10 +27,12 @@ namespace hs {
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
+                     int   pixelSamples,
                      LocalModel &_localModel,
                      bool verbose)
     : world(world),
       workers(workers),
+      pixelSamples(pixelSamples),
       localModel(std::move(_localModel)),
       verbose(verbose)
   {}
@@ -38,9 +40,10 @@ namespace hs {
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
+                                int pathsPerPixel,
                                 LocalModel &localModel,
                                 bool verbose)
-    : HayMaker(world,workers,localModel,verbose),
+    : HayMaker(world,workers,pathsPerPixel,localModel,verbose),
       global(this)
   {
     for (int i=0;i<this->localModel.size();i++)
@@ -262,14 +265,17 @@ namespace hs {
     global.finalizeRender();
   }
 
-  HayMaker *HayMaker::createAnariImplementation(Comm &world,
-                                                Comm &workers,
-                                               LocalModel &localModel,
-                                                bool verbose)
+  HayMaker *HayMaker
+  ::createAnariImplementation(Comm &world,
+                              Comm &workers,
+                              int pathsPerPixel,
+                              LocalModel &localModel,
+                              bool verbose)
   {
 #if HANARI
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
+                                       pathsPerPixel,
                                        localModel,
                                        verbose);
 #else
@@ -277,13 +283,16 @@ namespace hs {
 #endif
   }
   
-  HayMaker *HayMaker::createBarneyImplementation(Comm &world,
-                                                Comm &workers,
-                                                LocalModel &localModel,
-                                                bool verbose)
+  HayMaker *HayMaker
+  ::createBarneyImplementation(Comm &world,
+                               Comm &workers,
+                               int pathsPerPixel,
+                               LocalModel &localModel,
+                               bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
                                         /* the workers */workers,
+                                        pathsPerPixel,
                                         localModel,
                                         verbose);
   }

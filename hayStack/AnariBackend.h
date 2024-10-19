@@ -33,7 +33,7 @@ namespace hs {
 
       void init();
       void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
+      void renderFrame();
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
@@ -44,8 +44,10 @@ namespace hs {
       anari::Frame  frame  = 0;
       anari::World  model  = 0;
       anari::Camera camera = 0;
-      uint32_t *hostRGBA   = 0;
-      vec2i        fbSize;
+      uint32_t     *hostRGBA   = 0;
+      vec2i         fbSize;
+      /*! whether we have to re-commit the model next frame */
+      bool          dirty = true;
     };
 
     struct Slot {
