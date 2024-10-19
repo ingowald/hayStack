@@ -108,7 +108,7 @@ namespace hs {
 
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
     // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-    anari::setParameter(device, renderer, "ambientRadiance", 10.f);
+    anari::setParameter(device, renderer, "ambientRadiance", 8.f);
     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
     anari::commitParameters(device, renderer);
 
