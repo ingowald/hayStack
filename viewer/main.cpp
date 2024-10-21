@@ -371,6 +371,7 @@ int main(int ac, char **av)
       loader.addContent(arg);
     } else if (arg == "-env" || arg == "--env-map") {
       fromCL.envMapFileName = av[++i];
+      loader.sharedLights.envMap = fromCL.envMapFileName;
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
