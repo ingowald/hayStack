@@ -341,6 +341,7 @@ namespace hs {
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->roughness);
     anari::setParameter(device,material,"ior",metal->eta.x);
+    anari::commitParameters(device,sampler);
     return material;
   }
   
