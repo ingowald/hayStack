@@ -16,6 +16,11 @@
 
 #include "BarneyBackend.h"
 
+#if BARNEY_MPI
+#else
+# define HS_FAKE_MPI 1
+#endif
+
 namespace hs {
 
   BNGroup    BarneyBackend::Slot::createGroup(const std::vector<BNGeom> &geoms,
