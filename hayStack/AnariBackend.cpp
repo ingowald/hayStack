@@ -372,21 +372,21 @@ namespace hs {
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-    
+
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)disney->baseColor);
 #if 1
     // anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"metallic",disney->metallic);
-    anari::setParameter(device,material,"opacity",1.f);
+    anari::setParameter(device,material,"opacity",1.f-disney->transmission);
     // anari::setParameter(device,material,"roughness",.02f);
     anari::setParameter(device,material,"roughness",disney->roughness);
     // anari::setParameter(device,material,"specular",.0f);
     anari::setParameter(device,material,"specular",.0f);
     anari::setParameter(device,material,"clearcoat",.0f);
-    anari::setParameter(device,material,"transmission",.0f);
+    // anari::setParameter(device,material,"transmission",.0f);
     // anari::setParameter(device,material,"transmission",disney->transmission);
-    anari::setParameter(device,material,"ior",1.45f);
+    anari::setParameter(device,material,"ior",disney->ior);
 #else
     anari::setParameter(device,material,"roughness",disney->roughness);
     anari::setParameter(device,material,"metallic", disney->metallic);

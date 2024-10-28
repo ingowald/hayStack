@@ -376,6 +376,9 @@ namespace hs {
 #endif
             disney->transmission);
     bnSet1f(mat,"ior",         disney->ior);
+    if (disney->ior == 1.f) {
+      bnSet1f(mat,"opacity",1.f-disney->transmission);
+    }
 
     if (disney->colorTexture) {
       BNSampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
