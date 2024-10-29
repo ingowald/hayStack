@@ -14,7 +14,7 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-option(HANARI "Use ANARI device?" OFF)
+option(HANARI "Use ANARI device?" ON)
 
 if (HANARI)
   find_package(anari 0.8.0 REQUIRED #COMPONENTS viewer
