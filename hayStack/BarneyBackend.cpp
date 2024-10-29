@@ -16,6 +16,11 @@
 
 #include "BarneyBackend.h"
 
+#if BARNEY_MPI
+#else
+# define HS_FAKE_MPI 1
+#endif
+
 namespace hs {
 
   BNGroup    BarneyBackend::Slot::createGroup(const std::vector<BNGeom> &geoms,
@@ -371,6 +376,9 @@ namespace hs {
 #endif
             disney->transmission);
     bnSet1f(mat,"ior",         disney->ior);
+    if (disney->ior == 1.f) {
+      bnSet1f(mat,"opacity",1.f-disney->transmission);
+    }
 
     if (disney->colorTexture) {
       BNSampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);

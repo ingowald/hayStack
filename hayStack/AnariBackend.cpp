@@ -327,27 +327,66 @@ namespace hs {
     return sampler;
   }
 
+  anari::Material AnariBackend::Slot::create(mini::Metal::SP metal)
+  {
+    auto device = global->device;
+
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+    vec3f baseColor = metal->k * float (1.f/ M_PI);
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)baseColor);
+    anari::setParameter(device,material,"metallic",1.f);
+    anari::setParameter(device,material,"opacity",1.f);
+    anari::setParameter(device,material,"roughness",metal->roughness);
+    anari::setParameter(device,material,"ior",metal->eta.x);
+    anari::commitParameters(device,material);
+    return material;
+  }
+  
+  anari::Material AnariBackend::Slot::create(mini::MetallicPaint::SP metal)
+  {
+    auto device = global->device;
+
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+    vec3f baseColor = (const vec3f&)metal->shadeColor;
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)baseColor);
+    anari::setParameter(device,material,"metallic",1.f);
+    anari::setParameter(device,material,"opacity",1.f);
+    anari::setParameter(device,material,"roughness",metal->glitterSpread);
+    anari::setParameter(device,material,"ior",1.f/metal->eta);
+    anari::setParameter(device,material,"specular",.0f);
+    anari::setParameter(device,material,"clearcoat",.0f);
+    anari::setParameter(device,material,"transmission",.0f);
+    anari::commitParameters(device, material);
+    return material;
+  }
+  
   anari::Material AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
     auto device = global->device;
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-    
+
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)disney->baseColor);
 #if 1
     // anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"metallic",disney->metallic);
-    anari::setParameter(device,material,"opacity",1.f);
+    anari::setParameter(device,material,"opacity",1.f-disney->transmission);
     // anari::setParameter(device,material,"roughness",.02f);
     anari::setParameter(device,material,"roughness",disney->roughness);
     // anari::setParameter(device,material,"specular",.0f);
     anari::setParameter(device,material,"specular",.0f);
     anari::setParameter(device,material,"clearcoat",.0f);
-    anari::setParameter(device,material,"transmission",.0f);
+    // anari::setParameter(device,material,"transmission",.0f);
     // anari::setParameter(device,material,"transmission",disney->transmission);
-    anari::setParameter(device,material,"ior",1.45f);
+    anari::setParameter(device,material,"ior",disney->ior);
 #else
     anari::setParameter(device,material,"roughness",disney->roughness);
     anari::setParameter(device,material,"metallic", disney->metallic);
@@ -402,12 +441,12 @@ namespace hs {
       return create(dielectric);
     // if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
     //   return create(velvet);
-    // if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
-    //   return create(metallicPaint);
+    if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
+      return create(metallicPaint);
     // if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
     //   return create(matte);
-    // if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
-    //   return create(metal);
+    if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
+      return create(metal);
     // if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
     //   return create(dielectric);
     // if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())

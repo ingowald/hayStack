@@ -100,6 +100,7 @@ namespace hs {
 
     struct {
       std::vector<mini::DirLight> directional;
+      std::string envMap;
     } sharedLights;
     /*! default radius to use for spheres that do not have a radius specified */
     static float defaultRadius;

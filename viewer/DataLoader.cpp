@@ -257,13 +257,17 @@ namespace hs {
     }
 
 
-    if (!sharedLights.directional.empty())
+    if (!sharedLights.directional.empty() || sharedLights.envMap != "")
       for (int i=0;i<localModel.dataGroups.size();i++) {
-        mini::Scene::SP lights = mini::Scene::create();
+        mini::Scene::SP lights
+          = (sharedLights.envMap == "")
+          ? mini::Scene::create()
+          : mini::Scene::load(sharedLights.envMap);
+          
         lights->dirLights = sharedLights.directional;
         localModel.dataGroups[i].minis.push_back(lights);
       }
-           
+
     if (verbose) {
       workers.barrier();
       if (workers.rank == 0)
