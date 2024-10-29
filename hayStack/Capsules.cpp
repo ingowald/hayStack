@@ -14,46 +14,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "hayStack/Capsules.h"
 
-#include "hayStack/TransferFunction.h"
-
-/* parallel renderer abstraction */
 namespace hs {
-  using namespace owl::common;
-  using range1f = owl::common::interval<float> ;
   
-  struct Camera {
-    vec3f vp, vi, vu;
-    float fovy;
-  };
-
-  struct DirLight {
-    vec3f direction;
-    vec3f radiance;
-  };
-
-  struct PointLight {
-    vec3f position;
-    vec3f power;
-  };
+  box3f Capsules::getBounds() const
+  {
+    auto getSphere = [&](int vertexID) -> box3f {
+      const vec4f v = vertices[vertexID];
+      vec3f c = (const vec3f &)v;
+      float r = v.w;
+      return box3f(c-r,c+r);
+    };
+    box3f bounds;
+    for (auto index : indices) {
+      bounds.extend(getSphere(index.x));
+      bounds.extend(getSphere(index.y));
+    }
+    PING; PRINT(bounds);
+    return bounds;
+  }
   
-  /*! base abstraction for any renderer - no matter whether its a
-      single node or multiple workers on the back */
-  struct Renderer {
-
-    virtual void setTransferFunction(const TransferFunction &xf) {}
-    virtual void renderFrame() {}
-    virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
-    virtual void resetAccumulation() {}
-    virtual void setCamera(const Camera &camera) {}
-    // virtual void setXF(const range1f &domain,
-    //                    const std::vector<vec4f> &colors) {}
-    virtual void screenShot() {}
-    virtual void terminate() {}
-    virtual void setLights(float ambient,
-                           const std::vector<PointLight> &pointLights,
-                           const std::vector<DirLight> &dirLights) {}
-  };
-
-}
+} // ::hs

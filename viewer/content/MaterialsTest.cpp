@@ -27,7 +27,7 @@ namespace hs {
   
   std::string MaterialsTest::toString() 
   {
-    return "Spheres{fileName="+data.where
+    return "MaterialTest{fileName="+data.where
       +", part "+std::to_string(thisPartID)+" of "
       + std::to_string(data.numParts)+", proj size "
       +prettyNumber(projectedSize())+"B}";
@@ -59,7 +59,8 @@ namespace hs {
         vec3f v(ix,iy,0.f);
         spheres->origins.push_back(v);
         mini::DisneyMaterial::SP material = mini::DisneyMaterial::create();
-        material->baseColor = vec3f(.2f,.8f,.2f);
+        material->baseColor = vec3f(.9f,.1f,.1f);
+        // material->baseColor = vec3f(.2f,.8f,.2f);
         material->roughness = fx;
         material->metallic  = fy;
         spheres->material = material;
@@ -67,6 +68,4 @@ namespace hs {
       }
   }
   
-
-
 }

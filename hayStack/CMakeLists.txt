@@ -35,6 +35,8 @@ add_library(hayStack
   DataRank.cpp
   Cylinders.h
   Cylinders.cpp
+  Capsules.h
+  Capsules.cpp
   Spheres.h
   Spheres.cpp
   StructuredVolume.h
@@ -61,16 +63,25 @@ target_link_libraries(hayStack
   umesh
   barney
 #  mpiRenderInf
-  )
-else()
+)
+elif(BARNEY_MPI)
 target_link_libraries(hayStack
   PUBLIC
   owl
   miniScene
   umesh
   barney_mpi
-#  mpiRenderInf
+  #  mpiRenderInf
   )
+else()
+  target_link_libraries(hayStack
+    PUBLIC
+    owl
+    miniScene
+    umesh
+    barney
+    #  mpiRenderInf
+    )
 endif()
 
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})

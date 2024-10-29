@@ -33,7 +33,7 @@ namespace hs {
 
       void init();
       void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
+      void renderFrame();
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
@@ -44,8 +44,10 @@ namespace hs {
       anari::Frame  frame  = 0;
       anari::World  model  = 0;
       anari::Camera camera = 0;
-      uint32_t *hostRGBA   = 0;
-      vec2i        fbSize;
+      uint32_t     *hostRGBA   = 0;
+      vec2i         fbSize;
+      /*! whether we have to re-commit the model next frame */
+      bool          dirty = true;
     };
 
     struct Slot {
@@ -53,12 +55,13 @@ namespace hs {
            typename HayMakerT<AnariBackend>::Slot *impl)
         : global(global), slot(slot), impl(impl) {}
     
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
+      void applyTransferFunction(const TransferFunction &xf);
+      // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
+      //                          const TransferFunction &xf);
       
       anari::Light create(const mini::QuadLight &ml) { return {}; }
       anari::Light create(const mini::DirLight &ml);
-      anari::Light create(const mini::EnvMapLight &ml) { return {}; }
+      anari::Light create(const mini::EnvMapLight &ml);
       
       anari::Group createGroup(const std::vector<anari::Surface> &geoms,
                                const std::vector<anari::Volume> &volumes);
@@ -76,20 +79,30 @@ namespace hs {
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
-      std::vector<anari::Surface> createSpheres(SphereSet::SP content);
-      std::vector<anari::Surface> createCylinders(Cylinders::SP content);
+      std::vector<anari::Surface>
+      createSpheres(SphereSet::SP content,
+                    MaterialLibrary<AnariBackend> *materialLib);
+      
+      std::vector<anari::Surface>
+      createCylinders(Cylinders::SP content);
 
+      std::vector<anari::Surface>
+      createCapsules(hs::Capsules::SP caps,
+                     MaterialLibrary<AnariBackend> *materialLib) { return {}; }
+      
       void setInstances(const std::vector<anari::Group> &groups,
                         const std::vector<affine3f> &xfms);
       void setLights(anari::Group rootGroup,
                      const std::vector<anari::Light> &lights);
       
       anari::Sampler create(mini::Texture::SP miniTex);
-      GeomHandle create(mini::Mesh::SP miniMesh, MaterialLibrary<AnariBackend> *materialLib);
+      GeomHandle create(mini::Mesh::SP miniMesh,
+                        MaterialLibrary<AnariBackend> *materialLib);
 
       inline void release(anari::Sampler t) { anari::release(global->device, t); }
       inline void release(anari::Material m) { anari::release(global->device, m); }
       
+      void finalizeSlot() { PING; }
       
       typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;

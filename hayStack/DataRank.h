@@ -21,6 +21,7 @@
 #include "hayStack/HayStack.h"
 #include "hayStack/Spheres.h"
 #include "hayStack/Cylinders.h"
+#include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
@@ -53,6 +54,7 @@ namespace hs {
     std::vector<std::pair<umesh::UMesh::SP,box3f>> unsts;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;
+    std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
     int                               dataGroupID = -1;
   };

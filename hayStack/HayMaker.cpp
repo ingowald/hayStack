@@ -27,10 +27,12 @@ namespace hs {
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
+                     int   pixelSamples,
                      LocalModel &_localModel,
                      bool verbose)
     : world(world),
       workers(workers),
+      pixelSamples(pixelSamples),
       localModel(std::move(_localModel)),
       verbose(verbose)
   {}
@@ -38,9 +40,10 @@ namespace hs {
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
+                                int pathsPerPixel,
                                 LocalModel &localModel,
                                 bool verbose)
-    : HayMaker(world,workers,localModel,verbose),
+    : HayMaker(world,workers,pathsPerPixel,localModel,verbose),
       global(this)
   {
     for (int i=0;i<this->localModel.size();i++)
@@ -54,6 +57,11 @@ namespace hs {
     bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
     bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
+
+    if (bb.spatial.empty()) {
+      bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
+    }
+      
     return bb;
   }
 
@@ -101,76 +109,88 @@ namespace hs {
   template<typename Backend>
   void HayMakerT<Backend>::Slot::renderAll()
   {
-    if (!rootInstances.groups.empty())
-      // already rendererd ...
-      return;
     auto impl = this->impl;
+    if (!dirty) return;
+    dirty = false;
+       
+    if (rootInstances.groups.empty()) {
 
-    // ==================================================================
-    // first, "render" all content in the sense that we create
-    // geometries, lights, instances, etc, and simply 'append' them to
-    // two global lists for all lights and all instances, respectively
-    // ==================================================================
+      // ==================================================================
+      // first, "render" all content in the sense that we create
+      // geometries, lights, instances, etc, and simply 'append' them to
+      // two global lists for all lights and all instances, respectively
+      // ==================================================================
 
-    // ------------------------------------------------------------------
-    // render all mini::Scene formatted geometry - however many there
-    // may be; this also includes lights because those are currently
-    // stored in mini::Scene'
-    // -----------------------------------------------------------------
-    auto &myData = this->global->base->localModel.dataGroups[this->slot];
-    for (auto miniScene : myData.minis)
-      renderMiniScene(miniScene);
+      // ------------------------------------------------------------------
+      // render all mini::Scene formatted geometry - however many there
+      // may be; this also includes lights because those are currently
+      // stored in mini::Scene'
+      // -----------------------------------------------------------------
+      auto &myData = this->global->base->localModel.dataGroups[this->slot];
+      for (auto miniScene : myData.minis)
+        renderMiniScene(miniScene);
 
-    // ------------------------------------------------------------------
-    // render all spheres
-    // -----------------------------------------------------------------
-    for (auto content : myData.sphereSets)
-      for (auto created : this->createSpheres(content))
-        rootGeoms.push_back(created);
+      // ------------------------------------------------------------------
+      // render all spheres
+      // -----------------------------------------------------------------
+      for (auto content : myData.sphereSets)
+        for (auto created : this->createSpheres
+               (content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+      
+      for (auto content : myData.capsuleSets)
+        for (auto created : this->createCapsules
+               (content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+      
+      // ------------------------------------------------------------------
+      // render all cyliders
+      // -----------------------------------------------------------------
+      for (auto content : myData.cylinderSets)
+        for (auto created : impl->createCylinders(content))
+          rootGeoms.push_back(created);
     
-    // ------------------------------------------------------------------
-    // render all cyliders
-    // -----------------------------------------------------------------
-    for (auto content : myData.cylinderSets)
-      for (auto created : impl->createCylinders(content))
-        rootGeoms.push_back(created);
+      // ------------------------------------------------------------------
+      // render all structured volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.structuredVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+      for (auto vol : myData.unsts) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+
+      // ==================================================================
+      // now that all light and instances have been _created_ and
+      // appended to the respective arrays, add these to the model
+      // ==================================================================
+
+      rootGroup = impl->createGroup(rootGeoms,{});
+      rootInstances.groups.push_back(rootGroup);
+      rootInstances.xfms.push_back(affine3f{});
+
     
-    // ------------------------------------------------------------------
-    // render all structured volumes
-    // -----------------------------------------------------------------
-    for (auto vol : myData.structuredVolumes) {
-      VolumeHandle createdVolume = impl->create(vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      // 'attach' the lights to the root group
+      impl->setLights(rootGroup,lights);
+
+      // attach volumes to instances
+      volumeGroup = impl->createGroup({},rootVolumes);
+      
+      rootInstances.groups.push_back(volumeGroup);
+      rootInstances.xfms.push_back(affine3f{});
+      
+      // ------------------------------------------------------------------
+      // finally - specify top-level instances for all the stuff we
+      // generated
+      // -----------------------------------------------------------------
     }
-    for (auto vol : myData.unsts) {
-      VolumeHandle createdVolume = impl->create(vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
-    }
 
-    // ==================================================================
-    // now that all light and instances have been _created_ and
-    // appended to the respective arrays, add these to the model
-    // ==================================================================
-
-    rootGroup = impl->createGroup(rootGeoms,{});
-    rootInstances.groups.push_back(rootGroup);
-    rootInstances.xfms.push_back(affine3f{});
-
+    impl->applyTransferFunction(currentXF);
     
-    // 'attach' the lights to the root group
-    impl->setLights(rootGroup,lights);
-
-    // attach volumes to instances
-    volumeGroup = impl->createGroup({},rootVolumes);
-    rootInstances.groups.push_back(volumeGroup);
-    rootInstances.xfms.push_back(affine3f{});
-    
-    // ------------------------------------------------------------------
-    // finally - specify top-level instances for all the stuff we
-    // generated
-    // -----------------------------------------------------------------
     this->setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
@@ -197,7 +217,8 @@ namespace hs {
   }
 
   template<typename Backend>
-  typename Backend::GroupHandle HayMakerT<Backend>::Slot::render(const mini::Object::SP &object)
+  typename Backend::GroupHandle
+  HayMakerT<Backend>::Slot::render(const mini::Object::SP &object)
   {
     std::vector<typename Backend::GeomHandle> meshes;
     for (auto mesh : object->meshes) {
@@ -240,17 +261,21 @@ namespace hs {
   {
     for (auto slot : perSlot)
       slot->renderAll();
+
     global.finalizeRender();
   }
 
-  HayMaker *HayMaker::createAnariImplementation(Comm &world,
-                                                Comm &workers,
-                                               LocalModel &localModel,
-                                                bool verbose)
+  HayMaker *HayMaker
+  ::createAnariImplementation(Comm &world,
+                              Comm &workers,
+                              int pathsPerPixel,
+                              LocalModel &localModel,
+                              bool verbose)
   {
 #if HANARI
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
+                                       pathsPerPixel,
                                        localModel,
                                        verbose);
 #else
@@ -258,13 +283,16 @@ namespace hs {
 #endif
   }
   
-  HayMaker *HayMaker::createBarneyImplementation(Comm &world,
-                                                Comm &workers,
-                                                LocalModel &localModel,
-                                                bool verbose)
+  HayMaker *HayMaker
+  ::createBarneyImplementation(Comm &world,
+                               Comm &workers,
+                               int pathsPerPixel,
+                               LocalModel &localModel,
+                               bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
                                         /* the workers */workers,
+                                        pathsPerPixel,
                                         localModel,
                                         verbose);
   }

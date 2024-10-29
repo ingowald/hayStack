@@ -190,17 +190,21 @@ namespace hs {
       std::ifstream in(fileName.c_str(),std::ios::binary);
       size_t numTransforms;
       in.read((char*)&numTransforms,sizeof(numTransforms));
-      for (int i=0;i<std::min(1000000,(int)numTransforms);i++) {
+      // std::vector<affine3f> affines;
+      for (int i=0;i<numTransforms;i++) {
         affine3f xfm;
         in.read((char*)&xfm,sizeof(xfm));
         float thick = .002f;//1000.f;//1e10f;
 
+        // affines.push_back(xfm);
+        
         // xfm = rcp(xfm);
-        float scale = 1.f;///100000.f;
-        thick *=scale;
-        xfm.l.vx *= scale;
-        xfm.l.vy *= scale;
-        xfm.l.vz *= scale;
+        // xfm.l.vx;
+        // xfm.l.vy;
+        // xfm.l.vz;
+        // PRINT(dot(normalize(xfm.l.vx),normalize(xfm.l.vy)));
+        // PRINT(dot(normalize(xfm.l.vy),normalize(xfm.l.vz)));
+        // PRINT(dot(normalize(xfm.l.vz),normalize(xfm.l.vx)));
         // thick = std::min(thick,length(xfm.l.vx));
         // thick = std::min(thick,length(xfm.l.vy));
         // thick = std::min(thick,length(xfm.l.vz));

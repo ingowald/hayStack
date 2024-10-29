@@ -33,7 +33,7 @@ namespace hs {
 
       void init();
       void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame(int pathsPerPixel);
+      void renderFrame();
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
@@ -43,11 +43,11 @@ namespace hs {
       BNModel       model  = 0;
       BNFrameBuffer fb     = 0;
       BNCamera      camera = 0;
-      vec2i        fbSize;
+      vec2i         fbSize;
     };
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba);
-    void renderFrame(int pathsPerPixel);
+    void renderFrame();
     void resetAccumulation();
     void setCamera(const Camera &camera);
     
@@ -59,8 +59,9 @@ namespace hs {
            typename HayMakerT<BarneyBackend>::Slot *impl)
         : global(global), slot(slot), impl(impl) {}
     
-      void setTransferFunction(const std::vector<VolumeHandle> &volumes,
-                               const TransferFunction &xf);
+      void applyTransferFunction(const TransferFunction &xf);
+      // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
+      //                          const TransferFunction &xf);
 
       BNLight create(const mini::QuadLight &ml);
       BNLight create(const mini::DirLight &ml);
@@ -79,9 +80,16 @@ namespace hs {
       BNMaterial create(mini::DisneyMaterial::SP disney);
       BNMaterial create(mini::Material::SP miniMat);
 
-      std::vector<BNGeom> createSpheres(SphereSet::SP content);
-      std::vector<BNGeom> createCylinders(Cylinders::SP content);
+      std::vector<BNGeom>
+      createSpheres(SphereSet::SP content,
+                    MaterialLibrary<BarneyBackend> *materialLib);
+      std::vector<BNGeom>
+      createCylinders(Cylinders::SP content);
 
+      std::vector<BNGeom>
+      createCapsules(hs::Capsules::SP caps,
+                     MaterialLibrary<BarneyBackend> *materialLib);
+      
       BNSampler create(mini::Texture::SP miniTex);
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<BarneyBackend> *materialLib);
@@ -97,6 +105,9 @@ namespace hs {
       inline void release(BNSampler t)  { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
 
+      void finalizeSlot();
+      
+      bool needRebuild = true;
       typename HayMakerT<BarneyBackend>::Slot *const impl;
       Global *const global;
       int     const slot;

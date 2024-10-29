@@ -38,6 +38,7 @@ namespace hs {
     
     HayMaker(Comm &world,
              Comm &workers,
+             int   pixelSamples,
              LocalModel &localModel,
              bool verbose);
 
@@ -47,17 +48,20 @@ namespace hs {
         anari support was not built in */
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
+                                               int pathsPerPixel,
                                                LocalModel &localModel,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
+                                                int pathsPerPixel,
                                                 LocalModel &localModel,
                                                 bool verbose);
     Comm        &world;
     Comm         workers;
     LocalModel localModel;
     bool         verbose;
+    const int    pixelSamples;
   };
   
   /*! keeps track of which frontend textures have already been
@@ -107,23 +111,28 @@ namespace hs {
   struct HayMakerT : public HayMaker
   {
     HayMakerT(Comm &world,
-             Comm &workers,
-             LocalModel &localModel,
-             bool verbose);
-
+              Comm &workers,
+              int pathsPerPixel,
+              LocalModel &localModel,
+              bool verbose);
+    
     void init();
 
     void buildSlots() override;
     
     void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
     { global.resize(fbSize,hostRGBA); }
+    
     void setTransferFunction(const TransferFunction &xf) override
     {
       for (auto slot : perSlot)
         slot->setTransferFunction(xf);
     }
-    void renderFrame(int pathsPerPixel) override
-    { global.renderFrame(pathsPerPixel); }
+    void renderFrame() override
+    {
+      buildSlots();
+      global.renderFrame();
+    }
     
     void resetAccumulation() override
     { global.resetAccumulation(); }
@@ -162,7 +171,11 @@ namespace hs {
       GroupHandle volumeGroup = 0;
 
       void setTransferFunction(const TransferFunction &xf)
-      { Backend::Slot::setTransferFunction(rootVolumes,xf); }
+      {
+        currentXF = xf;
+        // Backend::Slot::setTransferFunction(rootVolumes,xf);
+        dirty = true;
+      }
       
       void renderAll();
       void renderMiniScene(mini::Scene::SP miniScene);
@@ -175,6 +188,9 @@ namespace hs {
       
       TextureLibrary<Backend>  textureLibrary;
       MaterialLibrary<Backend> materialLibrary;
+
+      TransferFunction currentXF;
+      bool dirty = true;
     };
     
     std::vector<Slot *> perSlot;

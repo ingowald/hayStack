@@ -30,7 +30,7 @@ namespace hs {
     MPIRenderer(Comm &comm,
                 Renderer *passThrough = 0);
     
-    void renderFrame(int pathsPerPixel) override;
+    void renderFrame() override;
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;

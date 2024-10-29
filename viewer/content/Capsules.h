@@ -16,44 +16,33 @@
 
 #pragma once
 
-#include "hayStack/TransferFunction.h"
+#include "viewer/DataLoader.h"
 
-/* parallel renderer abstraction */
 namespace hs {
-  using namespace owl::common;
-  using range1f = owl::common::interval<float> ;
-  
-  struct Camera {
-    vec3f vp, vi, vu;
-    float fovy;
-  };
-
-  struct DirLight {
-    vec3f direction;
-    vec3f radiance;
-  };
-
-  struct PointLight {
-    vec3f position;
-    vec3f power;
-  };
-  
-  /*! base abstraction for any renderer - no matter whether its a
-      single node or multiple workers on the back */
-  struct Renderer {
-
-    virtual void setTransferFunction(const TransferFunction &xf) {}
-    virtual void renderFrame() {}
-    virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
-    virtual void resetAccumulation() {}
-    virtual void setCamera(const Camera &camera) {}
-    // virtual void setXF(const range1f &domain,
-    //                    const std::vector<vec4f> &colors) {}
-    virtual void screenShot() {}
-    virtual void terminate() {}
-    virtual void setLights(float ambient,
-                           const std::vector<PointLight> &pointLights,
-                           const std::vector<DirLight> &dirLights) {}
-  };
-
+  namespace content {
+    /*! a file of 'raw' spheres */
+    struct Capsules : public LoadableContent {
+      Capsules(const std::string &fileName,
+               size_t fileSize,
+               int thisPartID,
+               int numPartsToSplitInto);
+      static void create(DataLoader *loader,
+                         const ResourceSpecifier &dataURL);
+      size_t projectedSize() override;
+      void   executeLoad(DataRank &dataGroup, bool verbose) override;
+    
+      std::string toString() override
+      {
+        return "Capsules{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
+          + std::to_string(numPartsToSplitInto)+", proj size "
+          +prettyNumber(projectedSize())+"B}";
+      }
+    
+      const std::string fileName;
+      const size_t fileSize;
+      const int thisPartID = 0;
+      const int numPartsToSplitInto = 1;
+    };
+    
+  }
 }

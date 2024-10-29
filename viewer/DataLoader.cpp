@@ -25,6 +25,7 @@
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DistData.h"
+#include "viewer/content/Capsules.h"
 
 namespace hs {
 
@@ -256,13 +257,17 @@ namespace hs {
     }
 
 
-    if (!sharedLights.directional.empty())
+    if (!sharedLights.directional.empty() || sharedLights.envMap != "")
       for (int i=0;i<localModel.dataGroups.size();i++) {
-        mini::Scene::SP lights = mini::Scene::create();
+        mini::Scene::SP lights
+          = (sharedLights.envMap == "")
+          ? mini::Scene::create()
+          : mini::Scene::load(sharedLights.envMap);
+          
         lights->dirLights = sharedLights.directional;
         localModel.dataGroups[i].minis.push_back(lights);
       }
-           
+
     if (verbose) {
       workers.barrier();
       if (workers.rank == 0)
@@ -281,7 +286,15 @@ namespace hs {
   {
     allContent.push_back({(double)content->projectedSize(),int(allContent.size()),content});
   }
-    
+
+  std::string addIfRequired(std::string prefix, std::string s)
+  {
+    if (s.substr(0,prefix.size()) == prefix)
+      return s;
+    else
+      return prefix+s;
+  }
+  
   void DataLoader::addContent(const std::string &contentDescriptor)
   {
     // if (startsWith(contentDescriptor,"spheres://")) {
@@ -296,6 +309,8 @@ namespace hs {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
       OBJContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".caps")) {
+      content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else {
@@ -306,6 +321,8 @@ namespace hs {
         TSTriContent::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 
         MaterialsTest::create(this,contentDescriptor);
+      else if (url.type == "capsules") 
+        content::Capsules::create(this,contentDescriptor);
       // else if (url.type == "en-dump")
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 

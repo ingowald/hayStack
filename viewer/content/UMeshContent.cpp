@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "UMeshContent.h"
+#include "umesh/extractSurfaceMesh.h"
 
 namespace hs {
 
@@ -49,8 +50,31 @@ namespace hs {
     mesh->wedges.clear();
 #endif
     dataRank.unsts.push_back({mesh,box3f()});
-  }
 
+    if (1 && (mesh->triangles.size() || mesh->quads.size())) {
+      std::cout << "#hs: umesh seems to have surface triangles - extracting those." << std::endl;
+      umesh::UMesh::SP extracted = umesh::extractSurfaceMesh(mesh);
+      std::cout << "#hs: got " << extracted->toString() << std::endl;
+      
+      mini::Mesh::SP miniMesh = mini::Mesh::create();
+      mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
+      mat->transmission = .7f;
+      mat->ior = 1.f;
+      miniMesh->material = mat;
+      miniMesh->vertices.resize(extracted->vertices.size());
+      std::copy(extracted->vertices.begin(),extracted->vertices.end(),
+                (umesh::vec3f*)miniMesh->vertices.data());
+      for (auto tri : extracted->triangles)
+        miniMesh->indices.push_back(vec3i(tri.x,tri.y,tri.z));
+      for (auto quad : extracted->quads) {
+        miniMesh->indices.push_back(vec3i(quad.x,quad.y,quad.z));
+        miniMesh->indices.push_back(vec3i(quad.x,quad.z,quad.w));
+      }
+      mini::Object::SP miniObject = mini::Object::create({miniMesh});
+      mini::Scene::SP miniScene = mini::Scene::create({mini::Instance::create(miniObject)});
+      dataRank.minis.push_back(miniScene);
+    }
+  }
 
   
 

@@ -60,7 +60,7 @@ namespace hs {
     vec2i fbSize = { 800,600 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
-    int  numFramesAccum = 1024;
+    int  numFramesAccum = 1;
     int  spp            = 1;
     bool verbose = true;
     struct {
@@ -70,6 +70,7 @@ namespace hs {
       float fovy = 60.f;
     } camera;
     bool measure = 0;
+    std::string envMapFileName;
   };
   FromCL fromCL;
   
@@ -210,9 +211,9 @@ namespace hs {
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
         measure_t0 = getCurrentTime();
-      
+
       static double t0 = getCurrentTime();
-      renderer->renderFrame(fromCL.spp);
+      renderer->renderFrame();
       ++numFramesRendered;
       double t1 = getCurrentTime();
 
@@ -298,7 +299,7 @@ namespace hs {
   
   void Viewer::rangeChanged(range1f r)
   {
-    xf.domain = r; 
+    xf.domain = r;
     xfDirty = true;
   }
   
@@ -368,6 +369,9 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
+    } else if (arg == "-env" || arg == "--env-map") {
+      fromCL.envMapFileName = av[++i];
+      loader.sharedLights.envMap = fromCL.envMapFileName;
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
@@ -399,7 +403,7 @@ int main(int ac, char **av)
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
       fromCL.xfFileName = av[++i];
-    } else if (arg == "-res") {
+    } else if (arg == "-res" || arg == "-os" || arg == "--output-size") {
       fromCL.fbSize.x = std::stoi(av[++i]);
       fromCL.fbSize.y = std::stoi(av[++i]);
     } else if (arg == "-ndg") {
@@ -441,10 +445,12 @@ int main(int ac, char **av)
     = hanari
     ? HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
+                                          fromCL.spp,
                                           thisRankData,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
+                                           fromCL.spp,
                                            thisRankData,
                                            verbose());
 // #if HANARI
@@ -577,15 +583,16 @@ int main(int ac, char **av)
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
   renderer->setCamera(camera);
-
+  
   if (fromCL.xfFileName.length() > 0) {
-      hs::TransferFunction xf;
-      xf.load(fromCL.xfFileName);
-      renderer->setTransferFunction(xf);
+    hs::TransferFunction xf;
+    xf.load(fromCL.xfFileName);
+    renderer->setTransferFunction(xf);
+    renderer->resetAccumulation();
   }
 
   for (int i=0;i<fromCL.numFramesAccum;i++) 
-    renderer->renderFrame(fromCL.spp);
+    renderer->renderFrame();
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,

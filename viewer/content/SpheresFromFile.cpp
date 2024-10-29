@@ -18,6 +18,7 @@
 #include "viewer/content/SpheresFromFile.h"
 
 namespace hs {
+
   
   SpheresFromFile::SpheresFromFile(const ResourceSpecifier &data,
                                    int thisPartID,

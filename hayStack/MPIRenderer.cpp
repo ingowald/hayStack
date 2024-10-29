@@ -273,20 +273,19 @@ namespace hs {
 
   // ==================================================================
 
-  void MPIRenderer::renderFrame(int pathsPerPixel)
+  void MPIRenderer::renderFrame()
   {
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
     int cmd = RENDER_FRAME;
     sendToWorkers(cmd);
-    sendToWorkers(pathsPerPixel);
     sendEndOfMessage();
       
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->renderFrame(pathsPerPixel);
+    if (passThrough) passThrough->renderFrame();
   }
 
   void WorkerLoop::cmd_renderFrame()
@@ -294,14 +293,12 @@ namespace hs {
     // ------------------------------------------------------------------
     // get args....
     // ------------------------------------------------------------------
-    int pathsPerPixel;
-    fromMaster(pathsPerPixel);
     checkEndOfMessage();
     ;
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    renderer->renderFrame(pathsPerPixel);
+    renderer->renderFrame();
 
     // throw std::runtime_error("HARD EXIT FOR DEBUG");
   }

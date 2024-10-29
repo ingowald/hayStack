@@ -22,10 +22,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-
 set(SOURCES
   main.cpp
   DataLoader.h
@@ -41,6 +37,8 @@ set(SOURCES
   content/BoxesFromFile.cpp
   content/CylindersFromFile.h
   content/CylindersFromFile.cpp
+  content/Capsules.h
+  content/Capsules.cpp
   content/TSTris.h
   content/TSTris.cpp
   content/RAWVolumeContent.h

@@ -16,44 +16,29 @@
 
 #pragma once
 
-#include "hayStack/TransferFunction.h"
+#include "hayStack/HayStack.h"
 
-/* parallel renderer abstraction */
 namespace hs {
-  using namespace owl::common;
-  using range1f = owl::common::interval<float> ;
   
-  struct Camera {
-    vec3f vp, vi, vu;
-    float fovy;
+  struct Capsules {
+    typedef std::shared_ptr<Capsules> SP;
+
+    static SP create() { return std::make_shared<Capsules>(); }
+    
+    box3f getBounds() const;
+
+    /*! vertices - position and radius */
+    std::vector<vec4f> vertices;
+      
+      /*! per-elelemnt of per-vertex colors */
+    std::vector<vec4f> colors;
+
+    /*! array of index pair; each such pair refers to two points in
+        the points[] array; those are the begin/end of that
+        capsule. If this array is empty, it is to be treated as if it
+        contained {(0,1)(2,3),...,(numPoints-2,numPoints-1)} */
+    std::vector<vec2i> indices;
+    mini::Material::SP material;
   };
 
-  struct DirLight {
-    vec3f direction;
-    vec3f radiance;
-  };
-
-  struct PointLight {
-    vec3f position;
-    vec3f power;
-  };
-  
-  /*! base abstraction for any renderer - no matter whether its a
-      single node or multiple workers on the back */
-  struct Renderer {
-
-    virtual void setTransferFunction(const TransferFunction &xf) {}
-    virtual void renderFrame() {}
-    virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
-    virtual void resetAccumulation() {}
-    virtual void setCamera(const Camera &camera) {}
-    // virtual void setXF(const range1f &domain,
-    //                    const std::vector<vec4f> &colors) {}
-    virtual void screenShot() {}
-    virtual void terminate() {}
-    virtual void setLights(float ambient,
-                           const std::vector<PointLight> &pointLights,
-                           const std::vector<DirLight> &dirLights) {}
-  };
-
-}
+} // ::hs

@@ -153,6 +153,10 @@ namespace hs {
     std::vector<uint8_t> rawData(numScalars*sizeOf(texelFormat));
     char *dataPtr = (char *)rawData.data();
     std::ifstream in(fileName.c_str(),std::ios::binary);
+    if (!in.good())
+      throw std::runtime_error
+        ("hs::RAWVolumeContent: could not open '"+fileName+"'");
+    
     std::ifstream in_r, in_g, in_b;
     std::vector<uint8_t> rawDataRGB;
     if (numChannels==4) {
