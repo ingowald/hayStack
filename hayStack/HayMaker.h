@@ -92,10 +92,10 @@ namespace hs {
     
     MaterialLibrary(typename Backend::Slot *backend);
     ~MaterialLibrary();
-    MaterialHandle getOrCreate(mini::Material::SP miniMat);
+    MaterialHandle getOrCreate(mini::Material::SP miniMat, bool colorMapped = false);
 
   private:
-    std::map<mini::Material::SP,MaterialHandle> alreadyCreated;
+    std::map<std::pair<mini::Material::SP,bool>,MaterialHandle> alreadyCreated;
     typename Backend::Slot *const backend;
   };
   

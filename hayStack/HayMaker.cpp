@@ -96,13 +96,15 @@ namespace hs {
 
   template<typename Backend>
   typename Backend::MaterialHandle
-  MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat)
+  MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat,
+                                        bool colorMapped)
   {
-    if (alreadyCreated.find(miniMat) != alreadyCreated.end())
-      return alreadyCreated[miniMat];
+    auto key = std::pair<mini::Material::SP,bool>(miniMat,colorMapped);
+    if (alreadyCreated.find(key) != alreadyCreated.end())
+      return alreadyCreated[key];
 
-    auto mat = backend->create(miniMat);
-    alreadyCreated[miniMat] = mat;
+    auto mat = backend->create(miniMat,colorMapped);
+    alreadyCreated[key] = mat;
     return mat;
   }
 

@@ -66,15 +66,15 @@ namespace hs {
       anari::Group createGroup(const std::vector<anari::Surface> &geoms,
                                const std::vector<anari::Volume> &volumes);
 
-      anari::Material create(mini::Plastic::SP plastic);
-      anari::Material create(mini::Velvet::SP velvet);
-      anari::Material create(mini::Matte::SP matte);
-      anari::Material create(mini::Metal::SP metal);
-      anari::Material create(mini::ThinGlass::SP thinGlass);
-      anari::Material create(mini::Dielectric::SP dielectric);
-      anari::Material create(mini::MetallicPaint::SP metallicPaint);
-      anari::Material create(mini::DisneyMaterial::SP disney);
-      anari::Material create(mini::Material::SP miniMat);
+      anari::Material create(mini::Plastic::SP plastic, bool colorMapped);
+      anari::Material create(mini::Velvet::SP velvet, bool colorMapped);
+      anari::Material create(mini::Matte::SP matte, bool colorMapped);
+      anari::Material create(mini::Metal::SP metal, bool colorMapped);
+      anari::Material create(mini::ThinGlass::SP thinGlass, bool colorMapped);
+      anari::Material create(mini::Dielectric::SP dielectric, bool colorMapped);
+      anari::Material create(mini::MetallicPaint::SP metallicPaint, bool colorMapped);
+      anari::Material create(mini::DisneyMaterial::SP disney, bool colorMapped);
+      anari::Material create(mini::Material::SP miniMat, bool colorMapped);
 
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
@@ -88,7 +88,7 @@ namespace hs {
 
       std::vector<anari::Surface>
       createCapsules(hs::Capsules::SP caps,
-                     MaterialLibrary<AnariBackend> *materialLib) { return {}; }
+                     MaterialLibrary<AnariBackend> *materialLib);
       
       void setInstances(const std::vector<anari::Group> &groups,
                         const std::vector<affine3f> &xfms);

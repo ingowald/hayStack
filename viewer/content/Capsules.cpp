@@ -63,6 +63,84 @@ namespace hs {
     void   Capsules::executeLoad(DataRank &dataGroup, bool verbose) 
     {
       if (fileName == "<test>") {
+#if 1
+        float rr = .01f;
+        
+        for (int a=0;a<1000;a++) {
+          std::vector<vec4f> vertices;
+          std::vector<vec4f> colors;
+          std::vector<vec2i> indices;
+
+          auto rng = [&](){return (float)drand48(); };
+          auto sqr = [&](float f){return f*f; };
+          auto randomSphere = [&](float r){
+            vec3f v;
+            while (true) {
+              v.x = 1.f-2.f*rng();
+              v.y = 1.f-2.f*rng();
+              v.z = 1.f-2.f*rng();
+              if (length(v) <= 1.f) return r * normalize(v);
+            }
+          };
+          auto lerp_l = [&](float f, vec4f a, vec4f b) { return (1.f-f)*a+f*b; };
+          auto addCurve = [&](vec4f v00,
+                              vec4f v01,
+                              vec4f v02,
+                              vec4f v03,
+                              vec4f c0,
+                              vec4f c1) {
+            int numSegs = 16;
+            for (int i=0;i<=numSegs;i++) {
+              float t = i/float(numSegs);
+              vec4f c = lerp_l(t,c0,c1);
+              colors.push_back(c);
+              vec4f v10 = lerp_l(t,v00,v01);
+              vec4f v11 = lerp_l(t,v01,v02);
+              vec4f v12 = lerp_l(t,v02,v03);
+              vec4f v20 = lerp_l(t,v10,v11);
+              vec4f v21 = lerp_l(t,v11,v12);
+              vec4f v30 = lerp_l(t,v20,v21);
+              vertices.push_back(v30);
+              if (i) indices.push_back(int(vertices.size())-vec2i(1,2));
+            }
+          };
+                              
+          mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
+          mat->ior = 1.45f;
+          mat->metallic = 1.f;
+          mat->roughness = .5f*rng()*rng();
+          mat->baseColor.x = sqr(rng());
+          mat->baseColor.y = sqr(rng());
+          mat->baseColor.z = sqr(rng());
+
+          vec4f c0 = { sqr(rng()),sqr(rng()),sqr(rng()),1.f };
+          vec4f c1 = { sqr(rng()),sqr(rng()),sqr(rng()),1.f };
+          vec3f d0 = randomSphere(.1f);
+          vec3f d1 = randomSphere(.1f);
+          vec3f d2 = randomSphere(.1f);
+          vec3f p0 = { rng(), rng(), rng() };
+          vec3f p1 = p0 + d0;
+          vec3f p2 = p1 + d0+d1;
+          vec3f p3 = p2 + d0+d1+d2;
+          float r0 = rr/4.f + rr*rng();
+          float r1 = rr/4.f + rr*rng();
+          float r2 = rr/4.f + rr*rng();
+          float r3 = rr/4.f + rr*rng();
+          addCurve(vec4f(p0,r0),
+                   vec4f(p1,r1),
+                   vec4f(p2,r2),
+                   vec4f(p3,r3),
+                   c0,c1);
+
+          
+          hs::Capsules::SP cs = hs::Capsules::create();
+          cs->vertices = vertices;
+          cs->indices = indices;
+          cs->colors = colors;
+          cs->material = mini::Metal::create();
+          dataGroup.capsuleSets.push_back(cs);
+        }
+#else
         std::vector<vec4f> vertices = {
           {0.837575,0.654938,0.28438,0.0112988},
           {0.849629,0.640277,0.26121,0.0126267},
@@ -195,7 +273,7 @@ namespace hs {
         cs->material = mini::Metal::create();
         // cs->material = mini::Matte::create();
         dataGroup.capsuleSets.push_back(cs);
-        PING;
+#endif
         return;
       }
       hs::Capsules::SP cs = hs::Capsules::create();

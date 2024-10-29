@@ -69,16 +69,16 @@ namespace hs {
 
       BNGroup    createGroup(const std::vector<BNGeom> &geoms,
                              const std::vector<BNVolume> &volumes);
-      BNMaterial create(mini::Plastic::SP plastic);
-      BNMaterial create(mini::Velvet::SP velvet);
-      BNMaterial create(mini::Matte::SP matte);
-      BNMaterial create(mini::Metal::SP metal);
-      BNMaterial create(mini::BlenderMaterial::SP blender);
-      BNMaterial create(mini::ThinGlass::SP thinGlass);
-      BNMaterial create(mini::Dielectric::SP dielectric);
-      BNMaterial create(mini::MetallicPaint::SP metallicPaint);
-      BNMaterial create(mini::DisneyMaterial::SP disney);
-      BNMaterial create(mini::Material::SP miniMat);
+      BNMaterial create(mini::Plastic::SP plastic, bool colorMapped);
+      BNMaterial create(mini::Velvet::SP velvet, bool colorMapped);
+      BNMaterial create(mini::Matte::SP matte, bool colorMapped);
+      BNMaterial create(mini::Metal::SP metal, bool colorMapped);
+      BNMaterial create(mini::BlenderMaterial::SP blender, bool colorMapped);
+      BNMaterial create(mini::ThinGlass::SP thinGlass, bool colorMapped);
+      BNMaterial create(mini::Dielectric::SP dielectric, bool colorMapped);
+      BNMaterial create(mini::MetallicPaint::SP metallicPaint, bool colorMapped);
+      BNMaterial create(mini::DisneyMaterial::SP disney, bool colorMapped);
+      BNMaterial create(mini::Material::SP miniMat, bool colorMapped);
 
       std::vector<BNGeom>
       createSpheres(SphereSet::SP content,

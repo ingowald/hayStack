@@ -231,7 +231,7 @@ namespace hs {
     return sampler;
   }
 
-  BNMaterial BarneyBackend::Slot::create(mini::Plastic::SP plastic)
+  BNMaterial BarneyBackend::Slot::create(mini::Plastic::SP plastic, bool colorMapped)
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
@@ -249,7 +249,8 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Velvet::SP velvet)
+  
+  BNMaterial BarneyBackend::Slot::create(mini::Velvet::SP velvet, bool colorMapped)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"velvet");
     bnSet3fc(mat,"reflectance",(const float3&)velvet->reflectance);
@@ -259,7 +260,8 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Matte::SP matte)
+  
+  BNMaterial BarneyBackend::Slot::create(mini::Matte::SP matte, bool colorMapped)
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariMatte");
@@ -274,7 +276,7 @@ namespace hs {
     
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal)
+  BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal, bool colorMapped)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariMatte");
@@ -288,7 +290,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender)
+  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender, bool colorMapped)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
     bnSet1f(mat,"metallic",blender->metallic);
@@ -298,7 +300,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
+  BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass, bool colorMapped)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
@@ -315,7 +317,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Dielectric::SP dielectric)
+  BNMaterial BarneyBackend::Slot::create(mini::Dielectric::SP dielectric, bool colorMapped)
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->model,slot,"physicallyBased");
@@ -337,7 +339,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint)
+  BNMaterial BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint, bool colorMapped)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"blender");
     bnSet3fc(mat,"baseColor",(const float3&)metallicPaint->shadeColor);
@@ -360,7 +362,7 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
+  BNMaterial BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney, bool colorMapped)
   {
     BNMaterial mat = bnMaterialCreate(global->model,slot,"AnariPBR");
     // bnSet3fc(mat,"emission",
@@ -388,7 +390,7 @@ namespace hs {
     return mat;
   }
 
-  BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat)
+  BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat, bool colorMapped)
   {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
@@ -400,23 +402,23 @@ namespace hs {
       typesCreated.insert(miniMat->toString());
     }
     if (mini::BlenderMaterial::SP blender = miniMat->as<mini::BlenderMaterial>())
-      return create(blender);
+      return create(blender,colorMapped);
     if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
-      return create(plastic);
+      return create(plastic,colorMapped);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
-      return create(disney);
+      return create(disney,colorMapped);
     if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
-      return create(velvet);
+      return create(velvet,colorMapped);
     if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
-      return create(metallicPaint);
+      return create(metallicPaint,colorMapped);
     if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
-      return create(matte);
+      return create(matte,colorMapped);
     if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
-      return create(metal);
+      return create(metal,colorMapped);
     if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
-      return create(dielectric);
+      return create(dielectric,colorMapped);
     if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
-      return create(thinGlass);
+      return create(thinGlass,colorMapped);
     throw std::runtime_error("could not create barney material for mini mat "
                              +miniMat->toString());
   }
