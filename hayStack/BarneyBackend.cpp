@@ -531,6 +531,7 @@ namespace hs {
     memcpy(indices.data()+pyrBegin,mesh->pyrs.data(),  5*sizeof(int)*mesh->pyrs.size());
     memcpy(indices.data()+wedBegin,mesh->wedges.data(),6*sizeof(int)*mesh->wedges.size());
     memcpy(indices.data()+hexBegin,mesh->hexes.data(), 8*sizeof(int)*mesh->hexes.size());
+
     std::vector<int>     elementOffsets;
     // std::vector<uint8_t> elementTypes;
     for (int i=0;i<mesh->tets.size();i++) {
@@ -559,6 +560,9 @@ namespace hs {
       v.w = mesh->perVertex->values[i];
       vertices.push_back(v);
     }
+    // for (int i=0;i<mesh->hexes.size();i++)
+    //   makeVTKOrder(vertices.data(),
+                   
     BNScalarField sf = bnUMeshCreate(global->model,this->slot,
                                      (float4*)vertices.data(),vertices.size(),
                                      indices.data(),indices.size(),
