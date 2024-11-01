@@ -113,7 +113,7 @@ namespace hs {
 #if 1
     std::vector<vec4f> bgGradient = { vec4f(1,1,1,1),vec4f(.4,.4,1,1) };
       anari::setAndReleaseParameter
-        (device,vol,"background",
+        (device,renderer,"background",
          anari::newArray1D(device,
                            (const anari::math::float4*)bgGradient.data(),
                            bgGradient.size()));

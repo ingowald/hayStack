@@ -39,10 +39,11 @@ namespace hs {
       void finalizeRender();
       
       HayMaker *const base;
-      BNContext     barney = 0;
-      BNModel       model  = 0;
-      BNFrameBuffer fb     = 0;
-      BNCamera      camera = 0;
+      BNContext     context  = 0;
+      BNModel       model    = 0;
+      BNRenderer    renderer = 0;
+      BNFrameBuffer fb       = 0;
+      BNCamera      camera   = 0;
       vec2i         fbSize;
     };
     
