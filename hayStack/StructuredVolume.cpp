@@ -33,15 +33,15 @@ namespace hs {
     size_t numScalars = dims.x*(size_t)dims.y*dims.z;
     range1f range;
     switch (texelFormat) {
-    case BN_TEXEL_FORMAT_R32F:
+    case BN_FLOAT:
       for (size_t i=0;i<numScalars;i++)
         range.extend(((const float *)rawData.data())[i]);
       break;
-    case BN_TEXEL_FORMAT_R8:
+    case BN_UFIXED8:
       for (size_t i=0;i<numScalars;i++)
         range.extend(1.f/255.f*((const uint8_t *)rawData.data())[i]);
       break;
-    case BN_TEXEL_FORMAT_R16:
+    case BN_UFIXED16:
       for (size_t i=0;i<numScalars;i++)
         range.extend(1.f/((1<<16)-1)*((const uint16_t *)rawData.data())[i]);
       break;

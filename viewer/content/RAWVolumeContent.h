@@ -29,7 +29,7 @@ namespace hs {
                      int thisPartID,
                      const box3i &cellRange,
                      vec3i fullVolumeDims,
-                     BNTexelFormat texelFormat,
+                     BNDataType texelFormat,
                      int numChannels,
                      /*! if not NaN, we'll actually not store the
                          volume, but run iso-value extraction and use
@@ -48,7 +48,7 @@ namespace hs {
     const vec3i         fullVolumeDims;
     const box3i         cellRange;
     const int           numChannels;
-    const BNTexelFormat texelFormat;
+    const BNDataType    texelFormat;
     const float         isoValue;
   };
   

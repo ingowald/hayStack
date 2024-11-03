@@ -34,7 +34,7 @@ namespace hs {
                                      int thisPartID,
                                      const box3i &cellRange,
                                      vec3i fullVolumeDims,
-                                     BNTexelFormat texelFormat,
+                                     BNDataType texelFormat,
                                      int numChannels,
                                      float isoValue)
     : fileName(fileName),
@@ -79,13 +79,13 @@ namespace hs {
     std::string type = dataURL.get("type",dataURL.get("format",""));
     if (type.empty())
       throw std::runtime_error("RAWVolumeContent: 'type' not specified");
-    BNTexelFormat texelFormat;
+    BNDataType texelFormat;
     if (type == "uint8" || type == "byte")
-      texelFormat = BN_TEXEL_FORMAT_R8; //scalarType = StructuredVolume::UINT8;
+      texelFormat = BN_UFIXED8; //scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
-      texelFormat = BN_TEXEL_FORMAT_R32F; //scalarType = StructuredVolume::FLOAT;
+      texelFormat = BN_FLOAT; //scalarType = StructuredVolume::FLOAT;
     else if (type == "uint16")
-      texelFormat = BN_TEXEL_FORMAT_R16; //scalarType = StructuredVolume::UINT16;
+      texelFormat = BN_UFIXED16; //scalarType = StructuredVolume::UINT16;
     else
       throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
 
@@ -219,13 +219,13 @@ namespace hs {
             size_t idx = ix+size_t(numVoxels.x)*(iy+size_t(numVoxels.y)*iz);
             float scalar;
             switch(texelFormat) {
-            case BN_TEXEL_FORMAT_R32F:
+            case BN_FLOAT:
               scalar = ((const float*)rawData.data())[idx];
               break;
-            case BN_TEXEL_FORMAT_R16:
+            case BN_UFIXED16:
               scalar = ((const uint16_t*)rawData.data())[idx]*(1.f/((1<<16)-1));
               break;
-            case BN_TEXEL_FORMAT_R8:
+            case BN_UFIXED8:
               scalar = ((const uint8_t*)rawData.data())[idx]*(1.f/((1<<8)-1));
               break;
             default:throw std::runtime_error("not implemented...");
