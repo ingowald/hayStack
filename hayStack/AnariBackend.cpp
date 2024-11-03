@@ -599,17 +599,17 @@ namespace hs {
     anari::setParameter(device, field, "spacing",
                         (const anari::math::float3&)vol->gridSpacing);
     switch(vol->texelFormat) {
-    case BN_TEXEL_FORMAT_R32F:
+    case BN_FLOAT:
       anari::setParameterArray3D
         (device, field, "data", (const float *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
       break;
-    case BN_TEXEL_FORMAT_R8:
+    case BN_UFIXED8:
       anari::setParameterArray3D
         (device, field, "data", (const uint8_t *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
       break;
-    case BN_TEXEL_FORMAT_R16: {
+    case BN_UFIXED16: {
       std::cout << "volume with uint16s, converting to float" << std::endl;
       static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
       for (size_t i=0;i<volumeAsFloats.size();i++)

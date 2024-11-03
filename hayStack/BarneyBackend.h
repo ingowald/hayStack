@@ -45,6 +45,7 @@ namespace hs {
       BNFrameBuffer fb       = 0;
       BNCamera      camera   = 0;
       vec2i         fbSize;
+      uint32_t     *hostRGBA = 0;
     };
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba);

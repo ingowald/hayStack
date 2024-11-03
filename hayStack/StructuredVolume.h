@@ -32,7 +32,7 @@ namespace hs {
     //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
 
     StructuredVolume(vec3i dims,
-                     BNTexelFormat texelFormat,
+                     BNDataType texelFormat,
                      // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
                      std::vector<uint8_t> &rawDataRGB,
@@ -55,18 +55,18 @@ namespace hs {
     /*! either empty, or 3xuint8_t (RGB) for each voxel */
     std::vector<uint8_t> rawDataRGB;
     // ScalarType scalarType;
-    const BNTexelFormat texelFormat;
+    const BNDataType texelFormat;
     vec3f gridOrigin, gridSpacing;
   };
 
-  inline size_t sizeOf(BNTexelFormat type)
+  inline size_t sizeOf(BNDataType type)
   {
     switch(type) {
-    case BN_TEXEL_FORMAT_R32F:
+    case BN_FLOAT:
       return sizeof(float); 
-    case BN_TEXEL_FORMAT_R16:
+    case BN_UFIXED16:
       return sizeof(uint16_t);
-    case BN_TEXEL_FORMAT_R8:
+    case BN_UFIXED8:
       return sizeof(uint8_t);
     // case StructuredVolume::FLOAT: return sizeof(float); 
     // case StructuredVolume::UINT16: return sizeof(uint8_t);

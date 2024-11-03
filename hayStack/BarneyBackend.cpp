@@ -114,7 +114,9 @@ namespace hs {
   void BarneyBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     this->fbSize = fbSize;
-    bnFrameBufferResize(fb,fbSize.x,fbSize.y,(base->world.rank==0)?hostRGBA:nullptr);
+    this->hostRGBA = hostRGBA;
+    bnFrameBufferResize(fb,fbSize.x,fbSize.y,BN_FB_COLOR);
+    // (base->world.rank==0)?hostRGBA:nullptr);
   }
 
 //   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
@@ -164,6 +166,7 @@ namespace hs {
   void BarneyBackend::Global::renderFrame()
   {
     bnRender(renderer,model,camera,fb);
+    bnFrameBufferRead(fb,BN_FB_COLOR,hostRGBA,BN_UFIXED8_RGBA);
   }
 
   void BarneyBackend::Global::resetAccumulation()
@@ -187,16 +190,16 @@ namespace hs {
   BNSampler BarneyBackend::Slot::create(mini::Texture::SP miniTex)
   {
     if (!miniTex) return 0;
-    BNTexelFormat texelFormat;
+    BNDataType texelFormat;
     switch (miniTex->format) {
     case mini::Texture::FLOAT4:
-      texelFormat = BN_TEXEL_FORMAT_RGBA32F;
+      texelFormat = BN_FLOAT4_RGBA;
       break;
     case mini::Texture::FLOAT1:
-      texelFormat = BN_TEXEL_FORMAT_R32F;
+      texelFormat = BN_FLOAT;
       break;
     case mini::Texture::RGBA_UINT8:
-      texelFormat = BN_TEXEL_FORMAT_RGBA8;
+      texelFormat = BN_UFIXED8_RGBA;
       break;
     default:
       std::cout << "warning: unsupported mini::Texture format #"
@@ -487,7 +490,7 @@ namespace hs {
       = (const vec4f *)ml.texture->data.data();
     BNTexture2D texture
       = bnTexture2DCreate(global->context,this->slot,
-                          BN_TEXEL_FORMAT_RGBA32F,
+                          BN_FLOAT4_RGBA,
                           size.x,size.y,
                           texels);
     
