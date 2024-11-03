@@ -17,6 +17,7 @@
 #include "BarneyBackend.h"
 
 #if BARNEY_MPI
+# pragma message("Barney has MPI enabled")
 #else
 # define HS_FAKE_MPI 1
 #endif

@@ -56,23 +56,23 @@ add_library(hayStack
   )
 
 if (WIN32)
-target_link_libraries(hayStack
-  PUBLIC
-  owl
-  miniScene
-  umesh
-  barney
-#  mpiRenderInf
-)
-elif(BARNEY_MPI)
-target_link_libraries(hayStack
-  PUBLIC
-  owl
-  miniScene
-  umesh
-  barney_mpi
-  #  mpiRenderInf
-  )
+  target_link_libraries(hayStack
+    PUBLIC
+    owl
+    miniScene
+    umesh
+    barney
+    #  mpiRenderInf
+    )
+elseif(BARNEY_MPI)
+  target_link_libraries(hayStack
+    PUBLIC
+    owl
+    miniScene
+    umesh
+    barney_mpi
+    #  mpiRenderInf
+    )
 else()
   target_link_libraries(hayStack
     PUBLIC
@@ -87,6 +87,10 @@ endif()
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 
 if (WIN32)
+  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
+endif()
+
+if (NOT MPI_FOUND)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
