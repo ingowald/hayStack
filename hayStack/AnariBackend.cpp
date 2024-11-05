@@ -653,27 +653,28 @@ namespace hs {
     std::vector<uint32_t> indexData;
 
     // this isn't fully spec'ed yet
+    enum { _VTK_TET = 10, _VTK_HEX=12, _VTK_WEDGE=13, _VTK_PYR=14 };
     enum { _ANARI_TET = 0, _ANARI_HEX=1, _ANARI_WEDGE=2, _ANARI_PYR=3 };
     for (auto prim : mesh->tets) {
-      cellTypeData.push_back(_ANARI_TET);
+      cellTypeData.push_back(_VTK_TET);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->pyrs) {
-      cellTypeData.push_back(_ANARI_PYR);
+      cellTypeData.push_back(_VTK_PYR);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->wedges) {
-      cellTypeData.push_back(_ANARI_WEDGE);
+      cellTypeData.push_back(_VTK_WEDGE);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->hexes) {
-      cellTypeData.push_back(_ANARI_HEX);
+      cellTypeData.push_back(_VTK_HEX);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
