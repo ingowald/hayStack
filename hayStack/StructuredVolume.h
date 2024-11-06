@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "barney.h"
+// #include "barney.h"
 #include "hayStack/HayStack.h"
 
 namespace hs {
@@ -32,7 +32,7 @@ namespace hs {
     //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
 
     StructuredVolume(vec3i dims,
-                     BNDataType texelFormat,
+                     const std::string &texelFormat,//BNDataType texelFormat,
                      // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
                      std::vector<uint8_t> &rawDataRGB,
@@ -55,24 +55,44 @@ namespace hs {
     /*! either empty, or 3xuint8_t (RGB) for each voxel */
     std::vector<uint8_t> rawDataRGB;
     // ScalarType scalarType;
-    const BNDataType texelFormat;
+    const std::string// BNDataType
+    texelFormat;
     vec3f gridOrigin, gridSpacing;
   };
 
-  inline size_t sizeOf(BNDataType type)
+  inline size_t sizeOf(const std::string &type)
   {
-    switch(type) {
-    case BN_FLOAT:
-      return sizeof(float); 
-    case BN_UFIXED16:
-      return sizeof(uint16_t);
-    case BN_UFIXED8:
-      return sizeof(uint8_t);
+    if (type == "float") return sizeof(float);
+    if (type == "uint8_t") return sizeof(uint8_t);
+    if (type == "uint16_t") return sizeof(uint16_t);
+    // switch(type) {
+    // case BN_FLOAT:
+    //   return sizeof(float); 
+    // case BN_UFIXED16:
+    //   return sizeof(uint16_t);
+    // case BN_UFIXED8:
+    //   return sizeof(uint8_t);
     // case StructuredVolume::FLOAT: return sizeof(float); 
     // case StructuredVolume::UINT16: return sizeof(uint8_t);
     // case StructuredVolume::UINT8: return sizeof(uint8_t);
-    default: throw std::runtime_error("un-handled scalar type");
-    };
+    // default:
+      throw std::runtime_error("un-handled scalar type");
+    // };
   }
+  // inline size_t sizeOf(BNDataType type)
+  // {
+  //   switch(type) {
+  //   case BN_FLOAT:
+  //     return sizeof(float); 
+  //   case BN_UFIXED16:
+  //     return sizeof(uint16_t);
+  //   case BN_UFIXED8:
+  //     return sizeof(uint8_t);
+  //   // case StructuredVolume::FLOAT: return sizeof(float); 
+  //   // case StructuredVolume::UINT16: return sizeof(uint8_t);
+  //   // case StructuredVolume::UINT8: return sizeof(uint8_t);
+  //   default: throw std::runtime_error("un-handled scalar type");
+  //   };
+  // }
   
 }

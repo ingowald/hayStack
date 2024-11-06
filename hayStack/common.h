@@ -16,10 +16,11 @@
 
 #pragma once
 
-#include <owl/common/math/box.h>
-#include <owl/common/math/random.h>
-#include <owl/common/parallel/parallel_for.h>
-#include <owl/owl.h>
+// #include <owl/common/math/box.h>
+// #include <owl/common/math/random.h>
+// #include <owl/common/parallel/parallel_for.h>
+// #include <owl/owl.h>
+#include "miniScene/common/math/box.h"
 #include <string.h>
 #include <mutex>
 #include <vector>
@@ -28,7 +29,8 @@
 #include <sstream>
 
 namespace hs {
-  using namespace owl::common;
+  using namespace mini::common;
+  // using namespace owl::common;
 
 #define HAYSTACK_NYI() throw std::runtime_error(std::string(__PRETTY_FUNCTION__)+" not yet implemented")
 

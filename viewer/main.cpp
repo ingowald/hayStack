@@ -40,7 +40,7 @@
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
 #endif
-#include <cuda_runtime.h>
+// #include <cuda_runtime.h>
 
 namespace hs {
 
@@ -469,9 +469,9 @@ int main(int ac, char **av)
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
@@ -482,15 +482,15 @@ int main(int ac, char **av)
   
   world.barrier();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: creating barney context"
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
   // hayMaker->createBarney();
   world.barrier();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: building barney data groups"
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
     hayMaker->buildSlots();
     // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)

@@ -19,7 +19,7 @@ option(HANARI "Use ANARI device?" ON)
 if (HANARI)
   find_package(anari 0.8.0 REQUIRED #COMPONENTS viewer
     )
-  find_package(MPI REQUIRED)
+#  find_package(MP IREQUIRED)
 endif()
 
 
@@ -55,6 +55,17 @@ add_library(hayStack
   TransferFunction.cpp
   )
 
+if (NO_BARNEY)
+  target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
+  target_link_libraries(hayStack
+    PUBLIC
+#    owl
+    miniScene
+    umesh
+#    barney
+    #  mpiRenderInf
+    )
+else()
 if (WIN32)
   target_link_libraries(hayStack
     PUBLIC
@@ -83,6 +94,7 @@ else()
     #  mpiRenderInf
     )
 endif()
+endif()
 
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 
@@ -101,8 +113,13 @@ if (HANARI)
     )
   target_link_libraries(hayStack
     PUBLIC
-#    anari::anari_viewer
     anari::anari
-    MPI::MPI_CXX
     )
+  if (MPI_FOUND)
+    target_link_libraries(hayStack
+      PUBLIC
+      MPI::MPI_CXX
+      )
+  endif()
 endif()
+  

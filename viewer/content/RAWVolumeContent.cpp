@@ -34,7 +34,7 @@ namespace hs {
                                      int thisPartID,
                                      const box3i &cellRange,
                                      vec3i fullVolumeDims,
-                                     BNDataType texelFormat,
+                                     const std::string &texelFormat,
                                      int numChannels,
                                      float isoValue)
     : fileName(fileName),
@@ -79,13 +79,13 @@ namespace hs {
     std::string type = dataURL.get("type",dataURL.get("format",""));
     if (type.empty())
       throw std::runtime_error("RAWVolumeContent: 'type' not specified");
-    BNDataType texelFormat;
+    std::string texelFormat;
     if (type == "uint8" || type == "byte")
-      texelFormat = BN_UFIXED8; //scalarType = StructuredVolume::UINT8;
+      texelFormat = "uint8_t"; //scalarType = StructuredVolume::UINT8;
     else if (type == "float" || type == "f")
-      texelFormat = BN_FLOAT; //scalarType = StructuredVolume::FLOAT;
+      texelFormat = "float"; //scalarType = StructuredVolume::FLOAT;
     else if (type == "uint16")
-      texelFormat = BN_UFIXED16; //scalarType = StructuredVolume::UINT16;
+      texelFormat = "uint16_t"; //scalarType = StructuredVolume::UINT16;
     else
       throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
 
@@ -218,17 +218,22 @@ namespace hs {
             volume->vertices.push_back(umesh::vec3f(umesh::vec3i(ix,iy,iz))*(const umesh::vec3f&)gridSpacing+(const umesh::vec3f&)gridOrigin);
             size_t idx = ix+size_t(numVoxels.x)*(iy+size_t(numVoxels.y)*iz);
             float scalar;
-            switch(texelFormat) {
-            case BN_FLOAT:
+            if (texelFormat == "float") {
+            // switch(texelFormat) {
+            // case BN_FLOAT:
               scalar = ((const float*)rawData.data())[idx];
-              break;
-            case BN_UFIXED16:
+            } else if (texelFormat == "uint16_t") {
+            //   break;
+            // case BN_UFIXED16:
               scalar = ((const uint16_t*)rawData.data())[idx]*(1.f/((1<<16)-1));
-              break;
-            case BN_UFIXED8:
+              // break;
+            // case BN_UFIXED8:
+            } else if (texelFormat == "uint8_t") {
               scalar = ((const uint8_t*)rawData.data())[idx]*(1.f/((1<<8)-1));
-              break;
-            default:throw std::runtime_error("not implemented...");
+            //   break;
+            // default:
+            } else {
+              throw std::runtime_error("not implemented...");
             };
             
               // = ( == StructuredVolume::FLOAT)

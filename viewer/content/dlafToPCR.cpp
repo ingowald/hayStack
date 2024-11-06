@@ -1,10 +1,10 @@
-#include "owl/common/owl-common.h"
-#include "owl/common/math/vec.h"
+// #include "owl/common/owl-common.h"
+#include "miniScene/common/math/vec.h"
 #include <array>
 #include <vector>
 #include <fstream>
 
-using namespace owl::common;
+using namespace mini::common;
 
 struct DLAFScene
 {
@@ -36,7 +36,7 @@ void importDLAFFile(const char *filename, DLAFScene &s)
 }
 
 
-  inline float saturate(float f) { return min(1.f,max(0.f,f)); }
+  // inline float saturate(float f) { return min(1.f,max(0.f,f)); }
 
   inline vec3f hue_to_rgb(float hue)
   {

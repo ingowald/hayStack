@@ -14,6 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#if !NO_BARNEY
 #include "BarneyBackend.h"
 
 #if BARNEY_MPI
@@ -738,4 +739,4 @@ namespace hs {
 
 } // ::hs
 
-
+#endif

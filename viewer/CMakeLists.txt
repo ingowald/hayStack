@@ -70,6 +70,7 @@ if(WIN32)
   )
 endif()
 
+if (HS_VIEWER)
 # ------------------------------------------------------------------
 add_executable(hsViewer
   ${SOURCES}
@@ -89,6 +90,7 @@ else()
 endif()
 if (HS_USE_IMGUI)
   target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+endif()
 endif()
 
 # ------------------------------------------------------------------
