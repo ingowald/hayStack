@@ -107,7 +107,26 @@ namespace hs {
 
     renderer = bnRendererCreate(context,"default");
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
-      
+
+
+#if 1
+    vec4f gradient[2] = {
+      vec4f(.9f,.9f,.9f,1.f),
+      vec4f(0.15f, 0.25f, .8f,1.f),
+    };
+    // BNData data = bnDataCreate(context,-1,
+    //                            BN_FLOAT4,2,
+    //                            gradient);
+    // BNTextureData tex = bnTextureData2DCreate(context,-1,
+    //                                           BN_FLOAT4,1,2,
+    //                                           gradient);
+    BNTexture2D tex = bnTexture2DCreate(context,-1,
+                                        BN_FLOAT4,1,2,
+                                        gradient);
+    bnSetObject(renderer,"bgTexture",tex);
+#endif
+    bnCommit(renderer);
+    
     fb     = bnFrameBufferCreate(context,0);
     model  = bnModelCreate(context);
     camera = bnCameraCreate(context,"perspective");

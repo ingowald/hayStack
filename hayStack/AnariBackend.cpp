@@ -111,12 +111,18 @@ namespace hs {
     anari::setParameter(device, renderer, "ambientRadiance", .8f);
     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
 #if 1
-    std::vector<vec4f> bgGradient = { vec4f(1,1,1,1),vec4f(.4,.4,1,1) };
-      anari::setAndReleaseParameter
-        (device,renderer,"background",
-         anari::newArray1D(device,
-                           (const anari::math::float4*)bgGradient.data(),
-                           bgGradient.size()));
+    std::vector<vec4f> bgGradient = {
+      // vec4f(1,1,1,1),vec4f(.4,.4,1,1)
+      // };
+      // vec4f gradient[2] = {
+      vec4f(.9f,.9f,.9f,1.f),
+      vec4f(0.15f, 0.25f, .8f,1.f),
+    };
+    anari::setAndReleaseParameter
+      (device,renderer,"background",
+       anari::newArray2D(device,
+                         (const anari::math::float4*)bgGradient.data(),
+                         1,2));//bgGradient.size()));
 #endif
     anari::commitParameters(device, renderer);
 
