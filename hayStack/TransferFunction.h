@@ -23,7 +23,7 @@
 namespace hs {
   // using namespace owl::common;
   //
-  using range1f = interval<float> ;
+  using range1f = mini::common::interval<float> ;
   
   struct TransferFunction {
     void load(const std::string &fileName);

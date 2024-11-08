@@ -408,10 +408,10 @@ namespace hs {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
       std::cout
-        << OWL_TERMINAL_YELLOW
+        << MINI_TERMINAL_YELLOW
         << "#hs: creating at least one instance of material *** "
         << miniMat->toString() << " ***"
-        << OWL_TERMINAL_DEFAULT << std::endl;
+        << MINI_TERMINAL_DEFAULT << std::endl;
       typesCreated.insert(miniMat->toString());
     }
     if (mini::BlenderMaterial::SP blender = miniMat->as<mini::BlenderMaterial>())
@@ -482,9 +482,9 @@ namespace hs {
 
   BNLight BarneyBackend::Slot::create(const mini::EnvMapLight &ml)
   {
-    std::cout << OWL_TERMINAL_YELLOW
+    std::cout << MINI_TERMINAL_YELLOW
               << "#hs: creating env-map light ..."
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
     vec2i size = ml.texture->size;
     assert(ml.texture);
 
@@ -523,9 +523,19 @@ namespace hs {
 
   BNVolume BarneyBackend::Slot::create(const StructuredVolume::SP &vol)
   {
+    BNDataType texelFormat;
+    if (vol->texelFormat == "float")
+      texelFormat = BN_FLOAT;
+    else if (vol->texelFormat == "uint8_t")
+      texelFormat = BN_UFIXED8;
+    else if (vol->texelFormat == "uint16_t")
+      texelFormat = BN_UFIXED16;
+    else
+      throw std::runtime_error("unsupported voluem format '"+vol->texelFormat+"'");
+    
     BNTexture3D texture
       = bnTexture3DCreate(global->context,this->slot,
-                          vol->texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
+                          texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
                           vol->rawData.data());
     BNScalarField sf
       = bnScalarFieldCreate(global->context,this->slot,"structured");
@@ -704,9 +714,9 @@ namespace hs {
     bnSetAndRelease(geom,"vertices",vertices);
 
     if (content->indices.empty()) {
-      std::cout << OWL_TERMINAL_RED
+      std::cout << MINI_TERMINAL_RED
                 << "#hs.bn.cyl: warning - empty indices array, creating default one"
-                << OWL_TERMINAL_DEFAULT << std::endl;
+                << MINI_TERMINAL_DEFAULT << std::endl;
       for (int i=0;i<content->vertices.size();i+=2)
         content->indices.push_back(vec2i(i,i+1));
     }

@@ -102,7 +102,7 @@ if (WIN32)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-if (NOT MPI_FOUND)
+if (NOT (TARGET barney_mpi))
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 

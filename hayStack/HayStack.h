@@ -24,7 +24,7 @@
 
 namespace hs {
   using namespace mini;
-  using range1f = interval<float>;
+  using range1f = mini::common::interval<float>;
   
   struct BoundsData {
     void extend(const BoundsData &other)
