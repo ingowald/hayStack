@@ -41,6 +41,7 @@ option(HS_VIEWER "Build hsViewer" ON)
 # ------------------------------------------------------------------
 option(NO_BARNEY "do not build barney?" OFF)
 if (NOT NO_BARNEY)
+  enable_language(CUDA)
   add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
 endif()
 if (NOT (TARGET miniScene))
