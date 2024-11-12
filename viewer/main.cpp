@@ -31,8 +31,8 @@
 #  include <imgui.h>
 # endif
 #elif HS_CUTEE
-# include "qtOWL/OWLViewer.h"
-# include "qtOWL/XFEditor.h"
+# include "cutee/OWLViewer.h"
+# include "cutee/XFEditor.h"
 # include "stb/stb_image_write.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -42,13 +42,24 @@
 #endif
 // #include <cuda_runtime.h>
 
+#if HS_VIEWER
+namespace viewer {
+  using namespace owl::common;
+}
+#endif
+#if HS_CUTEE
+namespace viewer {
+  using namespace cutee::common;
+}
+#endif
+
 namespace hs {
 
   double t_last_render;
   
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
-        many as we have to fit for given number of ranks */
+      many as we have to fit for given number of ranks */
     int dpr = 0;
     /*! num data groups */
     int ndg = 1;
@@ -94,7 +105,7 @@ namespace hs {
   using namespace owl::viewer; //owl::viewer::OWLViewer;
 #endif
 #if HS_CUTEE
-  using namespace qtOWL; //qtOWL::OWLViewer
+  using namespace cutee; //cutee::OWLViewer
 #endif
   
 #if HS_VIEWER || HS_CUTEE
@@ -112,8 +123,8 @@ namespace hs {
 
 #if HS_CUTEE
   public slots:
-    void colorMapChanged(qtOWL::XFEditor *xf);
-    void rangeChanged(owl::common::interval<float> r);
+    void colorMapChanged(cutee::XFEditor *xf);
+    void rangeChanged(cutee::common::interval<float> r);
     void opacityScaleChanged(double scale);
 #endif
 
@@ -136,7 +147,7 @@ namespace hs {
     }
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const owl::common::vec2i &where) override
+    void key(char key, const viewer::vec2i &where) override
     {
       switch(key) {
       case '!':
@@ -161,22 +172,22 @@ namespace hs {
     }
 
 #if HS_VIEWER
-    void mouseMotion(const owl::common::vec2i &newMousePosition) override
+    void mouseMotion(const viewer::vec2i &newMousePosition) override
     {
 # if HS_HAVE_IMGUI
       ImGuiIO &io = ImGui::GetIO();
       if (!io.WantCaptureMouse) 
 # endif
-      {
-        OWLViewer::mouseMotion((const owl::common::vec2i&)newMousePosition);
-      }
+        {
+          OWLViewer::mouseMotion((const viewer::vec2i&)newMousePosition);
+        }
     }
 #endif
     
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const owl::common::vec2i &newSize) override
+    void resize(const viewer::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
       renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
@@ -185,7 +196,7 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
-      double _t0 = owl::common::getCurrentTime();
+      double _t0 = viewer::getCurrentTime();
 #if HS_VIEWER
 # if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_NewFrame();
@@ -210,12 +221,12 @@ namespace hs {
       
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
-        measure_t0 = owl::common::getCurrentTime();
+        measure_t0 = viewer::getCurrentTime();
 
-      static double t0 = owl::common::getCurrentTime();
+      static double t0 = viewer::getCurrentTime();
       renderer->renderFrame();
       ++numFramesRendered;
-      double t1 = owl::common::getCurrentTime();
+      double t1 = viewer::getCurrentTime();
 
       if (fromCL.measure) {
         int numFramesMeasured = numFramesRendered - measure_warmup_frames;
@@ -239,10 +250,10 @@ namespace hs {
       sum_w = 0.8f*sum_w + 1.f;
       float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+owl::common::prettyDouble(fps)+"fps)";
+      std::string title = "HayThere ("+viewer::prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
       t0 = t1;
-      double _t1 = owl::common::getCurrentTime();
+      double _t1 = viewer::getCurrentTime();
       t_last_render = _t1-_t0;
     }
     
@@ -272,9 +283,9 @@ namespace hs {
     {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation
-        ((owl::common::vec3f&)camera.vp,
-         (owl::common::vec3f&)camera.vi,
-         (owl::common::vec3f&)camera.vu,
+        ((viewer::vec3f&)camera.vp,
+         (viewer::vec3f&)camera.vi,
+         (viewer::vec3f&)camera.vu,
          camera.fovy);
       renderer->setCamera(camera);
       accumDirty = true;
@@ -295,13 +306,13 @@ namespace hs {
 
 
 #if HS_CUTEE
-  void Viewer::colorMapChanged(qtOWL::XFEditor *xfEditor)
+  void Viewer::colorMapChanged(cutee::XFEditor *xfEditor)
   {
     xf.colorMap = (const std::vector<mini::common::vec4f>&)xfEditor->getColorMap();
     xfDirty = true;
   }
   
-  void Viewer::rangeChanged(owl::common::interval<float> r)
+  void Viewer::rangeChanged(cutee::common::interval<float> r)
   {
     xf.domain.lower = r.lower;
     xf.domain.upper = r.upper;
@@ -523,12 +534,12 @@ int main(int ac, char **av)
   Viewer viewer(renderer);
   
   viewer.enableFlyMode();
-  viewer.enableInspectMode((const owl::common::box3f&)worldBounds.spatial);
+  viewer.enableInspectMode((const viewer::box3f&)worldBounds.spatial);
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const owl::common::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const owl::common::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
+    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 # if HS_HAVE_IMGUI
   TFEditor    *xfEditor = new TFEditor;
@@ -548,21 +559,21 @@ int main(int ac, char **av)
   viewer.enableInspectMode();///*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const owl::common::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const owl::common::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
+    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
-  XFEditor    *xfEditor = new XFEditor((owl::common::interval<float>&)worldBounds.scalars);
+  XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
   viewer.xfEditor      = xfEditor;
   QFormLayout *layout   = new QFormLayout;
   layout->addWidget(xfEditor);
 
-  QObject::connect(xfEditor,&qtOWL::XFEditor::colorMapChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
                    &viewer, &Viewer::colorMapChanged);
-  QObject::connect(xfEditor,&qtOWL::XFEditor::rangeChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
                    &viewer, &Viewer::rangeChanged);
-  QObject::connect(xfEditor,&qtOWL::XFEditor::opacityScaleChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
                    &viewer, &Viewer::opacityScaleChanged);
   // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
   //                  &viewer, &Viewer::lightPosChanged);
