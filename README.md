@@ -270,4 +270,12 @@ then run as follows:
 
 
 
+## NASA Wing Flow (ca 1.3 bio spheres)
 
+wing bottom
+
+``` 
+--camera 2.44535 0.872197 -0.624231 1.21062 1.00186 0.329183 0 0 1 -fovy 60
+```
+
+wing top

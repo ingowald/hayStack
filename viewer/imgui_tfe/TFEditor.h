@@ -19,11 +19,11 @@ namespace hs {
 
     void downdate() { cmapUpdated_ = rangeUpdated_ = opacityUpdated_ = false; }
 
-    std::vector<owl::vec4f> getColorMap();
-    owl::interval<float> getRange() const { return range; }
-    owl::interval<float> getRelDomain() const { return relDomain; }
+    std::vector<mini::common::vec4f> getColorMap();
+    mini::common::interval<float> getRange() const { return range; }
+    mini::common::interval<float> getRelDomain() const { return relDomain; }
     float getOpacityScale() const {return opacityScale;}
-    void setRange(owl::interval<float> r) { range = r; }
+    void setRange(mini::common::interval<float> r) { range = r; }
 
     void loadFromFile(const char* fname);
     void saveToFile(const char* fname);
@@ -37,9 +37,9 @@ namespace hs {
     bool cmapUpdated_;
     bool rangeUpdated_;
     bool opacityUpdated_;
-
-    owl::interval<float> range;
-    owl::interval<float> relDomain;
+    
+    mini::common::interval<float> range;
+    mini::common::interval<float> relDomain;
     float opacityScale;
 
     ColorMapLibrary cmapLib;

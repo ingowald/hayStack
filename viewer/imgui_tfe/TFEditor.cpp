@@ -8,7 +8,10 @@
 
 
 namespace hs {
-  using namespace owl;
+  // using namespace owl;
+  // using owl::common::interval;
+  using mini::common::interval;
+  using mini::common::vec4f;
 
   TFEditor::TFEditor(){
     cmapNames = cmapLib.getNames();
@@ -35,7 +38,7 @@ namespace hs {
     if (vktTFE.updated())
       cmapUpdated_ = true;
 
-    interval<float> curRange = range;
+    mini::common::interval<float> curRange = range;
     ImGui::DragFloatRange2("Range", &curRange.lo, &curRange.hi,
                            max(curRange.diagonal()/100.f, 0.0001f));
 

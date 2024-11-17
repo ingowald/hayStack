@@ -70,25 +70,27 @@ if(WIN32)
   )
 endif()
 
-# ------------------------------------------------------------------
-add_executable(hsViewer
-  ${SOURCES}
-  ${TFE_SOURCES}
-  ${GLAD_SOURCES}
-  )
-target_link_libraries(hsViewer
-  PUBLIC
-  hayStack
-  owl_viewer
-  )
-target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
-if (WIN32)
-  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
-else()
-  target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
-endif()
-if (HS_USE_IMGUI)
-  target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+if (HS_VIEWER AND (TARGET barney))
+  # ------------------------------------------------------------------
+  add_executable(hsViewer
+    ${SOURCES}
+    ${TFE_SOURCES}
+    ${GLAD_SOURCES}
+    )
+  target_link_libraries(hsViewer
+    PUBLIC
+    hayStack
+    owl_viewer
+    )
+  target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
+  if (WIN32)
+    target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
+  else()
+    target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
+  endif()
+  if (HS_USE_IMGUI)
+    target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
+  endif()
 endif()
 
 # ------------------------------------------------------------------

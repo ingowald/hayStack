@@ -17,7 +17,7 @@
 #pragma once
 
 #include "HayMaker.h"
-
+#include <barney.h>
 namespace hs {
 
   struct BarneyBackend {
@@ -39,11 +39,13 @@ namespace hs {
       void finalizeRender();
       
       HayMaker *const base;
-      BNContext     barney = 0;
-      BNModel       model  = 0;
-      BNFrameBuffer fb     = 0;
-      BNCamera      camera = 0;
+      BNContext     context  = 0;
+      BNModel       model    = 0;
+      BNRenderer    renderer = 0;
+      BNFrameBuffer fb       = 0;
+      BNCamera      camera   = 0;
       vec2i         fbSize;
+      uint32_t     *hostRGBA = 0;
     };
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba);

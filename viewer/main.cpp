@@ -31,8 +31,8 @@
 #  include <imgui.h>
 # endif
 #elif HS_CUTEE
-# include "qtOWL/OWLViewer.h"
-# include "qtOWL/XFEditor.h"
+# include "cutee/OWLViewer.h"
+# include "cutee/XFEditor.h"
 # include "stb/stb_image_write.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -40,7 +40,18 @@
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
 #endif
-#include <cuda_runtime.h>
+// #include <cuda_runtime.h>
+
+#if HS_VIEWER
+namespace viewer {
+  using namespace owl::common;
+}
+#endif
+#if HS_CUTEE
+namespace viewer {
+  using namespace cutee::common;
+}
+#endif
 
 namespace hs {
 
@@ -48,7 +59,7 @@ namespace hs {
   
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
-        many as we have to fit for given number of ranks */
+      many as we have to fit for given number of ranks */
     int dpr = 0;
     /*! num data groups */
     int ndg = 1;
@@ -94,7 +105,7 @@ namespace hs {
   using namespace owl::viewer; //owl::viewer::OWLViewer;
 #endif
 #if HS_CUTEE
-  using namespace qtOWL; //qtOWL::OWLViewer
+  using namespace cutee; //cutee::OWLViewer
 #endif
   
 #if HS_VIEWER || HS_CUTEE
@@ -112,8 +123,8 @@ namespace hs {
 
 #if HS_CUTEE
   public slots:
-    void colorMapChanged(qtOWL::XFEditor *xf);
-    void rangeChanged(range1f r);
+    void colorMapChanged(cutee::XFEditor *xf);
+    void rangeChanged(cutee::common::interval<float> r);
     void opacityScaleChanged(double scale);
 #endif
 
@@ -124,19 +135,19 @@ namespace hs {
     void screenShot()
     {
       std::string fileName = fromCL.outFileName;
-      std::vector<int> hostFB(fbSize.x*fbSize.y);
-      cudaMemcpy(hostFB.data(),fbPointer,
-                 fbSize.x*fbSize.y*sizeof(int),
-                 cudaMemcpyDefault);
-      cudaDeviceSynchronize();
+      // std::vector<int> hostFB(fbSize.x*fbSize.y);
+      // cudaMemcpy(hostFB.data(),fbPointer,
+      //            fbSize.x*fbSize.y*sizeof(int),
+      //            cudaMemcpyDefault);
+      // cudaDeviceSynchronize();g
       std::cout << "#ht: saving screen shot in " << fileName << std::endl;
       stbi_flip_vertically_on_write(true);
       stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-                     hostFB.data(),fbSize.x*sizeof(uint32_t));
+                     fbPointer,fbSize.x*sizeof(uint32_t));
     }
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const vec2i &where) override
+    void key(char key, const viewer::vec2i &where) override
     {
       switch(key) {
       case '!':
@@ -161,31 +172,31 @@ namespace hs {
     }
 
 #if HS_VIEWER
-    void mouseMotion(const vec2i &newMousePosition) override
+    void mouseMotion(const viewer::vec2i &newMousePosition) override
     {
 # if HS_HAVE_IMGUI
       ImGuiIO &io = ImGui::GetIO();
       if (!io.WantCaptureMouse) 
 # endif
-      {
-          OWLViewer::mouseMotion(newMousePosition);
-      }
+        {
+          OWLViewer::mouseMotion((const viewer::vec2i&)newMousePosition);
+        }
     }
 #endif
     
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const vec2i &newSize) override
+    void resize(const viewer::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
-      renderer->resize(newSize,fbPointer);
+      renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
     }
 
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
-      double _t0 = getCurrentTime();
+      double _t0 = viewer::getCurrentTime();
 #if HS_VIEWER
 # if HS_HAVE_IMGUI
       ImGui_ImplGlfwGL3_NewFrame();
@@ -210,12 +221,12 @@ namespace hs {
       
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
-        measure_t0 = getCurrentTime();
+        measure_t0 = viewer::getCurrentTime();
 
-      static double t0 = getCurrentTime();
+      static double t0 = viewer::getCurrentTime();
       renderer->renderFrame();
       ++numFramesRendered;
-      double t1 = getCurrentTime();
+      double t1 = viewer::getCurrentTime();
 
       if (fromCL.measure) {
         int numFramesMeasured = numFramesRendered - measure_warmup_frames;
@@ -239,10 +250,10 @@ namespace hs {
       sum_w = 0.8f*sum_w + 1.f;
       float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+prettyDouble(fps)+"fps)";
+      std::string title = "HayThere ("+viewer::prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
       t0 = t1;
-      double _t1 = getCurrentTime();
+      double _t1 = viewer::getCurrentTime();
       t_last_render = _t1-_t0;
     }
     
@@ -271,7 +282,11 @@ namespace hs {
     void cameraChanged()
     {  
       hs::Camera camera;
-      OWLViewer::getCameraOrientation(camera.vp,camera.vi,camera.vu,camera.fovy);
+      OWLViewer::getCameraOrientation
+        ((viewer::vec3f&)camera.vp,
+         (viewer::vec3f&)camera.vi,
+         (viewer::vec3f&)camera.vu,
+         camera.fovy);
       renderer->setCamera(camera);
       accumDirty = true;
     }
@@ -291,15 +306,16 @@ namespace hs {
 
 
 #if HS_CUTEE
-  void Viewer::colorMapChanged(qtOWL::XFEditor *xfEditor)
+  void Viewer::colorMapChanged(cutee::XFEditor *xfEditor)
   {
-    xf.colorMap = xfEditor->getColorMap();
+    xf.colorMap = (const std::vector<mini::common::vec4f>&)xfEditor->getColorMap();
     xfDirty = true;
   }
   
-  void Viewer::rangeChanged(range1f r)
+  void Viewer::rangeChanged(cutee::common::interval<float> r)
   {
-    xf.domain = r;
+    xf.domain.lower = r.lower;
+    xf.domain.upper = r.upper;
     xfDirty = true;
   }
   
@@ -336,12 +352,12 @@ namespace hs {
 
 #endif
 
-  inline vec3f get3f(char **av, int &i)
+  inline mini::common::vec3f get3f(char **av, int &i)
   {
     float x = std::stof(av[++i]);
     float y = std::stof(av[++i]);
     float z = std::stof(av[++i]);
-    return vec3f(x,y,z);
+    return mini::common::vec3f(x,y,z);
   }
 }
 
@@ -469,28 +485,28 @@ int main(int ac, char **av)
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
       = worldBounds.spatial.center()
-      + vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
+      + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
     fromCL.camera.vi = worldBounds.spatial.center();
   }
   
   world.barrier();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: creating barney context"
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
   // hayMaker->createBarney();
   world.barrier();
   if (world.rank == 0)
-    std::cout << OWL_TERMINAL_CYAN
+    std::cout << MINI_TERMINAL_CYAN
               << "#hs: building barney data groups"
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
     hayMaker->buildSlots();
     // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
@@ -517,13 +533,14 @@ int main(int ac, char **av)
 #if HS_VIEWER
   Viewer viewer(renderer);
   
-   viewer.enableFlyMode();
-  viewer.enableInspectMode(/*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
-  viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
-  viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
-                              /*lookat   */fromCL.camera.vi,
-                              /*up-vector*/fromCL.camera.vu,
-                              /*fovy(deg)*/fromCL.camera.fovy);
+  viewer.enableFlyMode();
+  viewer.enableInspectMode((const viewer::box3f&)worldBounds.spatial);
+  viewer.setWorldScale(length(worldBounds.spatial.span()));
+  viewer.setCameraOrientation
+    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
+     /*fovy(deg)*/fromCL.camera.fovy);
 # if HS_HAVE_IMGUI
   TFEditor    *xfEditor = new TFEditor;
   xfEditor->setRange(worldBounds.scalars);
@@ -540,22 +557,23 @@ int main(int ac, char **av)
   viewer.show();
   viewer.enableFlyMode();
   viewer.enableInspectMode();///*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
-  viewer.setWorldScale(owl::length(worldBounds.spatial.span()));
-  viewer.setCameraOrientation(/*origin   */fromCL.camera.vp,
-                              /*lookat   */fromCL.camera.vi,
-                              /*up-vector*/fromCL.camera.vu,
-                              /*fovy(deg)*/fromCL.camera.fovy);
+  viewer.setWorldScale(length(worldBounds.spatial.span()));
+  viewer.setCameraOrientation
+    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
+     /*fovy(deg)*/fromCL.camera.fovy);
 
-  XFEditor    *xfEditor = new XFEditor(worldBounds.scalars);
+  XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
   viewer.xfEditor      = xfEditor;
   QFormLayout *layout   = new QFormLayout;
   layout->addWidget(xfEditor);
 
-  QObject::connect(xfEditor,&qtOWL::XFEditor::colorMapChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
                    &viewer, &Viewer::colorMapChanged);
-  QObject::connect(xfEditor,&qtOWL::XFEditor::rangeChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
                    &viewer, &Viewer::rangeChanged);
-  QObject::connect(xfEditor,&qtOWL::XFEditor::opacityScaleChanged,
+  QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
                    &viewer, &Viewer::opacityScaleChanged);
   // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
   //                  &viewer, &Viewer::lightPosChanged);
@@ -575,7 +593,7 @@ int main(int ac, char **av)
 
   auto &fbSize = fromCL.fbSize;
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
-  renderer->resize(fbSize,pixels.data());
+  renderer->resize((const mini::common::vec2i&)fbSize,pixels.data());
 
   hs::Camera camera;
   camera.vp = fromCL.camera.vp;

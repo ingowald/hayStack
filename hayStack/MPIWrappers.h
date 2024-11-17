@@ -17,6 +17,7 @@
 #pragma once
 
 #include "hayStack/common.h"
+
 #if HS_FAKE_MPI
 // no mpi...
 #else

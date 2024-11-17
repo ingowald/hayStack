@@ -86,7 +86,7 @@ namespace hs {
         Vertex v;
         v.pos = fe.pos;
         v.rad = fe.rad;
-        v.col = owl::common::randomColor(fe.type);
+        v.col = randomColor(fe.type);
         auto it = vertices.find(v);
         if (it != vertices.end())
           return it->second;

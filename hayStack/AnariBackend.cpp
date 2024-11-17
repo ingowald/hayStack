@@ -110,6 +110,20 @@ namespace hs {
     // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
     anari::setParameter(device, renderer, "ambientRadiance", .8f);
     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
+#if 1
+    std::vector<vec4f> bgGradient = {
+      // vec4f(1,1,1,1),vec4f(.4,.4,1,1)
+      // };
+      // vec4f gradient[2] = {
+      vec4f(.9f,.9f,.9f,1.f),
+      vec4f(0.15f, 0.25f, .8f,1.f),
+    };
+    anari::setAndReleaseParameter
+      (device,renderer,"background",
+       anari::newArray2D(device,
+                         (const anari::math::float4*)bgGradient.data(),
+                         1,2));//bgGradient.size()));
+#endif
     anari::commitParameters(device, renderer);
 
     frame = anari::newObject<anari::Frame>(device);
@@ -432,10 +446,10 @@ namespace hs {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
       std::cout
-        << OWL_TERMINAL_YELLOW
+        << MINI_TERMINAL_YELLOW
         << "#hs: creating at least one instance of material *** "
         << miniMat->toString() << " ***"
-        << OWL_TERMINAL_DEFAULT << std::endl;
+        << MINI_TERMINAL_DEFAULT << std::endl;
       typesCreated.insert(miniMat->toString());
     }
 
@@ -528,9 +542,9 @@ namespace hs {
 
   anari::Light AnariBackend::Slot::create(const mini::EnvMapLight &ml)
   {
-    std::cout << OWL_TERMINAL_YELLOW
+    std::cout << MINI_TERMINAL_YELLOW
               << "#hs: creating env-map light ..."
-              << OWL_TERMINAL_DEFAULT << std::endl;
+              << MINI_TERMINAL_DEFAULT << std::endl;
     auto device = global->device;
     vec2i size = ml.texture->size;
     anari::Array2D radiance
@@ -590,18 +604,21 @@ namespace hs {
                         (const anari::math::float3&)vol->gridOrigin);
     anari::setParameter(device, field, "spacing",
                         (const anari::math::float3&)vol->gridSpacing);
-    switch(vol->texelFormat) {
-    case BN_TEXEL_FORMAT_R32F:
+    if (vol->texelFormat == "float") {
+    // switch(vol->texelFormat) {
+    // case BN_FLOAT:
       anari::setParameterArray3D
         (device, field, "data", (const float *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
-      break;
-    case BN_TEXEL_FORMAT_R8:
+    //   break;
+    // case BN_UFIXED8:
+    } else if (vol->texelFormat == "uint8_t") {
       anari::setParameterArray3D
         (device, field, "data", (const uint8_t *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
-      break;
-    case BN_TEXEL_FORMAT_R16: {
+    } else if (vol->texelFormat == "uint16_t") {
+    //   break;
+    // case BN_UFIXED16: {
       std::cout << "volume with uint16s, converting to float" << std::endl;
       static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
       for (size_t i=0;i<volumeAsFloats.size();i++)
@@ -610,8 +627,9 @@ namespace hs {
       anari::setParameterArray3D
         (device, field, "data", (const float *)volumeAsFloats.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
-    } break;
-    default:
+    } else {
+    // } break;
+    // default:
       throw std::runtime_error("un-supported scalar type in hanari structured volume");
     }
         
@@ -645,27 +663,28 @@ namespace hs {
     std::vector<uint32_t> indexData;
 
     // this isn't fully spec'ed yet
+    enum { _VTK_TET = 10, _VTK_HEX=12, _VTK_WEDGE=13, _VTK_PYR=14 };
     enum { _ANARI_TET = 0, _ANARI_HEX=1, _ANARI_WEDGE=2, _ANARI_PYR=3 };
     for (auto prim : mesh->tets) {
-      cellTypeData.push_back(_ANARI_TET);
+      cellTypeData.push_back(_VTK_TET);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->pyrs) {
-      cellTypeData.push_back(_ANARI_PYR);
+      cellTypeData.push_back(_VTK_PYR);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->wedges) {
-      cellTypeData.push_back(_ANARI_WEDGE);
+      cellTypeData.push_back(_VTK_WEDGE);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
     }
     for (auto prim : mesh->hexes) {
-      cellTypeData.push_back(_ANARI_HEX);
+      cellTypeData.push_back(_VTK_HEX);
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);

@@ -20,8 +20,8 @@
 
 /* parallel renderer abstraction */
 namespace hs {
-  using namespace owl::common;
-  using range1f = owl::common::interval<float> ;
+  // using namespace owl::common;
+  // using range1f = owl::common::interval<float> ;
   
   struct Camera {
     vec3f vp, vi, vu;

@@ -15,7 +15,9 @@
 // ======================================================================== //
 
 #include "HayMaker.h"
-#include "BarneyBackend.h"
+#if !NO_BARNEY
+# include "BarneyBackend.h"
+#endif
 #if HANARI
 #include "AnariBackend.h"
 
@@ -284,7 +286,16 @@ namespace hs {
     throw std::runtime_error("ANARI support not compiled in");
 #endif
   }
-  
+
+#if NO_BARNEY
+  HayMaker *HayMaker
+  ::createBarneyImplementation(Comm &world,
+                               Comm &workers,
+                               int pathsPerPixel,
+                               LocalModel &localModel,
+                               bool verbose)
+  { throw std::runtime_error("barney support not compiled in"); }
+#else 
   HayMaker *HayMaker
   ::createBarneyImplementation(Comm &world,
                                Comm &workers,
@@ -302,6 +313,7 @@ namespace hs {
   template struct HayMakerT<BarneyBackend>;
   template struct TextureLibrary<BarneyBackend>;
   template struct MaterialLibrary<BarneyBackend>;
+#endif
 #if HANARI
   template struct HayMakerT<AnariBackend>;
   template struct TextureLibrary<AnariBackend>;

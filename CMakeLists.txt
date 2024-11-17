@@ -15,9 +15,9 @@
 # ======================================================================== #
 
 cmake_policy(SET CMP0048 NEW)
-project(HayStack VERSION 0.1.0 LANGUAGES C CXX CUDA)
 
 cmake_minimum_required(VERSION 3.16)
+project(HayStack VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -34,13 +34,18 @@ else()
   option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
 endif()
 option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
+option(HS_VIEWER "Build hsViewer" ON)
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
-add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
+option(NO_BARNEY "do not build barney?" OFF)
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
+endif()
+if (NOT NO_BARNEY)
+  enable_language(CUDA)
+  add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
 endif()
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)

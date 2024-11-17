@@ -372,9 +372,9 @@ namespace hs {
   {
     dataGroup.dataGroupID = dataGroupID;
     if (contentOfGroup[dataGroupID].empty())
-      std::cout << OWL_TERMINAL_RED
+      std::cout << MINI_TERMINAL_RED
                 << "#hs: WARNING: data group " << dataGroupID << " is empty!?"
-                << OWL_TERMINAL_DEFAULT << std::endl;
+                << MINI_TERMINAL_DEFAULT << std::endl;
     for (auto content : contentOfGroup[dataGroupID]) {
       if (verbose)
         std::cout << " - loading content " << content->toString() << std::endl << std::flush;
