@@ -14,14 +14,9 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-option(HANARI "Use ANARI device?" ON)
+#option(HANARI "Use ANARI device?" ON)
 
-if (HANARI)
-  find_package(anari 0.8.0 REQUIRED #COMPONENTS viewer
-    )
-#  find_package(MP IREQUIRED)
-endif()
-
+find_package(anari 0.8.0)
 
 add_library(hayStack
   MPIWrappers.h
@@ -106,7 +101,7 @@ if (NOT (TARGET barney_mpi))
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-if (HANARI)
+if (TARGET anari::anari)
   target_compile_definitions(hayStack
     PUBLIC
     -DHANARI=1
