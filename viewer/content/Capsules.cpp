@@ -17,6 +17,7 @@
 #include "viewer/DataLoader.h"
 #include "viewer/content/Capsules.h"
 #include <fstream>
+#include <owl/common/parallel/parallel_for.h>
 
 namespace hs {
   namespace content {
@@ -32,8 +33,38 @@ namespace hs {
     {
       return memcmp(&a,&b,sizeof(a)) < 0;
     }
-  
-    Capsules::Capsules(const ResourceSpecifier &data,
+    
+    struct FatVertex {
+      vec3f position; float radius; vec3f color; uint32_t owner;
+
+      struct Compare {
+        inline bool operator()(const FatVertex &a, const FatVertex &b)
+        {
+          if (a.position.x < b.position.x) return true;
+          if (a.position.x > b.position.x) return false;
+          if (a.position.y < b.position.y) return true;
+          if (a.position.y > b.position.y) return false;
+          if (a.position.z < b.position.z) return true;
+          if (a.position.z > b.position.z) return false;
+          if (a.color.x < b.color.x) return true;
+          if (a.color.x > b.color.x) return false;
+          if (a.color.y < b.color.y) return true;
+          if (a.color.y > b.color.y) return false;
+          if (a.color.z < b.color.z) return true;
+          if (a.color.z > b.color.z) return false;
+          if (a.radius < b.radius) return true;
+          if (a.radius > b.radius) return false;
+          return false;
+          // return memcmp(&a,&b,sizeof(b)) < 0;
+        }
+      };
+    };
+    inline bool operator<<(const FatVertex &a, const FatVertex &b)
+    {
+      return memcmp(&a,&b,sizeof(b)) < 0;
+    }
+
+  Capsules::Capsules(const ResourceSpecifier &data,
                        // size_t fileSize,
                        int thisPartID)
       : data(data),
@@ -312,6 +343,60 @@ namespace hs {
       in.seekg(begin*sizeof(FatCapsule),in.beg);
       in.read((char *)fatCapsules.data(),count*sizeof(FatCapsule));
 
+#if 1
+      double t0 = getCurrentTime();
+      std::vector<FatVertex> fatVertices(2*fatCapsules.size());
+      bool hadNanColors = false;
+      owl::common::parallel_for_blocked
+        (size_t(0),fatCapsules.size(),1024ull,
+         [&](size_t begin, size_t end) {
+           for (size_t capID=begin;capID<end;capID++){
+             for (int vtxID=0;vtxID<2;vtxID++) {
+               size_t fatID = 2*capID+vtxID;
+               auto &fat = fatVertices[fatID];
+               fat.owner = fatID;
+               fat.position = fatCapsules[capID].vertex[vtxID].position;
+               fat.radius = fatCapsules[capID].vertex[vtxID].radius;
+               fat.color = fatCapsules[capID].vertex[vtxID].color;
+               if (isnan(fat.color.x)) {
+                 hadNanColors = true;
+                 fat.color = vec3f(-1.f);
+               }
+             }
+           }
+         });
+      PING; PRINT(prettyDouble(getCurrentTime()-t0));
+      std::sort(fatVertices.begin(),fatVertices.end(),
+                FatVertex::Compare());
+      PING; PRINT(prettyDouble(getCurrentTime()-t0));
+      cs->indices.resize(fatCapsules.size());
+      int curVtxID = -1;
+      for (size_t i=0;i<fatVertices.size();i++) {
+        auto &fv = fatVertices[i];
+        if (i==0
+            ||
+            fv.position != fatVertices[i-1].position
+            ||
+            fv.color != fatVertices[i-1].color
+            ||
+            fv.radius != fatVertices[i-1].radius) {
+          vec4f vertex;
+          (vec3f&)vertex = fv.position;
+          vertex.w       = fv.radius;
+          vec4f color    = {fv.color.x,fv.color.y,fv.color.z,0.f};
+          cs->vertices.push_back(vertex);
+          cs->colors.push_back(color);
+          curVtxID++;
+        }
+        int capID = fv.owner / 2;
+        int capVtxID = fv.owner % 2;
+        if (capVtxID)
+          cs->indices[capID].x = curVtxID;
+        else
+          cs->indices[capID].y = curVtxID;
+      }
+      PING; PRINT(prettyDouble(getCurrentTime()-t0));
+#else
       std::map<std::pair<vec4f,vec3f>,int> knownVertices;
       bool hadNanColors = false;
       for (auto fc : fatCapsules) {
@@ -336,6 +421,7 @@ namespace hs {
         }
         cs->indices.push_back(vec2i(segmentIndices[0],segmentIndices[1]));
       }
+#endif
       if (hadNanColors)
         cs->colors.clear();
       

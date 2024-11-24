@@ -280,6 +280,7 @@ namespace hs {
 
   anari::Sampler AnariBackend::Slot::create(mini::Texture::SP miniTex)
   {
+    PING;
     if (!miniTex) return 0;
 
     auto device = global->device;
