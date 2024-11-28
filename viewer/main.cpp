@@ -155,6 +155,39 @@ namespace hs {
         break;
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
+      case 'P': {
+          char *fl = getenv("BARNEY_FOCAL_LENGTH");
+          std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
+          char *lr = getenv("BARNEY_LENS_RADIUS");
+          std::cout << "export BARNEY_LENS_RADIUS=" << (lr != nullptr ? lr : "0") << std::endl;
+          break;
+        }
+      case '9': case '0':
+      case '(': case ')': {
+        char* flc = getenv("BARNEY_FOCAL_LENGTH");
+        float ratio = (key == '(' || key == '9') ? (0.9f) : (1.1f);
+        if (key == '9' || key == '0')
+          ratio = (ratio - 1.f) * 0.1f + 1.f; 
+        float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
+        setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
+        std::cout << "Focal length is set to: " << fl << '\n';
+        renderer->resetAccumulation();
+        break;
+      }
+      case '{': case '}':
+      case '[': case ']': {
+        char* lrc = getenv("BARNEY_LENS_RADIUS");
+        float ratio = (key == '[' || key == '{') ? (0.9f) : (1.1f);
+        if (key == '[' || key == ']')
+          ratio = (ratio - 1.f) * 0.1f + 1.f; 
+        float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
+        setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
+        std::cout << "Lens radius is set to: " << lr << '\n';
+        renderer->resetAccumulation();
+        break;
+      }
+
+     
 #if HS_CUTEE
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
