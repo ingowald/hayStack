@@ -126,6 +126,13 @@ if (HT_CUTEE)
     CUDA_USE_STATIC_CUDA_RUNTIME ON
     CUDA_ARCHITECTURES OFF
     )
+  if (APPLE)
+    set_target_properties(hsViewerQT
+      PROPERTIES
+      MACOSX_BUNDLE ON
+      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
+      )
+  endif()
   
 endif()
 
