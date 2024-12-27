@@ -45,6 +45,8 @@ set(SOURCES
   content/RAWVolumeContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
+  content/NanoVDBContent.h
+  content/NanoVDBContent.cpp
   )  
 
 set(TFE_SOURCES

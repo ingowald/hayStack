@@ -660,6 +660,24 @@ namespace hs {
     return volume;
   }
 
+  anari::Volume AnariBackend::Slot::create(const NanoVDB::SP &vol)
+  {
+    auto device = global->device;
+      
+    auto field = anari::newObject<anari::SpatialField>(device, "nanovdb");
+
+    anari::setParameterArray1D
+      (device, field, "gridData", vol->getData(), vol->elemCount());
+
+    anari::commitParameters(device, field);
+
+    auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
+    anari::setAndReleaseParameter(device, volume, "value", field);
+    anari::commitParameters(device, volume);
+
+    return volume;
+  }
+
   anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
     auto mesh = meshAndDomain.first;
