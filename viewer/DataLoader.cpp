@@ -26,6 +26,7 @@
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
+#include "viewer/content/NanoVDBContent.h"
 
 namespace hs {
 
@@ -313,6 +314,8 @@ namespace hs {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".nvdb")) {
+      NanoVDBContent::create(this,contentDescriptor);
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")

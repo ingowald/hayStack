@@ -55,6 +55,12 @@ namespace hs {
         bounds.scalars.extend((const range1f&)sr);
       }
     }
+    for (auto &vdb : vdbs) {
+      if (vdb) {
+        bounds.spatial.extend(vdb->getBounds());
+        bounds.scalars.extend(vdb->getValueRange());
+      }
+    }
     for (auto &sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());

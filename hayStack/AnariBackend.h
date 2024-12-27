@@ -78,6 +78,7 @@ namespace hs {
 
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
+      anari::Volume create(const NanoVDB::SP &v);
 
       std::vector<anari::Surface>
       createSpheres(SphereSet::SP content,
