@@ -36,6 +36,8 @@ add_library(hayStack
   Spheres.cpp
   StructuredVolume.h
   StructuredVolume.cpp
+  NanoVDB.h
+  NanoVDB.cpp
 
   Renderer.h
   MPIRenderer.h
@@ -59,6 +61,7 @@ if (NO_BARNEY)
     umesh
 #    barney
     #  mpiRenderInf
+    $<BUILD_INTERFACE:hs_nanovdb>
     )
 else()
 if (WIN32)
@@ -69,6 +72,7 @@ if (WIN32)
     umesh
     barney
     #  mpiRenderInf
+    $<BUILD_INTERFACE:hs_nanovdb>
     )
 elseif(BARNEY_MPI)
   target_link_libraries(hayStack
@@ -78,6 +82,7 @@ elseif(BARNEY_MPI)
     umesh
     barney_mpi
     #  mpiRenderInf
+    $<BUILD_INTERFACE:hs_nanovdb>
     )
 else()
   target_link_libraries(hayStack
@@ -87,6 +92,7 @@ else()
     umesh
     barney
     #  mpiRenderInf
+    $<BUILD_INTERFACE:hs_nanovdb>
     )
 endif()
 endif()

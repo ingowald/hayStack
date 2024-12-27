@@ -23,6 +23,7 @@
 #include "hayStack/Cylinders.h"
 #include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
+#include "hayStack/NanoVDB.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
 
@@ -56,6 +57,7 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
+    std::vector<NanoVDB::SP>          vdbs;
     int                               dataGroupID = -1;
   };
 
