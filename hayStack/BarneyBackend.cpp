@@ -570,6 +570,16 @@ namespace hs {
     return volume;
   }
 
+  BNVolume BarneyBackend::Slot::create(const NanoVDB::SP &vol)
+  {
+    BNScalarField sf
+      = bnNanoVDBCreate(global->context,this->slot,vol->getData(),vol->elemCount());
+    bnCommit(sf);
+    BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
+    bnRelease(sf);
+    return volume;
+  }
+
   BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &up)
   {
     umesh::UMesh::SP mesh = up.first;

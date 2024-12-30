@@ -97,6 +97,7 @@ namespace hs {
                         MaterialLibrary<BarneyBackend> *materialLib);
 
       BNVolume create(const StructuredVolume::SP &v);
+      BNVolume create(const NanoVDB::SP &v);
       BNVolume create(const std::pair<umesh::UMesh::SP,box3f> &v);
       // BNVolume create(const UMeshVolume::SP &v);
       
