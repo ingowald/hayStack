@@ -77,6 +77,7 @@ if (HS_VIEWER AND (TARGET barney))
     ${TFE_SOURCES}
     ${GLAD_SOURCES}
     )
+  set_target_properties(hsViewer PROPERTIES INSTALL_RPATH "$ORIGIN")
   target_link_libraries(hsViewer
     PUBLIC
     hayStack
@@ -101,6 +102,7 @@ target_link_libraries(hsOffline
   PUBLIC
   hayStack
   )
+
 
 # ------------------------------------------------------------------
 

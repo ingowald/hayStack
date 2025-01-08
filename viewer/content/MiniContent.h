@@ -44,6 +44,30 @@ namespace hs {
     void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       mini::Scene::SP ms = mini::Scene::load(fileName);
+#if 1
+      std::cout << "checking for null materials..." << std::endl;
+      std::set<mini::Object::SP> objects;
+      for (auto inst : ms->instances)
+        objects.insert(inst->object);
+      for (auto obj : objects)
+        for (auto mesh : obj->meshes)
+          if (mesh->material == 0)
+            std::cout << "NULL MATERIAL" << std::endl;
+#endif
+      
+#if 1
+      if (getenv("HS_KILL_INSTANCES")) {
+        std::map<mini::Object::SP,int> instCount;
+        for (auto inst : ms->instances)
+          instCount[inst->object]++;
+        std::vector<mini::Instance::SP> filtered;
+        for(auto inst : ms->instances)
+          if (instCount[inst->object] == 1)
+            filtered.push_back(inst);
+        ms->instances = filtered;
+      }
+#endif
+      
       dataGroup.minis.push_back(ms);
       
 #if 1

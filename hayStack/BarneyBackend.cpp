@@ -210,6 +210,7 @@ namespace hs {
 
   BNSampler BarneyBackend::Slot::create(mini::Texture::SP miniTex)
   {
+    PING; PRINT(miniTex);
     if (!miniTex) return 0;
     BNDataType texelFormat;
     switch (miniTex->format) {
@@ -246,11 +247,14 @@ namespace hs {
 
     BNTextureAddressMode wrapMode   = BN_TEXTURE_MIRROR;//WRAP;
     BNTextureColorSpace  colorSpace = BN_COLOR_SPACE_LINEAR;
-    BNTextureData texData = bnTextureData2DCreate(global->context,this->slot,
-                                                  texelFormat,
-                                                  miniTex->size.x,miniTex->size.y,
-                                                  miniTex->data.data());
-    BNSampler sampler = bnSamplerCreate(global->context,this->slot,"texture2D");
+    PRINT(miniTex->size);
+    BNTextureData texData
+      = bnTextureData2DCreate(global->context,this->slot,
+                              texelFormat,
+                              miniTex->size.x,miniTex->size.y,
+                              miniTex->data.data());
+    BNSampler sampler
+      = bnSamplerCreate(global->context,this->slot,"texture2D");
     assert(sampler);
     bnSetString(sampler,"inAttribute","attribute0");
     bnSet1i(sampler,"wrapMode0",(int)wrapMode);
@@ -396,10 +400,13 @@ namespace hs {
   }
   BNMaterial BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney, bool colorMapped)
   {
+    PRINT(disney->baseColor);
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
     // bnSet3fc(mat,"emission",
     //          (const float3&)disney->emission);
+    PING;
     bnSet3fc(mat,"baseColor",(const float3&)disney->baseColor);
+    PING;
     bnSet1f(mat,"roughness",   disney->roughness);
     bnSet1f(mat,"metallic",    disney->metallic);
     bnSet1f(mat,"transmission",
@@ -414,11 +421,16 @@ namespace hs {
       bnSet1f(mat,"opacity",1.f-disney->transmission);
     }
 
+    PING;
     if (disney->colorTexture) {
+      PING;
       BNSampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
+      PING; PRINT(tex);
       bnSetObject(mat,"baseColor",tex);
     }
+    PING;
     bnCommit(mat);
+    PING;
     return mat;
   }
 

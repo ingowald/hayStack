@@ -50,6 +50,7 @@ add_library(hayStack
   TransferFunction.cpp
   )
 
+#set(CMAKE_BUILD_RPATH "$ORIGIN")
 if (NO_BARNEY)
   target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
   target_link_libraries(hayStack
@@ -67,25 +68,27 @@ if (WIN32)
     owl
     miniScene
     umesh
-    barney
+    barney_static
     #  mpiRenderInf
     )
 elseif(BARNEY_MPI)
+  message("linking to barney-mpi")
   target_link_libraries(hayStack
     PUBLIC
     owl
     miniScene
     umesh
-    barney_mpi
+    barney_mpi_static
     #  mpiRenderInf
     )
 else()
+  message("linking to barney non-mpi")
   target_link_libraries(hayStack
     PUBLIC
     owl
     miniScene
     umesh
-    barney
+    barney_static
     #  mpiRenderInf
     )
 endif()
