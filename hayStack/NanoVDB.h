@@ -25,6 +25,7 @@ namespace hs {
     typedef std::shared_ptr<NanoVDB> SP;
 
     NanoVDB(std::vector<float> &gridData);
+    ~NanoVDB();
 
     box3f getBounds() const;
     range1f getValueRange() const;

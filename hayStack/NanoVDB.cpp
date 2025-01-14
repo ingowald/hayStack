@@ -32,6 +32,11 @@ namespace hs {
     gridHandle = std::move(buffer);
   }
 
+  NanoVDB::~NanoVDB()
+  {
+    free(rawData);
+  }
+
   box3f NanoVDB::getBounds() const
   {
     auto bbox = gridHandle.gridMetaData()->indexBBox();
