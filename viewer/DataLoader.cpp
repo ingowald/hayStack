@@ -149,7 +149,7 @@ namespace hs {
     
     char magnitude = ' ';
     size_t result;
-    sscanf(value.c_str(),"%li%c",&result,&magnitude);
+    sscanf(value.c_str(),"%zu%c",&result,&magnitude);
     if (magnitude == ' ')
       ;
     else if (magnitude == 'M')
