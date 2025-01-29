@@ -64,28 +64,28 @@ else()
 if (WIN32)
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
     barney
     #  mpiRenderInf
     )
-elseif(BARNEY_MPI)
+elseif(barney_mpi_FOUND)
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
-    barney_mpi
+    barney::barney_mpi
     #  mpiRenderInf
     )
 else()
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
-    barney
+    barney::barney
     #  mpiRenderInf
     )
 endif()
