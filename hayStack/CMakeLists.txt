@@ -67,7 +67,7 @@ if (WIN32)
     owl
     miniScene
     umesh
-    barney
+    barney_static
     #  mpiRenderInf
     )
 elseif(BARNEY_MPI)

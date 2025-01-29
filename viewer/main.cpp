@@ -53,6 +53,12 @@ namespace viewer {
 }
 #endif
 
+#ifdef _WIN32
+# ifndef setenv
+#  define setenv(envname, envval, overwrite) _putenv_s(envname, envval)
+# endif
+#endif
+
 namespace hs {
 
   double t_last_render;

@@ -18,6 +18,10 @@
 #include "viewer/content/Capsules.h"
 #include <fstream>
 
+#ifdef _WIN32
+# include "owl/common/math/random.h"
+#endif
+
 namespace hs {
   namespace content {
     
@@ -69,7 +73,7 @@ namespace hs {
     void   Capsules::executeLoad(DataRank &dataGroup, bool verbose) 
     {
       if (data.where == "<test>") {
-#if 1
+#ifndef _WIN32
         float rr = .01f;
         
         for (int a=0;a<1000;a++) {

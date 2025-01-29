@@ -36,6 +36,13 @@ endif()
 option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
+if (WIN32)
+  # Enable GLFW for WIN32
+  if (HS_VIEWER OR HT_CUTEE)
+    set(OWL_BUILD_SAMPLES ON)
+  endif()
+endif()
+
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
