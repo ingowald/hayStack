@@ -111,7 +111,7 @@ namespace hs {
     in.read((char*)valueRanges.data(),valueRanges.size()*sizeof(valueRanges[0]));
     for (int i=0;i<numParts;i++) {
       char suffix[100];
-      sprintf(suffix,"_%05i",i);
+      snprintf(suffix,sizeof(suffix),"_%05i",i);
       std::string partFileName = dataURL.where+suffix+".umesh";
       loader->addContent(new SpatiallyPartitionedUMeshContent(partFileName,domains[i]));
 

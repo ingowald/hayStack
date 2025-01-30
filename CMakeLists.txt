@@ -58,9 +58,12 @@ add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
 
 if (NOT NO_BARNEY)
   #  enable_language(CUDA)
-  #  add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
-  find_package(barney REQUIRED)
+  # add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
+  #find_package(barney REQUIRED)
+  find_package(barney COMPONENTS barney barney_mpi)
 endif()
+
+ 
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 endif()
