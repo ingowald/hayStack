@@ -190,8 +190,10 @@ namespace hs {
   size_t getFileSize(const std::string &fileName)
   {
     FILE *file = fopen(fileName.c_str(),"rb");
-    if (!file) throw std::runtime_error
-                 ("when trying to determine file size: could not open file "+fileName);
+    if (!file) return 0;
+    // throw std::runtime_error
+    //              ("when trying to determine file size: could not open file "+fileName)
+      // ;
     fseek(file,0,SEEK_END);
 #ifdef _WIN32
     size_t size = _ftelli64(file);
