@@ -70,7 +70,7 @@ if (WIN32)
     barney::barney
     #  mpiRenderInf
     )
-elseif(barney_mpi_FOUND)
+elseif(TARGET barney::barney_mpi)
   find_package(MPI REQUIRED)
   target_link_libraries(hayStack
     PUBLIC
