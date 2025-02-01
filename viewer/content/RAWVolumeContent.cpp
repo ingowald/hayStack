@@ -72,33 +72,75 @@ namespace hs {
     splitKDTree(regions,lBox,nLeft);
     splitKDTree(regions,rBox,nRight);
   }
+
+  bool contains(const std::string &hayStack,
+                const std::string &needle)
+  { return hayStack.find(needle) != hayStack.npos; }
+  
+  bool contains(const ResourceSpecifier &hayStack,
+                const std::string &needle)
+  { return contains(hayStack.where,needle); }
   
   void RAWVolumeContent::create(DataLoader *loader,
                                 const ResourceSpecifier &dataURL)
   {
     std::string type = dataURL.get("type",dataURL.get("format",""));
-    if (type.empty())
-      throw std::runtime_error("RAWVolumeContent: 'type' not specified");
+    PRINT(type);
     std::string texelFormat;
-    if (type == "uint8" || type == "byte")
-      texelFormat = "uint8_t"; //scalarType = StructuredVolume::UINT8;
-    else if (type == "float" || type == "f")
-      texelFormat = "float"; //scalarType = StructuredVolume::FLOAT;
-    else if (type == "uint16")
-      texelFormat = "uint16_t"; //scalarType = StructuredVolume::UINT16;
-    else
-      throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
-
+    if (type == "") {
+      std::cout << "#hs.raw: no type specified, trying to guess..." << std::endl;
+      if (contains(dataURL,"uint8"))
+        texelFormat = "uint8_t";
+      else if (contains(dataURL,"uint16"))
+        texelFormat = "uint16_t";
+      else if (contains(dataURL,"float64"))
+        texelFormat = "double";
+      if (contains(dataURL,"float"))
+        texelFormat = "float";
+      else
+        throw std::runtime_error("could not get raw volume file format");
+    } else {
+      if (type == "uint8" || type == "byte")
+        texelFormat = "uint8_t"; //scalarType = StructuredVolume::UINT8;
+      else if (type == "float" || type == "f")
+        texelFormat = "float"; //scalarType = StructuredVolume::FLOAT;
+      else if (type == "uint16")
+        texelFormat = "uint16_t"; //scalarType = StructuredVolume::UINT16;
+      else
+        throw std::runtime_error("RAWVolumeContent: invalid type '"+type+"'");
+    }
+    
     int numChannels = dataURL.get_int("channels",1);
     
     std::string dimsString = dataURL.get("dims","");
-    if (dimsString.empty())
-      throw std::runtime_error("RAWVolumeContent: 'dims' not specified");
-
+    // if (dimsString.empty())
+    //   throw std::runtime_error("RAWVolumeContent: 'dims' not specified");
+    
     vec3i dims;
-    int n = sscanf(dimsString.c_str(),"%i,%i,%i",&dims.x,&dims.y,&dims.z);
-    if (n != 3) throw std::runtime_error("RAWVolumeContent:: could not parse dims from '"+dimsString+"'");
+    if (dimsString == "") {
+      std::cout << "#hs.raw: no dims specified, trying to guess" << std::endl;
+      const char *fileName = dataURL.where.c_str();
+      const char *nextScanPos = fileName;
+      PRINT(fileName);
+      while (true) {
+        const char *nextUS = strstr(nextScanPos,"_");
+        PRINT(nextUS);
+        if (!nextUS)
+          throw std::runtime_error
+            ("could not find '_<width>x<height>x<depth>_' in RAW file name");
+        int n = sscanf(nextUS,"_%ix%ix%i_",&dims.x,&dims.y,&dims.z);
+        if (n != 3) { nextScanPos = nextUS+1; continue; }
 
+        std::cout << "guessing dims from " << (nextUS+1) << std::endl;;
+        break;
+      }
+    } else {
+      int n = sscanf(dimsString.c_str(),"%i,%i,%i",&dims.x,&dims.y,&dims.z);
+      if (n != 3)
+        throw std::runtime_error
+          ("RAWVolumeContent:: could not parse dims from '"+dimsString+"'");
+    }
+    
     box3i initRegion = { vec3i(0), dims-1 };
     std::string extractString = dataURL.get("extract");
     if (!extractString.empty()) {
