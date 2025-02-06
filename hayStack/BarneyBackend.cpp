@@ -122,7 +122,9 @@ namespace hs {
     //                                           gradient);
     BNTexture2D tex = bnTexture2DCreate(context,-1,
                                         BN_FLOAT4,1,2,
-                                        gradient);
+                                        gradient,
+                          BN_TEXTURE_LINEAR,
+                          BN_TEXTURE_CLAMP,BN_TEXTURE_CLAMP);
     bnSetObject(renderer,"bgTexture",tex);
 #endif
     bnCommit(renderer);
