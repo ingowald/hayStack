@@ -642,8 +642,24 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
-  for (int i=0;i<fromCL.numFramesAccum;i++) 
+  // for (int i=0;i<fromCL.numFramesAccum;i++) 
+  //   renderer->renderFrame();
+
+  for (int i=0;i<fromCL.numFramesAccum;i++) {
+    double t0 = getCurrentTime();
     renderer->renderFrame();
+    double t1 = getCurrentTime();
+#if 1    
+    static double sum_t = 0.f;
+    static double sum_w = 0.f;
+    sum_t = 0.8f*sum_t + (t1-t0);
+    sum_w = 0.8f*sum_w + 1.f;
+    float timePerFrame = sum_t / sum_w;
+    float fps = 1.f/timePerFrame;
+    std::string title = "HayThere ("+prettyDouble(fps)+"fps), " + std::to_string(t0) + ", " + std::to_string(t1);
+    std::cout << title << std::endl;    
+#endif    
+  }
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
