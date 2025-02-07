@@ -153,8 +153,6 @@ namespace hs {
       case '!':
         screenShot();
         break;
-      case 'T':
-        std::cout << "(T) : dumping transfer function" << std::endl;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
           std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
@@ -187,7 +185,8 @@ namespace hs {
         break;
       }
 
-     
+      case 'T':
+        std::cout << "(T) : dumping transfer function" << std::endl;
 #if HS_CUTEE
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
