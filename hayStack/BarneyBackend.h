@@ -17,7 +17,8 @@
 #pragma once
 
 #include "HayMaker.h"
-#include <barney.h>
+#include <barney/barney.h>
+
 namespace hs {
 
   struct BarneyBackend {

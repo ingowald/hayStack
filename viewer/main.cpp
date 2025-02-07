@@ -153,20 +153,6 @@ namespace hs {
       case '!':
         screenShot();
         break;
-      case 'T':
-        std::cout << "(T) : dumping transfer function" << std::endl;
-#if HS_CUTEE
-        if (xfEditor)
-          xfEditor->saveTo("hayThere.xf");
-#elif HS_VIEWER
-# if HS_HAVE_IMGUI
-        if (xfEditor)
-          xfEditor->saveToFile("hayThere.xf");
-# endif
-#else
-        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
-#endif
-        break;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
           std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
@@ -198,6 +184,22 @@ namespace hs {
         renderer->resetAccumulation();
         break;
       }
+
+      case 'T':
+        std::cout << "(T) : dumping transfer function" << std::endl;
+#if HS_CUTEE
+        if (xfEditor)
+          xfEditor->saveTo("hayThere.xf");
+#elif HS_VIEWER
+# if HS_HAVE_IMGUI
+        if (xfEditor)
+          xfEditor->saveToFile("hayThere.xf");
+# endif
+#else
+        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
+#endif
+        break;
+
       default: OWLViewer::key(key,where);
       };
     }
@@ -515,6 +517,8 @@ int main(int ac, char **av)
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
+  bool modelHasVolumeData = !worldBounds.scalars.empty();
+  
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -595,29 +599,31 @@ int main(int ac, char **av)
      /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
-  XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
-  viewer.xfEditor      = xfEditor;
-  QFormLayout *layout   = new QFormLayout;
-  layout->addWidget(xfEditor);
-
-  QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
-                   &viewer, &Viewer::colorMapChanged);
-  QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
-                   &viewer, &Viewer::rangeChanged);
-  QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
-                   &viewer, &Viewer::opacityScaleChanged);
-  // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
-  //                  &viewer, &Viewer::lightPosChanged);
-  
-
-  if (!fromCL.xfFileName.empty())
-    xfEditor->loadFrom(fromCL.xfFileName);
-  
-  // Set QWidget as the central layout of the main window
   QMainWindow secondWindow;
-  secondWindow.setCentralWidget(xfEditor);
-
-  secondWindow.show();
+  if (modelHasVolumeData) {
+    XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
+    viewer.xfEditor       = xfEditor;
+    QFormLayout *layout   = new QFormLayout;
+    layout->addWidget(xfEditor);
+    
+    QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
+                   &viewer, &Viewer::colorMapChanged);
+    QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
+                     &viewer, &Viewer::rangeChanged);
+    QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
+                     &viewer, &Viewer::opacityScaleChanged);
+    // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
+    //                  &viewer, &Viewer::lightPosChanged);
+    
+    
+    if (!fromCL.xfFileName.empty())
+      viewer.xfEditor->loadFrom(fromCL.xfFileName);
+    
+    // Set QWidget as the central layout of the main window
+    secondWindow.setCentralWidget(viewer.xfEditor);
+    
+    secondWindow.show();
+  }
   
   app.exec();
 #else

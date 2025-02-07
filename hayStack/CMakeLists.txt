@@ -64,28 +64,29 @@ else()
 if (WIN32)
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
-    barney
+    barney::barney
     #  mpiRenderInf
     )
-elseif(BARNEY_MPI)
+elseif(TARGET barney::barney_mpi)
+  find_package(MPI REQUIRED)
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
-    barney_mpi
+    barney::barney_mpi
     #  mpiRenderInf
     )
 else()
   target_link_libraries(hayStack
     PUBLIC
-    owl
+#    owl
     miniScene
     umesh
-    barney
+    barney::barney
     #  mpiRenderInf
     )
 endif()
@@ -97,7 +98,7 @@ if (WIN32)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-if (NOT (TARGET barney_mpi))
+if (NOT (TARGET barney::barney_mpi))
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
@@ -117,4 +118,5 @@ if (TARGET anari::anari)
       )
   endif()
 endif()
-  
+
+target_link_libraries(hayStack PUBLIC CUDA::cudart)

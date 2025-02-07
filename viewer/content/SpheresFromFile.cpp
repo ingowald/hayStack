@@ -47,7 +47,7 @@ namespace hs {
   }
     
   size_t SpheresFromFile::projectedSize() 
-  { return (100/12) * divRoundUp(fileSize, (size_t)data.numParts); }
+  { return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts); }
 
 
 

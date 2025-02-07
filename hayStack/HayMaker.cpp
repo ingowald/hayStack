@@ -59,7 +59,7 @@ namespace hs {
     bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
     bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
-
+    
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
     }

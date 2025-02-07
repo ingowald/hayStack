@@ -143,7 +143,17 @@ namespace hs {
           cs->vertices = vertices;
           cs->indices = indices;
           cs->colors = colors;
-          cs->material = mini::Metal::create();
+
+
+          // mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
+          // mat->ior = 1.45f;
+          // mat->metallic = 1.f;
+          // mat->roughness = .5f*rng()*rng();
+          // mat->baseColor.x = sqr(rng());
+          // mat->baseColor.y = sqr(rng());
+          // mat->baseColor.z = sqr(rng());
+
+          cs->material = mat;//mini::Metal::create();
           dataGroup.capsuleSets.push_back(cs);
         }
 #else
