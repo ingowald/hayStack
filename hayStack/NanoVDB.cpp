@@ -21,6 +21,8 @@ namespace hs {
 
   NanoVDB::NanoVDB(std::vector<float> &gridData)
   {
+    printf("NanoVDB::NanoVDB: %lld, %lld\n", gridData.size(), sizeof(gridData[0]));
+
     // deep copy for back-ends:
     rawSize = sizeof(gridData[0])*gridData.size();
     rawData = (float *)malloc(rawSize+NANOVDB_DATA_ALIGNMENT);

@@ -44,7 +44,7 @@ namespace hs {
   void   NanoVDBContent::executeLoad(DataRank &dataRank, bool verbose)
   {
     auto grid = nanovdb::io::readGrid(fileName);
-    std::vector<float> gridData(grid.size());
+    std::vector<float> gridData(grid.size()/sizeof(float));
     memcpy((uint8_t *)gridData.data(), grid.data(), grid.size());
     vdb = std::make_shared<NanoVDB>(gridData);
     dataRank.vdbs.push_back(vdb);
