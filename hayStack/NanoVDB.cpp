@@ -55,13 +55,16 @@ namespace hs {
     auto bbox = gridHandle.gridMetaData()->indexBBox();
 
     auto grid = gridHandle.grid<float>();
-    auto acc = grid->getAccessor();
+    //auto acc = grid->getAccessor();
 
     range1f range;
-    for (nanovdb::CoordBBox::Iterator iter = bbox.begin(); iter; ++iter) {
-      float value = acc.getValue(*iter);
-      range.extend(value);
-    }
+    // for (nanovdb::CoordBBox::Iterator iter = bbox.begin(); iter; ++iter) {
+    //   float value = acc.getValue(*iter);
+    //   range.extend(value);
+    // }
+    range.extend(grid->tree().root().data()->getMin());
+    range.extend(grid->tree().root().data()->getMax());    
+
     std::cout << range << '\n';
     return range;
   }
