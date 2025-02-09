@@ -608,9 +608,10 @@ namespace hs {
       elementOffsets.push_back(hexBegin+8*i);
       // elementTypes.push_back(VTK_HEXAHEDRON);
     }
-
+    
     assert(mesh->perVertex);
     assert(mesh->perVertex->values.size() == mesh->vertices.size());
+    
     std::vector<vec4f> vertices;
     for (int i=0;i<mesh->vertices.size();i++) {
       vec4f v;
@@ -626,7 +627,7 @@ namespace hs {
                             "unstructured");
     BNData vertexData
       = bnDataCreate(global->context,this->slot,
-                     BN_FLOAT4,mesh->vertices.size(),mesh->vertices.data());
+                     BN_FLOAT4,vertices.size(),vertices.data());
     BNData indicesData
       = bnDataCreate(global->context,this->slot,
                      BN_INT,indices.size(),indices.data());
