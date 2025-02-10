@@ -161,6 +161,18 @@ namespace hs {
         break;
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
+#if HS_CUTEE
+        if (xfEditor)
+          xfEditor->saveTo("hayThere.xf");
+#elif HS_VIEWER
+# if HS_HAVE_IMGUI
+        if (xfEditor)
+          xfEditor->saveToFile("hayThere.xf");
+# endif
+#else
+        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
+#endif
+        break;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
           std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
@@ -192,20 +204,6 @@ namespace hs {
         renderer->resetAccumulation();
         break;
       }
-
-     
-#if HS_CUTEE
-        if (xfEditor)
-          xfEditor->saveTo("hayThere.xf");
-#elif HS_VIEWER
-# if HS_HAVE_IMGUI
-        if (xfEditor)
-          xfEditor->saveToFile("hayThere.xf");
-# endif
-#else
-        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
-#endif
-        break;
       default: OWLViewer::key(key,where);
       };
     }
