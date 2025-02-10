@@ -70,7 +70,7 @@ if (WIN32)
     owl
     miniScene
     umesh
-    barney
+    barney_static
     #  mpiRenderInf
     $<BUILD_INTERFACE:hs_nanovdb>
     )

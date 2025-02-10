@@ -28,7 +28,7 @@ namespace hs {
   struct TransferFunction {
     void load(const std::string &fileName);
     
-    std::vector<vec4f> colorMap = { vec4f(1.f), vec4f(1.f) };
+    std::vector<mini::common::vec4f> colorMap = { mini::common::vec4f(1.f), mini::common::vec4f(1.f) };
     range1f domain = { 0.f, 0.f };
     float   baseDensity = 1.f;
   };
