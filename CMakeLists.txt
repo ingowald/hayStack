@@ -48,30 +48,16 @@ enable_language(CUDA)
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
-option(NO_BARNEY "do not build barney?" OFF)
-if (NOT (TARGET miniScene))
-  add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
-endif()
+add_subdirectory(submodules/owl    EXCLUDE_FROM_ALL)
+add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
 
-add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
-
-
-if (NOT NO_BARNEY)
-  #  enable_language(CUDA)
-  # add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
-  #find_package(barney REQUIRED)
-  message("looking for barney and barney_mpi")
-  find_package(barney COMPONENTS barney barney_mpi)
+find_package(barney REQUIRED)
   if (TARGET barney::barney)
     message("have target barney")
-  endif()
-  if (barney_mpi_FOUND)
-    message("barney_mpi_FOUND")
   endif()
   if (TARGET barney::barney_mpi)
     message("have target barney_mpi")
   endif()
-endif()
 
  
 if (NOT (TARGET umesh))

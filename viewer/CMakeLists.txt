@@ -70,8 +70,9 @@ if(WIN32)
   )
 endif()
 
-if (HS_VIEWER AND (TARGET barney))
+if (HS_VIEWER)
   # ------------------------------------------------------------------
+  message("configuring hsViewer")
   add_executable(hsViewer
     ${SOURCES}
     ${TFE_SOURCES}

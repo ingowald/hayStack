@@ -7,3 +7,6 @@
 [submodule "submodules/cuteeOWL"]
 	path = submodules/cuteeOWL
 	url = https://github.com/owl-project/cuteeOWL
+[submodule "submodules/owl"]
+	path = submodules/owl
+	url = https://github.com/owl-project/owl

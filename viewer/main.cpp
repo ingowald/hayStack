@@ -79,6 +79,9 @@ namespace hs {
       vec3f vi   = vec3f(0.f);
       vec3f vu   = vec3f(0.f,1.f,0.f);
       float fovy = 60.f;
+      float focusDistance = 0.f;
+      float apertureRadius = 0.f;
+      bool  dof = false;
     } camera;
     bool measure = 0;
     std::string envMapFileName;
@@ -153,38 +156,23 @@ namespace hs {
       case '!':
         screenShot();
         break;
-      case 'P': {
-          char *fl = getenv("BARNEY_FOCAL_LENGTH");
-          std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
-          char *lr = getenv("BARNEY_LENS_RADIUS");
-          std::cout << "export BARNEY_LENS_RADIUS=" << (lr != nullptr ? lr : "0") << std::endl;
-          break;
-        }
-      case '9': case '0':
+      case '#': 
+	    fromCL.camera.dof = !fromCL.camera.dof;
+	    std::cout << "depth-of-field mode now " << (fromCL.camera.dof?"ON":"OFF") << std::endl;
+        renderer->resetAccumulation();
+	    break;
+      case '{': case '}': {
+        float ratio = (key == '{') ? (0.9f) : (1.1f);
+	    fromCL.camera.focusDistance *= ratio;
+	    std::cout << "camera focal length now " << fromCL.camera.focusDistance << std::endl;
+        renderer->resetAccumulation();
+	  } break;
       case '(': case ')': {
-        char* flc = getenv("BARNEY_FOCAL_LENGTH");
-        float ratio = (key == '(' || key == '9') ? (0.9f) : (1.1f);
-        if (key == '9' || key == '0')
-          ratio = (ratio - 1.f) * 0.1f + 1.f; 
-        float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
-        setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
-        std::cout << "Focal length is set to: " << fl << '\n';
+        float ratio = (key == '(') ? (0.9f) : (1.1f);
+	    fromCL.camera.apertureRadius *= ratio;
+	    std::cout << "camera lens-radius now " << fromCL.camera.apertureRadius << std::endl;
         renderer->resetAccumulation();
-        break;
-      }
-      case '{': case '}':
-      case '[': case ']': {
-        char* lrc = getenv("BARNEY_LENS_RADIUS");
-        float ratio = (key == '[' || key == '{') ? (0.9f) : (1.1f);
-        if (key == '[' || key == ']')
-          ratio = (ratio - 1.f) * 0.1f + 1.f; 
-        float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
-        setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
-        std::cout << "Lens radius is set to: " << lr << '\n';
-        renderer->resetAccumulation();
-        break;
-      }
-
+	  } break;
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
 #if HS_CUTEE
@@ -319,6 +307,8 @@ namespace hs {
          (viewer::vec3f&)camera.vi,
          (viewer::vec3f&)camera.vu,
          camera.fovy);
+      camera.focusDistance = fromCL.camera.focusDistance;
+      camera.apertureRadius = fromCL.camera.apertureRadius;
       renderer->setCamera(camera);
       accumDirty = true;
     }
@@ -449,6 +439,10 @@ int main(int ac, char **av)
       fromCL.camera.vu = get3f(av,i);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
+    } else if (arg == "-dof") {
+      fromCL.camera.focusDistance = std::stof(av[++i]);
+      fromCL.camera.apertureRadius = std::stof(av[++i]);
+      fromCL.camera.dof = true;
     } else if (arg == "-xf") {
       fromCL.xfFileName = av[++i];
     } else if (arg == "-res" || arg == "-os" || arg == "--output-size") {
@@ -575,6 +569,10 @@ int main(int ac, char **av)
      /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
      /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
+  if (!fromCL.camera.dof) {
+	  fromCL.camera.focusDistance = length(fromCL.camera.vp-fromCL.camera.vi);
+	  fromCL.camera.apertureRadius = .0001f * length(fromCL.camera.vp-fromCL.camera.vi);
+  }
 # if HS_HAVE_IMGUI
   TFEditor    *xfEditor = new TFEditor;
   xfEditor->setRange(worldBounds.scalars);

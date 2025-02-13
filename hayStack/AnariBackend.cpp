@@ -267,6 +267,10 @@ namespace hs {
   void AnariBackend::Global::setCamera(const Camera &camera)
   {
     anari::setParameter(device, this->camera,
+                        "apertureRadius",    camera.apertureRadius);
+    anari::setParameter(device, this->camera,
+                        "focusDistance",    camera.focusDistance);
+    anari::setParameter(device, this->camera,
                         "aspect",    fbSize.x / (float)fbSize.y);
     anari::setParameter(device, this->camera,
                         "position",  (const anari::math::float3&)camera.vp);

@@ -206,6 +206,8 @@ namespace hs {
     bnSet(this->camera,"position", (const bn_float3&)camera.vp);
     bnSet(this->camera,"up",       (const bn_float3&)camera.vu);
     bnSet1f (this->camera,"fovy",     camera.fovy);
+    bnSet1f (this->camera,"apertureRadius",     camera.apertureRadius);
+    bnSet1f (this->camera,"focusDistance",     camera.focusDistance);
     bnSet1f (this->camera,"aspect",   fbSize.x / float(fbSize.y));
     bnCommit(this->camera);
   }

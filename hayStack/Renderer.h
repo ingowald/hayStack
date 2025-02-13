@@ -25,7 +25,7 @@ namespace hs {
   
   struct Camera {
     vec3f vp, vi, vu;
-    float fovy;
+    float fovy, focusDistance, apertureRadius;
   };
 
   struct DirLight {
