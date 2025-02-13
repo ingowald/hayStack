@@ -312,13 +312,15 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
-    } else if (endsWith(contentDescriptor,".mini")) {
-      MiniContent::create(this,contentDescriptor);
+    // } else if (endsWith(contentDescriptor,".mini")) {
+    //   MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".nvdb")) {
       NanoVDBContent::create(this,contentDescriptor);
     } else {
       ResourceSpecifier url(contentDescriptor);
-      if (url.type == "spheres")
+      if (url.type == "mini")
+        MiniContent::create(this,url);      
+      else if (url.type == "spheres")
         SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);

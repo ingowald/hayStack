@@ -76,6 +76,8 @@ namespace hs {
   void RAWVolumeContent::create(DataLoader *loader,
                                 const ResourceSpecifier &dataURL)
   {
+    printf("RAWVolumeContent: dataURL.numParts: %d\n", dataURL.numParts);
+
     std::string type = dataURL.get("type",dataURL.get("format",""));
     if (type.empty())
       throw std::runtime_error("RAWVolumeContent: 'type' not specified");

@@ -74,7 +74,7 @@ namespace hs {
     
     std::string xfFileName = "";
     std::string outFileName = "hayStack.png";
-    vec2i fbSize = { 800,600 };
+    vec2i fbSize = { 1200, 800 };
     bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
     int  numFramesAccum = 100;

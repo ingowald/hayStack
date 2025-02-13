@@ -28,9 +28,13 @@ namespace hs {
     {}
 
     static void create(DataLoader *loader,
-                       const std::string &dataURL)
+                       /*const std::string &dataURL*/const ResourceSpecifier &dataURL)
     {
-      loader->addContent(new MiniContent(/* this is a plain filename for umesh:*/dataURL));
+      printf("MiniContent: dataURL.numParts: %d\n", dataURL.numParts);
+
+      for (int i=0;i<dataURL.numParts;i++) {
+        loader->addContent(new MiniContent(/* this is a plain filename for umesh:*/dataURL.where));
+      }
     }
     
     std::string toString() override
