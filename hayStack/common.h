@@ -34,5 +34,6 @@ namespace hs {
 
 #define HAYSTACK_NYI() throw std::runtime_error(std::string(__PRETTY_FUNCTION__)+" not yet implemented")
 
+  float random_float();
 }
 

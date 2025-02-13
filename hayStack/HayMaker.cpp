@@ -24,8 +24,17 @@
 #endif
 // #include "hayStack/TransferFunction.h"
 // #include <map>
+#include <random>
 
 namespace hs {
+
+	float random_float()
+	{
+		static std::random_device rd;
+		static std::mt19937 gen(rd());
+		std::uniform_real_distribution<float> dis(0.f,1.f);
+		return dis(gen);
+	}
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,

@@ -77,7 +77,7 @@ namespace hs {
           std::vector<vec4f> colors;
           std::vector<vec2i> indices;
 
-          auto rng = [&](){return (float)drand48(); };
+          auto rng = [&](){return (float)random_float(); };
           auto sqr = [&](float f){return f*f; };
           auto randomSphere = [&](float r){
             vec3f v;

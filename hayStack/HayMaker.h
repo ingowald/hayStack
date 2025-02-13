@@ -77,7 +77,7 @@ namespace hs {
     TextureHandle getOrCreate(mini::Texture::SP miniTex);
     
   private:
-    TextureHandle create(mini::Texture::SP miniTex);
+    //TextureHandle create(mini::Texture::SP miniTex);
     typename Backend::Slot *const backend;
     std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
   };
@@ -116,7 +116,7 @@ namespace hs {
               LocalModel &localModel,
               bool verbose);
     
-    void init();
+    void init() { };
 
     void buildSlots() override;
     

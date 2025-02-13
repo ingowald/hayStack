@@ -153,7 +153,7 @@ namespace hs {
     std::string value = keyValuePairs.find(key)->second;
     
     char magnitude = ' ';
-    size_t result;
+    long int result;
     sscanf(value.c_str(),"%li%c",&result,&magnitude);
     if (magnitude == ' ')
       ;
