@@ -352,8 +352,8 @@ namespace hs {
     if (colorMapped) 
       anari::setParameter(device,material,"baseColor","color");
     else
-    anari::setParameter(device,material,"baseColor",
-                        (const anari::math::float3&)baseColor);
+      anari::setParameter(device,material,"baseColor",
+                          (const anari::math::float3&)baseColor);
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->roughness);
@@ -380,6 +380,23 @@ namespace hs {
     anari::setParameter(device,material,"clearcoat",.0f);
     anari::setParameter(device,material,"transmission",.0f);
     anari::commitParameters(device, material);
+    return material;
+  }
+
+  
+  anari::Material AnariBackend::Slot::create(mini::Matte::SP matte,
+                                             bool colorMapped)
+  {
+    auto device = global->device;
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "matte");
+
+    if (colorMapped)
+      anari::setParameter(device,material,"color",
+                          "color");
+    else
+      anari::setParameter(device,material,"color",
+                          (const anari::math::float3&)matte->reflectance);
     return material;
   }
   
@@ -441,6 +458,7 @@ namespace hs {
     return material;
   }
 
+  
   anari::Material AnariBackend::Slot::create(mini::Material::SP miniMat, bool colorMapped)
   {
     static std::set<std::string> typesCreated;
@@ -465,8 +483,8 @@ namespace hs {
     //   return create(velvet);
     if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
       return create(metallicPaint, colorMapped);
-    // if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
-    //   return create(matte);
+    if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
+      return create(matte, colorMapped);
     if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
       return create(metal, colorMapped);
     // if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
@@ -480,7 +498,7 @@ namespace hs {
               << "#warning: do not know how to realize mini material '"
               << miniMat->toString() << "'; replacing with matte gray"
               << MINI_TERMINAL_DEFAULT << std::endl;
-
+    
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
     anari::math::float3 color(.7f,.7f,.7f);

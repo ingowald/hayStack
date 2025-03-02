@@ -22,26 +22,18 @@ namespace hs {
   namespace content {
     /*! a file of 'raw' spheres */
     struct Capsules : public LoadableContent {
-      Capsules(const std::string &fileName,
-               size_t fileSize,
-               int thisPartID,
-               int numPartsToSplitInto);
+      Capsules(const ResourceSpecifier &data,
+               int thisPartID);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
       size_t projectedSize() override;
       void   executeLoad(DataRank &dataGroup, bool verbose) override;
     
-      std::string toString() override
-      {
-        return "Capsules{fileName="+fileName+", part "+std::to_string(thisPartID)+" of "
-          + std::to_string(numPartsToSplitInto)+", proj size "
-          +prettyNumber(projectedSize())+"B}";
-      }
-    
-      const std::string fileName;
+      std::string toString() override;
+      
+      const ResourceSpecifier data;
       const size_t fileSize;
       const int thisPartID = 0;
-      const int numPartsToSplitInto = 1;
     };
     
   }

@@ -33,28 +33,34 @@ namespace hs {
       return memcmp(&a,&b,sizeof(a)) < 0;
     }
   
-    Capsules::Capsules(const std::string &fileName,
-                       size_t fileSize,
-                       int thisPartID,
-                       int numPartsToSplitInto)
-      : fileName(fileName),
-        fileSize(fileSize),
-        thisPartID(thisPartID),
-        numPartsToSplitInto(numPartsToSplitInto)
+    Capsules::Capsules(const ResourceSpecifier &data,
+                       // size_t fileSize,
+                       int thisPartID)
+      : data(data),
+        fileSize(getFileSize(data.where)),
+        thisPartID(thisPartID)
     {}
   
+    std::string Capsules::toString()
+    {
+      return "capsules://{fileName="+data.where
+        +", part "+std::to_string(thisPartID)+" of "
+        + std::to_string(data.numParts)+", proj size "
+        +prettyNumber(projectedSize())+"B}";
+    }
     void Capsules::create(DataLoader *loader,
                           const ResourceSpecifier &data)
     {
-      const std::string fileName = data.where;
-      const size_t fileSize
-        = (fileName == "<test>"
-           ? 100000
-           : getFileSize(data.where));
+      // const std::string fileName = data.where;
+      // const size_t fileSize
+      //   = (fileName == "<test>"
+      //      ? 100000
+      //      : getFileSize(data.where));
       for (int i=0;i<data.numParts;i++)
-        loader->addContent(new Capsules(data.where,
-                                        fileSize,i,
-                                        data.numParts));
+        loader->addContent(new Capsules(data,i));
+      // data.where,
+      //                                   fileSize,i,
+      //                                   data.numParts));
     }
   
     size_t Capsules::projectedSize() 
@@ -62,7 +68,7 @@ namespace hs {
   
     void   Capsules::executeLoad(DataRank &dataGroup, bool verbose) 
     {
-      if (fileName == "<test>") {
+      if (data.where == "<test>") {
 #if 1
         float rr = .01f;
         
@@ -137,7 +143,17 @@ namespace hs {
           cs->vertices = vertices;
           cs->indices = indices;
           cs->colors = colors;
-          cs->material = mini::Metal::create();
+
+
+          // mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
+          // mat->ior = 1.45f;
+          // mat->metallic = 1.f;
+          // mat->roughness = .5f*rng()*rng();
+          // mat->baseColor.x = sqr(rng());
+          // mat->baseColor.y = sqr(rng());
+          // mat->baseColor.z = sqr(rng());
+
+          cs->material = mat;//mini::Metal::create();
           dataGroup.capsuleSets.push_back(cs);
         }
 #else
@@ -276,17 +292,33 @@ namespace hs {
 #endif
         return;
       }
+
       hs::Capsules::SP cs = hs::Capsules::create();
       cs->material = mini::Matte::create();
       
-      size_t numCapsulesTotal = fileSize / sizeof(FatCapsule);
-      size_t begin = (thisPartID * numCapsulesTotal) / numPartsToSplitInto;
-      size_t end = ((thisPartID+1) * numCapsulesTotal) / numPartsToSplitInto;
+      size_t numCapsulesInFile = fileSize / sizeof(FatCapsule);
+      
+      int64_t numCapsulesToLoad
+        = std::min((int64_t)data.get_size("count",numCapsulesInFile),
+                   (int64_t)(numCapsulesInFile-data.get_size("begin",0)));
+      size_t begin
+        = data.get_size("begin",0)
+        + (numCapsulesToLoad * (thisPartID+0)) / data.numParts;
+      size_t end
+        = data.get_size("end",0)
+        + (numCapsulesToLoad * (thisPartID+1)) / data.numParts;
       size_t count = end - begin;
+      std::cout << "#caps part " <<thisPartID
+                << " loads range " << begin << ".." << end << std::endl;
+
+      
+      // size_t begin = (thisPartID * numCapsulesTotal) / numPartsToSplitInto;
+      // size_t end = ((thisPartID+1) * numCapsulesTotal) / numPartsToSplitInto;
+      // size_t count = end - begin;
 
       std::vector<FatCapsule> fatCapsules(count);
 
-      std::ifstream in(fileName.c_str(),std::ios::binary);
+      std::ifstream in(data.where.c_str(),std::ios::binary);
       in.seekg(begin*sizeof(FatCapsule),in.beg);
       in.read((char *)fatCapsules.data(),count*sizeof(FatCapsule));
 

@@ -32,13 +32,18 @@ namespace hs {
   /*! default radius to use for spheres that do not have a radius specified */
   float DataLoader::defaultRadius = .1f;
 
-  ResourceSpecifier::ResourceSpecifier(std::string resource)
+  ResourceSpecifier::ResourceSpecifier(std::string resource,
+                                       bool fileNameOnly)
   {
+    if (fileNameOnly) {
+      where = resource;
+      return;
+    }
     int pos = resource.find("://");
     if (pos == resource.npos)
       throw std::runtime_error
         ("could not parse resource specifier '"+resource
-         +"' - coulnd't find '://' in there!?");
+         +"' - couldn't find '://' in there!?");
     type = resource.substr(0,pos);
     resource = resource.substr(pos+3);
 
@@ -190,8 +195,10 @@ namespace hs {
   size_t getFileSize(const std::string &fileName)
   {
     FILE *file = fopen(fileName.c_str(),"rb");
-    if (!file) throw std::runtime_error
-                 ("when trying to determine file size: could not open file "+fileName);
+    if (!file) return 0;
+    // throw std::runtime_error
+    //              ("when trying to determine file size: could not open file "+fileName)
+      // ;
     fseek(file,0,SEEK_END);
 #ifdef _WIN32
     size_t size = _ftelli64(file);
@@ -313,6 +320,8 @@ namespace hs {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".raw")) {
+      RAWVolumeContent::create(this,ResourceSpecifier(contentDescriptor,true));
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")

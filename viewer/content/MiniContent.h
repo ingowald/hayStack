@@ -44,6 +44,18 @@ namespace hs {
     void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       mini::Scene::SP ms = mini::Scene::load(fileName);
+      if (ms->envMapLight) {
+        // this is a hack for when splitting a model into multiple
+        // aprts, and each model having a copy of the light
+        // sources. in theory this SHOULD be fixed in the splitter,
+        // but for now do it here.
+        for (auto other : dataGroup.minis)
+          if (other->envMapLight) {
+            ms->envMapLight = {};
+            ms->quadLights.clear();
+            ms->dirLights.clear();
+          }
+      }
       dataGroup.minis.push_back(ms);
       
 #if 1

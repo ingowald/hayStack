@@ -153,6 +153,38 @@ namespace hs {
       case '!':
         screenShot();
         break;
+      case 'P': {
+          char *fl = getenv("BARNEY_FOCAL_LENGTH");
+          std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
+          char *lr = getenv("BARNEY_LENS_RADIUS");
+          std::cout << "export BARNEY_LENS_RADIUS=" << (lr != nullptr ? lr : "0") << std::endl;
+          break;
+        }
+      case '9': case '0':
+      case '(': case ')': {
+        char* flc = getenv("BARNEY_FOCAL_LENGTH");
+        float ratio = (key == '(' || key == '9') ? (0.9f) : (1.1f);
+        if (key == '9' || key == '0')
+          ratio = (ratio - 1.f) * 0.1f + 1.f; 
+        float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
+        setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
+        std::cout << "Focal length is set to: " << fl << '\n';
+        renderer->resetAccumulation();
+        break;
+      }
+      case '{': case '}':
+      case '[': case ']': {
+        char* lrc = getenv("BARNEY_LENS_RADIUS");
+        float ratio = (key == '[' || key == '{') ? (0.9f) : (1.1f);
+        if (key == '[' || key == ']')
+          ratio = (ratio - 1.f) * 0.1f + 1.f; 
+        float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
+        setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
+        std::cout << "Lens radius is set to: " << lr << '\n';
+        renderer->resetAccumulation();
+        break;
+      }
+
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
 #if HS_CUTEE
@@ -167,6 +199,7 @@ namespace hs {
         std::cout << "dumping transfer function only works in QT viewer" << std::endl;
 #endif
         break;
+
       default: OWLViewer::key(key,where);
       };
     }
@@ -484,6 +517,8 @@ int main(int ac, char **av)
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
+  bool modelHasVolumeData = !worldBounds.scalars.empty();
+  
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -564,29 +599,31 @@ int main(int ac, char **av)
      /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
-  XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
-  viewer.xfEditor      = xfEditor;
-  QFormLayout *layout   = new QFormLayout;
-  layout->addWidget(xfEditor);
-
-  QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
-                   &viewer, &Viewer::colorMapChanged);
-  QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
-                   &viewer, &Viewer::rangeChanged);
-  QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
-                   &viewer, &Viewer::opacityScaleChanged);
-  // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
-  //                  &viewer, &Viewer::lightPosChanged);
-  
-
-  if (!fromCL.xfFileName.empty())
-    xfEditor->loadFrom(fromCL.xfFileName);
-  
-  // Set QWidget as the central layout of the main window
   QMainWindow secondWindow;
-  secondWindow.setCentralWidget(xfEditor);
-
-  secondWindow.show();
+  if (modelHasVolumeData) {
+    XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
+    viewer.xfEditor       = xfEditor;
+    QFormLayout *layout   = new QFormLayout;
+    layout->addWidget(xfEditor);
+    
+    QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
+                   &viewer, &Viewer::colorMapChanged);
+    QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
+                     &viewer, &Viewer::rangeChanged);
+    QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
+                     &viewer, &Viewer::opacityScaleChanged);
+    // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
+    //                  &viewer, &Viewer::lightPosChanged);
+    
+    
+    if (!fromCL.xfFileName.empty())
+      viewer.xfEditor->loadFrom(fromCL.xfFileName);
+    
+    // Set QWidget as the central layout of the main window
+    secondWindow.setCentralWidget(viewer.xfEditor);
+    
+    secondWindow.show();
+  }
   
   app.exec();
 #else

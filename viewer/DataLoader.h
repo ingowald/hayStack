@@ -23,7 +23,8 @@
 namespace hs {
 
   struct ResourceSpecifier {
-    ResourceSpecifier(std::string s);
+    ResourceSpecifier(std::string s,
+                      bool fileNameOnly=false);
     bool has(const std::string &key) const;
     std::string get(const std::string &key, const std::string &defaultValue="") const;
     
