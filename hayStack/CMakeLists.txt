@@ -68,10 +68,11 @@ if (WIN32)
     miniScene
     umesh
     barney::barney
-    #  mpiRenderInf
+    #  mpiRenderInf 
     )
 elseif(TARGET barney::barney_mpi)
   find_package(MPI REQUIRED)
+  message("LINKING TO BARNEY_MPI!!!")
   target_link_libraries(hayStack
     PUBLIC
 #    owl

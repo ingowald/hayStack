@@ -608,9 +608,10 @@ namespace hs {
       elementOffsets.push_back(hexBegin+8*i);
       // elementTypes.push_back(VTK_HEXAHEDRON);
     }
-
+    
     assert(mesh->perVertex);
     assert(mesh->perVertex->values.size() == mesh->vertices.size());
+    
     std::vector<vec4f> vertices;
     for (int i=0;i<mesh->vertices.size();i++) {
       vec4f v;
@@ -621,17 +622,26 @@ namespace hs {
     // for (int i=0;i<mesh->hexes.size();i++)
     //   makeVTKOrder(vertices.data(),
 
-    HAYSTACK_NYI();
-#if 0
-    BNScalarField sf = bnUMeshCreate(global->context,this->slot,
-                                     (float4*)vertices.data(),vertices.size(),
-                                     indices.data(),indices.size(),
-                                     elementOffsets.data(),elementOffsets.size(),
-                                     nullptr);
+    BNScalarField sf
+      = bnScalarFieldCreate(global->context,this->slot,
+                            "unstructured");
+    BNData vertexData
+      = bnDataCreate(global->context,this->slot,
+                     BN_FLOAT4,vertices.size(),vertices.data());
+    BNData indicesData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT,indices.size(),indices.data());
+    BNData offsetsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT,elementOffsets.size(),elementOffsets.data());
+    bnSetAndRelease(sf,"vertices",vertexData);
+    bnSetAndRelease(sf,"indices",indicesData);
+    bnSetAndRelease(sf,"elementOffsets",offsetsData);
+    bnCommit(sf);
+
     BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
     bnRelease(sf);
     return volume;
-#endif
   }
 
   std::vector<BNGeom>
