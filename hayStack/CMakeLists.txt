@@ -14,8 +14,6 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-#option(HANARI "Use ANARI device?" ON)
-
 find_package(anari 0.8.0)
 
 add_library(hayStack
@@ -48,53 +46,35 @@ add_library(hayStack
   AnariBackend.cpp
   TransferFunction.h
   TransferFunction.cpp
-  )
+)
 
+# link to miniscene and umesh - we need those in either config
+target_link_libraries(hayStack
+  PUBLIC
+  miniScene
+  umesh
+)
+
+# link to respective version(s) of barney/barney_mpi,banari
 if (NO_BARNEY)
+  # explicitly don't link to barney - we'll get everything through
+  # anari.
   target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
-  target_link_libraries(hayStack
-    PUBLIC
-#    owl
-    miniScene
-    umesh
-#    barney
-    #  mpiRenderInf
-    )
-else()
-if (WIN32)
-  target_link_libraries(hayStack
-    PUBLIC
-#    owl
-    miniScene
-    umesh
-    barney::barney
-    #  mpiRenderInf 
-    )
-elseif(TARGET barney::barney_mpi)
+elseif (WIN32)
+  # windows: we don't support mpi, anyway, always link to barney
+  target_link_libraries(hayStack PUBLIC barney::barney)
+elseif (TARGET barney::barney_mpi)
+  # we're NOT on windows, so we _can_ use mpi mode. check if we have
+  # it, and if so, use it.
   find_package(MPI REQUIRED)
-  message("LINKING TO BARNEY_MPI!!!")
-  target_link_libraries(hayStack
-    PUBLIC
-#    owl
-    miniScene
-    umesh
-    barney::barney_mpi
-    #  mpiRenderInf
-    )
+  target_link_libraries(hayStack PUBLIC barney::barney_mpi MPI::MPI_CXX)
 else()
-  target_link_libraries(hayStack
-    PUBLIC
-#    owl
-    miniScene
-    umesh
-    barney::barney
-    #  mpiRenderInf
-    )
-endif()
+  # we're on linux, but the barney we foudn doesn't feature any mpi
+  # support - use non-mpi barney.
+  target_link_libraries(hayStack PUBLIC barney::barney)
 endif()
 
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
-
 if (WIN32)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
@@ -107,17 +87,17 @@ if (TARGET anari::anari)
   target_compile_definitions(hayStack
     PUBLIC
     -DHANARI=1
-    )
+  )
   target_link_libraries(hayStack
     PUBLIC
     anari::anari
-    )
-  if (MPI_FOUND)
-    target_link_libraries(hayStack
-      PUBLIC
-      MPI::MPI_CXX
-      )
-  endif()
+  )
+  #  if (MPI_FOUND)
+  #    target_link_libraries(hayStack
+  #      PUBLIC
+  #      MPI::MPI_CXX
+  #    )
+  #  endif()
 endif()
 
 target_link_libraries(hayStack PUBLIC CUDA::cudart)

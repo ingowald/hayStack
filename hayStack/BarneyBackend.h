@@ -21,6 +21,17 @@
 
 namespace hs {
 
+  /*! c++ helper function */
+  inline void bnSetAndRelease(BNObject target, const char *paramName,
+                              BNObject value)
+  { bnSetObject(target,paramName,value); bnRelease(value); }
+  
+  /*! c++ helper function */
+  inline void bnSetAndRelease(BNObject target, const char *paramName,
+                              BNData value)
+  { bnSetData(target,paramName,value); bnRelease(value); }
+  
+
   struct BarneyBackend {
     typedef BNMaterial MaterialHandle;
     typedef BNSampler  TextureHandle;

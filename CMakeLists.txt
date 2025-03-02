@@ -1,5 +1,5 @@
 # ======================================================================== #
-# Copyright 2023-2023 Ingo Wald                                            #
+# Copyright 2023-2025 Ingo Wald                                            #
 #                                                                          #
 # Licensed under the Apache License, Version 2.0 (the "License");          #
 # you may not use this file except in compliance with the License.         #
@@ -21,12 +21,7 @@ project(HayStack VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 set(CMAKE_CUDA_USE_STATIC_CUDA_RUNTIME ON)
-
-  
-#Enable debuging of kernels
-#set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G")
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
@@ -57,20 +52,8 @@ add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
 
 
 if (NOT NO_BARNEY)
-  #  enable_language(CUDA)
-  # add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
-  #find_package(barney REQUIRED)
-  message("looking for barney and barney_mpi")
-  find_package(barney COMPONENTS barney )#barney_mpi)
-  if (TARGET barney::barney)
-    message("have target barney")
-  endif()
-  if (barney_mpi_FOUND)
-    message("barney_mpi_FOUND")
-  endif()
-  if (TARGET barney::barney_mpi)
-    message("have target barney_mpi")
-  endif()
+  find_package(barney)
+  #find_package(barney COMPONENTS barney )#barney_mpi)
 endif()
 
  
