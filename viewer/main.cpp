@@ -657,7 +657,6 @@ int main(int ac, char **av)
 #endif
 
   world.barrier();
-
   hs::mpi::finalize();
 
   return 0;

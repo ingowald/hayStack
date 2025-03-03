@@ -17,11 +17,11 @@
 #if !NO_BARNEY
 #include "BarneyBackend.h"
 
-#if BARNEY_MPI
-# pragma message("Barney has MPI enabled")
-#else
-# define HS_FAKE_MPI 1
-#endif
+// #if BARNEY_MPI
+// # pragma message("Barney has MPI enabled")
+// #else
+// # define HS_FAKE_MPI 1
+// #endif
 
 namespace hs {
 
@@ -748,7 +748,14 @@ namespace hs {
     bnCommit(geom);
     return { geom };
   }
-
+  
+  /*! clean up and shut down */
+  void BarneyBackend::Global::terminate()
+  {
+    bnContextDestroy(context);
+    context = 0;
+  }
+  
 } // ::hs
 
 #endif

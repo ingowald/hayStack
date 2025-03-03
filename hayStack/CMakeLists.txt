@@ -54,16 +54,22 @@ target_link_libraries(hayStack
   miniScene
   umesh
 )
+target_include_directories(hayStack PUBLIC
+  ${PROJECT_SOURCE_DIR}
+  )
 
 # link to respective version(s) of barney/barney_mpi,banari
 if (NO_BARNEY)
   # explicitly don't link to barney - we'll get everything through
   # anari.
   target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
+  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 elseif (WIN32)
   # windows: we don't support mpi, anyway, always link to barney
   target_link_libraries(hayStack PUBLIC barney::barney)
+  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 elseif (TARGET barney::barney_mpi)
+  message("we HAVE MPI in barney")
   # we're NOT on windows, so we _can_ use mpi mode. check if we have
   # it, and if so, use it.
   find_package(MPI REQUIRED)
@@ -72,14 +78,6 @@ else()
   # we're on linux, but the barney we foudn doesn't feature any mpi
   # support - use non-mpi barney.
   target_link_libraries(hayStack PUBLIC barney::barney)
-endif()
-
-target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
-if (WIN32)
-  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
-endif()
-
-if (NOT (TARGET barney::barney_mpi))
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 

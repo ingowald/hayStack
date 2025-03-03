@@ -159,7 +159,6 @@ namespace hs {
       box3f bounds;
       for (size_t i=0;i<my_count;i++) {
         int rc = fread((char*)&v,sizeof(v),1,file);
-        if (i < 10) PRINT(v);
         assert(rc);
         spheres->origins.push_back(v);
         bounds.extend(v);

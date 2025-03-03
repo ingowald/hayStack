@@ -17,7 +17,12 @@
 #pragma once
 
 #include "HayMaker.h"
-#include <barney/barney.h>
+#if HS_FAKE_MPI
+# include <barney/barney.h>
+#else
+# include <barney/barney.h>
+# include <barney/barney_mpi.h>
+#endif
 
 namespace hs {
 
@@ -49,6 +54,8 @@ namespace hs {
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
+      /*! clean up and shut down */
+      void terminate();
       
       HayMaker *const base;
       BNContext     context  = 0;
