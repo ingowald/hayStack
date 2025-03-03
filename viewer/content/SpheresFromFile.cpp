@@ -73,7 +73,11 @@ namespace hs {
   void   SpheresFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
-    spheres->material = std::make_shared<mini::DisneyMaterial>();
+    mini::DisneyMaterial::SP mat =
+      std::make_shared<mini::DisneyMaterial>();;
+    mat->metallic = 0.f;
+    mat->ior = 1.f;
+    spheres->material = mat;
 
     spheres->radius = radius;
     FILE *file = fopen(data.where.c_str(),"rb");
