@@ -73,6 +73,8 @@ namespace hs {
   void   SpheresFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
+    spheres->material = std::make_shared<mini::DisneyMaterial>();
+
     spheres->radius = radius;
     FILE *file = fopen(data.where.c_str(),"rb");
     assert(file);
@@ -150,11 +152,15 @@ namespace hs {
       }
     } else if (format == "xyz") {
       vec3f v;
+      box3f bounds;
       for (size_t i=0;i<my_count;i++) {
         int rc = fread((char*)&v,sizeof(v),1,file);
+        if (i < 10) PRINT(v);
         assert(rc);
-        spheres->origins.push_back(vec3f{v.x,v.y,v.z});
+        spheres->origins.push_back(v);
+        bounds.extend(v);
       }
+      std::cout << "read " << my_count << " spheres w/ bounds " << bounds << std::endl;
     } else if (format == "pcr") {
       vec3f pos;
       vec3f col;
