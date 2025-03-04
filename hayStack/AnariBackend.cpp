@@ -786,6 +786,13 @@ namespace hs {
   AnariBackend::Slot::createSpheres(SphereSet::SP content,
                                     MaterialLibrary<AnariBackend> *materialLib)
   { 
+    // this is what minicontent looks like:
+    // std::vector<vec3f> origins;
+    // std::vector<vec3f> colors;
+    // std::vector<float> radii;
+    // mini::Material::SP material;
+    // float radius = .1f;
+    
     auto device = global->device;
     anari::Material material = materialLib->getOrCreate(content->material);
     anari::Geometry geom
@@ -800,6 +807,15 @@ namespace hs {
          (const anari::math::float3*)content->colors.data(),
          content->origins.size());
     }
+    if (content->radii.empty()) {
+      anari::setParameter(device,geom,"radius",(float)content->radius);
+    } else {
+      anari::setParameterArray1D
+        (device, geom, "vertex.radius",
+         (const float*)content->radii.data(),
+         content->radii.size());
+    }
+
     anari::commitParameters(device, geom);
 
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
