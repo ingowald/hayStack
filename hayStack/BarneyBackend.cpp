@@ -491,8 +491,10 @@ namespace hs {
     bnSetObject(light,"texture", texture);
     bnRelease(texture);
 
-    bnSet(light,"direction",(const bn_float3&)ml.transform.l.vx);
-    bnSet(light,"up",(const bn_float3&)ml.transform.l.vz);
+    vec3f up = ml.transform.l.vz;
+    vec3f dir = - ml.transform.l.vx;
+    bnSet(light,"direction",(const bn_float3&)dir);
+    bnSet(light,"up",(const bn_float3&)up);
     
     bnCommit(light);
     return light;
