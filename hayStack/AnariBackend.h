@@ -37,7 +37,9 @@ namespace hs {
       void resetAccumulation();
       void setCamera(const Camera &camera);
       void finalizeRender();
-
+      /*! clean up and shut down */
+      void terminate() {}
+      
       HayMaker *const base;
 
       anari::Device device = 0;

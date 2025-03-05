@@ -44,6 +44,23 @@ namespace hs {
     void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       mini::Scene::SP ms = mini::Scene::load(fileName);
+#if 0
+      // mini has evnmap lights upside down (apparently). fix this.
+      if (ms->envMapLight) {
+        Texture::SP tex = ms->envMapLight->texture;
+        if (tex && tex->format == mini::Texture::FLOAT4) {
+          std::cout << "#hs: flipping env-map texture" << std::endl;
+          vec4f *texels = (vec4f*)tex->data.data();
+          for (int iy=0;iy<tex->size.y/2;iy++)
+            for (int ix=0;ix<tex->size.x;ix++) {
+              vec4f *lo = texels+tex->size.x*iy;
+              vec4f *hi = texels+tex->size.x*(tex->size.y-1-iy);
+              std::swap(lo[ix],hi[ix]);
+            }
+        }
+      }
+#endif
+      
       if (ms->envMapLight) {
         // this is a hack for when splitting a model into multiple
         // aprts, and each model having a copy of the light

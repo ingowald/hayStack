@@ -108,7 +108,7 @@ namespace hs {
 
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
     // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-    anari::setParameter(device, renderer, "ambientRadiance", .8f);
+    anari::setParameter(device, renderer, "ambientRadiance", .5f);
     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
 #if 1
     std::vector<vec4f> bgGradient = {
@@ -570,18 +570,32 @@ namespace hs {
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
     vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
-    for (int i=0;i<size.x*size.y;i++)
+#if 0
+    for (int iy=0;iy<size.y;iy++) {
+      for (int ix=0;ix<size.x;ix++) {
+        as3f[ix+iy*size.x] = vec3f(0.f,0.,(iy % 100)/100.f);
+      }
+    }
+#else
+    for (int i=0;i<size.x*size.y;i++) {
       as3f[i]
         = (const vec3f&)((vec4f*)ml.texture->data.data())[i];
+    }
+#endif
     anariUnmapArray(device,radiance);
     anari::commitParameters(device,radiance);
     
     anari::Light light = anari::newObject<anari::Light>(device,"hdri");
     anari::setAndReleaseParameter(device,light,"radiance",radiance);
+    vec3f up = ml.transform.l.vz;
+    vec3f dir = - ml.transform.l.vx;
+
+    PRINT(up);
+    PRINT(dir);
     anari::setParameter(device,light,"up",
-                        (const anari::math::float3&)ml.transform.l.vz);
+                        (const anari::math::float3&)up);
     anari::setParameter(device,light,"direction",
-                        (const anari::math::float3&)ml.transform.l.vx);
+                        (const anari::math::float3&)dir);
     anari::setParameter(device,light,"scale",1.f);
     anari::commitParameters(device,light);
     return light;
@@ -786,6 +800,13 @@ namespace hs {
   AnariBackend::Slot::createSpheres(SphereSet::SP content,
                                     MaterialLibrary<AnariBackend> *materialLib)
   { 
+    // this is what minicontent looks like:
+    // std::vector<vec3f> origins;
+    // std::vector<vec3f> colors;
+    // std::vector<float> radii;
+    // mini::Material::SP material;
+    // float radius = .1f;
+    
     auto device = global->device;
     anari::Material material = materialLib->getOrCreate(content->material);
     anari::Geometry geom
@@ -800,6 +821,15 @@ namespace hs {
          (const anari::math::float3*)content->colors.data(),
          content->origins.size());
     }
+    if (content->radii.empty()) {
+      anari::setParameter(device,geom,"radius",(float)content->radius);
+    } else {
+      anari::setParameterArray1D
+        (device, geom, "vertex.radius",
+         (const float*)content->radii.data(),
+         content->radii.size());
+    }
+
     anari::commitParameters(device, geom);
 
     anari::Surface  surface = anari::newObject<anari::Surface>(device);

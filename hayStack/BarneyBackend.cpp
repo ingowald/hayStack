@@ -17,11 +17,11 @@
 #if !NO_BARNEY
 #include "BarneyBackend.h"
 
-#if BARNEY_MPI
-# pragma message("Barney has MPI enabled")
-#else
-# define HS_FAKE_MPI 1
-#endif
+// #if BARNEY_MPI
+// # pragma message("Barney has MPI enabled")
+// #else
+// # define HS_FAKE_MPI 1
+// #endif
 
 namespace hs {
 
@@ -107,6 +107,7 @@ namespace hs {
 
     renderer = bnRendererCreate(context,"default");
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
+    bnSet1f(renderer,"ambientRadiance",0.5f);
 
 
 #if 1
@@ -114,12 +115,6 @@ namespace hs {
       vec4f(.9f,.9f,.9f,1.f),
       vec4f(0.15f, 0.25f, .8f,1.f),
     };
-    // BNData data = bnDataCreate(context,-1,
-    //                            BN_FLOAT4,2,
-    //                            gradient);
-    // BNTextureData tex = bnTextureData2DCreate(context,-1,
-    //                                           BN_FLOAT4,1,2,
-    //                                           gradient);
     BNTexture2D tex = bnTexture2DCreate(context,-1,
                                         BN_FLOAT4,1,2,
                                         gradient,
@@ -139,32 +134,7 @@ namespace hs {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
     bnFrameBufferResize(fb,fbSize.x,fbSize.y,BN_FB_COLOR);
-    // (base->world.rank==0)?hostRGBA:nullptr);
   }
-
-//   void BarneyBackend::Slot::setTransferFunction(const std::vector<BNVolume> &rootVolumes,
-//                                                 const TransferFunction &xf)
-//   {
-// #if 1
-//     currentXF = xf;
-//     needRebuild = true;
-// #else
-//     if (rootVolumes.empty())
-//       return;
-
-//     for (auto vol : rootVolumes) {
-//       bnVolumeSetXF(vol,
-//                     (float2&)xf.domain,
-//                     (const bn_float4*)xf.colorMap.data(),
-//                     (int)xf.colorMap.size(),
-//                     xf.baseDensity);
-//       }
-//     if (impl->volumeGroup)
-//       bnGroupBuild(impl->volumeGroup);
-//     needRebuild = true;
-//     // bnBuild(global->context,this->slot);
-// #endif
-//   }
 
   void BarneyBackend::Slot::applyTransferFunction(const TransferFunction &xf)
   {
@@ -182,8 +152,6 @@ namespace hs {
       bnGroupBuild(impl->volumeGroup);
       bnGroupBuild(impl->volumeGroup);
     }
-    // needRebuild = true;
-    // bnBuild(global->context,this->slot);
   }
   
   void BarneyBackend::Global::renderFrame()
@@ -200,7 +168,8 @@ namespace hs {
   void BarneyBackend::Global::setCamera(const Camera &camera)
   {
     if (fbSize.x <= 0 || fbSize.y <= 0)
-      throw std::runtime_error("trying to set camera, but window size not yet set - can't compute aspect");
+      throw std::runtime_error("trying to set camera, but window "
+                               "size not yet set - can't compute aspect");
     vec3f dir = camera.vi - camera.vp;
     bnSet(this->camera,"direction",(const bn_float3&)dir);
     bnSet(this->camera,"position", (const bn_float3&)camera.vp);
@@ -522,8 +491,10 @@ namespace hs {
     bnSetObject(light,"texture", texture);
     bnRelease(texture);
 
-    bnSet(light,"direction",(const bn_float3&)ml.transform.l.vx);
-    bnSet(light,"up",(const bn_float3&)ml.transform.l.vz);
+    vec3f up = ml.transform.l.vz;
+    vec3f dir = - ml.transform.l.vx;
+    bnSet(light,"direction",(const bn_float3&)dir);
+    bnSet(light,"up",(const bn_float3&)up);
     
     bnCommit(light);
     return light;
@@ -554,15 +525,15 @@ namespace hs {
     else
       throw std::runtime_error("unsupported voluem format '"+vol->texelFormat+"'");
     
-    BNTexture3D texture
-      = bnTexture3DCreate(global->context,this->slot,
-                          texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
-                          vol->rawData.data());
+    BNTextureData td
+      = bnTextureData3DCreate(global->context,this->slot,
+                              texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
+                              vol->rawData.data());
     BNScalarField sf
       = bnScalarFieldCreate(global->context,this->slot,"structured");
     assert(sf);
-    bnSetObject(sf,"texture",texture);
-    bnRelease(texture);
+    bnSetObject(sf,"textureData",td);
+    bnRelease(td);
     bnSet(sf,"dims",(const bn_int3&)vol->dims);
     bnSet(sf,"gridOrigin",(const bn_float3&)vol->gridOrigin);
     bnSet(sf,"gridSpacing",(const bn_float3&)vol->gridSpacing);
@@ -779,7 +750,14 @@ namespace hs {
     bnCommit(geom);
     return { geom };
   }
-
+  
+  /*! clean up and shut down */
+  void BarneyBackend::Global::terminate()
+  {
+    bnContextDestroy(context);
+    context = 0;
+  }
+  
 } // ::hs
 
 #endif

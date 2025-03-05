@@ -57,6 +57,7 @@ namespace hs {
                                                 int pathsPerPixel,
                                                 LocalModel &localModel,
                                                 bool verbose);
+
     Comm        &world;
     Comm         workers;
     LocalModel localModel;
@@ -117,6 +118,8 @@ namespace hs {
               bool verbose);
     
     void init();
+    void terminate() override { global.terminate(); }
+    
 
     void buildSlots() override;
     
