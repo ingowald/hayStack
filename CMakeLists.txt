@@ -27,6 +27,12 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
 endif()
 
+if (APPLE)
+  set(HS_HAVE_CUDA OFF)
+else()
+  options(HS_HAVE_CUDA "Have CUDA?" ON)
+endif()
+
 if (WIN32)
   option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
 else()
@@ -35,10 +41,11 @@ endif()
 option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
-
+if (HS_HAVE_CUDA)
 set(CMAKE_CUDA_ARCHITECTURES native)
 find_package(CUDAToolkit)
 enable_language(CUDA)
+endif()
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
@@ -48,8 +55,9 @@ if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
 endif()
 
-add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
-
+if (HS_HAVE_CUDA)
+  add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
+endif()
 
 if (NOT NO_BARNEY)
   find_package(barney)

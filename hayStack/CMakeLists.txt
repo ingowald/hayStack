@@ -98,4 +98,6 @@ if (TARGET anari::anari)
   #  endif()
 endif()
 
-target_link_libraries(hayStack PUBLIC CUDA::cudart)
+if (HS_HAVE_CUDA)
+  target_link_libraries(hayStack PUBLIC CUDA::cudart)
+endif()
