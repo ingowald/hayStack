@@ -83,9 +83,12 @@ namespace hs {
     FILE *file = fopen(data.where.c_str(),"rb");
     assert(file);
     const std::string format = data.get("format","<not set>");
+    size_t skipBytes = data.get_size("skipBytes",0);
     size_t sizeOfSphere = 0;
     if (format == "xyz") {
       sizeOfSphere = sizeof(vec3f);
+    } else if (format == "XYZ") {
+      sizeOfSphere = sizeof(vec3d);
     } else if (format == "xyzf" ||
           format == "xyzi") {
       sizeOfSphere = sizeof(vec4f);
@@ -94,7 +97,7 @@ namespace hs {
     } else
       throw std::runtime_error("unsupported format '"+format+"'");
 
-    int64_t numSpheresInFile = fileSize / sizeOfSphere;
+    int64_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
     int64_t numSpheresToLoad
       = std::min((int64_t)data.get_size("count",numSpheresInFile),
                  (int64_t)(numSpheresInFile-data.get_size("begin",0)));
@@ -109,7 +112,7 @@ namespace hs {
       + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
     size_t my_count = my_end - my_begin;
     // spheres->origins.resize(my_count);
-    fseek(file,my_begin*sizeOfSphere,SEEK_SET);
+    fseek(file,skipBytes+my_begin*sizeOfSphere,SEEK_SET);
     range1f scalarRange;
     if (format =="xyzf") {
       vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
@@ -122,11 +125,9 @@ namespace hs {
         if (colorMapRange.x != colorMapRange.y) {
           float f = v.w;
           scalarRange.extend(f);
-          // f = clamp(f,colorMapRange.x,colorMapRange.y);
           f = saturate((f-colorMapRange.x)/(colorMapRange.y-colorMapRange.x));
           vec3f color = .6f*temperature_to_rgb(f);
           spheres->colors.push_back(color);
-        // spheres->colors.push_back(vec3f(fmodf(v.w,1.f)));
         }
       }
     } else if (format =="xyzi") {
@@ -147,12 +148,16 @@ namespace hs {
           { 0,1,1 },
         };
         spheres->origins.push_back(vec3f{v.pos.x,v.pos.y,v.pos.z});
-        spheres->colors.push_back(
-                                  // v.type < 6
-                                  // ? baseColors[v.type]
-                                  // :
-                                  randomColor(13+(int)v.type));
-        // spheres->colors.push_back(randomColor(13+v.type));
+        spheres->colors.push_back(randomColor(13+(int)v.type));
+      }
+    } else if (format =="XYZ") {
+      struct
+      {
+        vec3d pos;
+      } v;
+      for (size_t i=0;i<my_count;i++) {
+        int rc = fread((char*)&v,sizeof(v),1,file);
+        spheres->origins.push_back(vec3f(v.pos));
       }
     } else if (format == "xyz") {
       vec3f v;

@@ -30,7 +30,7 @@ endif()
 if (APPLE)
   set(HS_HAVE_CUDA OFF)
 else()
-  options(HS_HAVE_CUDA "Have CUDA?" ON)
+  option(HS_HAVE_CUDA "Have CUDA?" ON)
 endif()
 
 if (WIN32)
