@@ -231,6 +231,14 @@ namespace hs {
       for (auto &vtx : cs->vertices)
         vtx = vtx * scale + shift;
     }
+    if (!cs->material) {
+      DisneyMaterial::SP mat = std::make_shared<DisneyMaterial>();
+      mat->baseColor = .5f;
+      mat->metallic = 1.f;
+      mat->roughness = 1.f;
+      cs->material = mat;
+    }
+      // cs->material = std::make_shared<Matte>();
     dataGroup.cylinderSets.push_back(cs);
   }
   

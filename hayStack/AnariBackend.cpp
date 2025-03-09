@@ -391,12 +391,13 @@ namespace hs {
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
 
-    if (colorMapped)
+    vec3f color = matte->reflectance / 3.14f;
+    if (1 && colorMapped)
       anari::setParameter(device,material,"color",
                           "color");
     else
       anari::setParameter(device,material,"color",
-                          (const anari::math::float3&)matte->reflectance);
+                          (const anari::math::float3&)color);
     return material;
   }
   
@@ -411,9 +412,11 @@ namespace hs {
     if (colorMapped)
       anari::setParameter(device,material,"baseColor",
                           "color");
-    else
+    else {
+      PRINT(disney->baseColor);
       anari::setParameter(device,material,"baseColor",
                           (const anari::math::float3&)disney->baseColor);
+    }
 #if 1
     // anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"metallic",disney->metallic);
@@ -841,8 +844,70 @@ namespace hs {
   }
     
   std::vector<anari::Surface>
-  AnariBackend::Slot::createCylinders(Cylinders::SP content)
-  { return {}; }
+  AnariBackend::Slot::createCylinders(Cylinders::SP content,
+                                      MaterialLibrary<AnariBackend> *materialLib)
+  {
+    auto device = global->device;
+
+    bool colorMapped = content->colors.size();
+      
+    anari::Material material = materialLib->getOrCreate(content->material,colorMapped);
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "cylinder");
+    anari::setParameterArray1D
+      (device, geom, "vertex.position",
+       (const anari::math::float3*)content->vertices.data(),
+       content->vertices.size());
+    // if (!content->colors.empty()) {
+    //   anari::setParameterArray1D
+    //     (device, geom, "vertex.color",
+    //      (const anari::math::float3*)content->colors.data(),
+    //      content->origins.size());
+    // }
+    if (content->radii.empty()) {
+      std::vector<float> radii;
+      for (int i=0;i<content->vertices.size();i++)
+        radii.push_back((float)content->radius);
+      anari::setParameterArray1D
+        (device, geom, "primitive.radius",
+         (const float*)radii.data(),
+         radii.size());
+    } else {
+      anari::setParameterArray1D
+        (device, geom, "primitive.radius",
+         (const float*)content->radii.data(),
+         content->radii.size());
+    }
+
+    if (colorMapped) {
+      if (!content->colors.empty()) {
+        std::vector<vec4f> color;
+        for (auto col : content->colors)
+          color.push_back(vec4f(col.x,col.y,col.z,1.f));
+        if (color.size() == content->vertices.size()) {
+          anari::setParameterArray1D
+            (device, geom, "vertex.color",
+             (const anari::math::float4*)color.data(),
+             color.size());
+        } else {
+          anari::setParameterArray1D
+            (device, geom, "primitive.color",
+             // (device, geom, "vertex.color",
+             (const anari::math::float4*)color.data(),
+             color.size());
+        }
+      }
+    }
+    
+    anari::commitParameters(device, geom);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+
+    return { surface };
+  }
   
 
 } // ::hs

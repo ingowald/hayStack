@@ -700,7 +700,8 @@ namespace hs {
   }
   
   std::vector<BNGeom>
-  BarneyBackend::Slot::createCylinders(Cylinders::SP content)
+  BarneyBackend::Slot::createCylinders(Cylinders::SP content,
+                                       MaterialLibrary<BarneyBackend> *materialLib)
   {
     BNGeom geom = bnGeometryCreate(global->context,this->slot,"cylinders");
     if (!geom) return {};
@@ -734,7 +735,7 @@ namespace hs {
                                 content->radii.data());
     bnSetAndRelease(geom,"radii",radii);
     
-    bnSet1i(geom,"radiusPerVertex",content->radiusPerVertex);
+    // bnSet1i(geom,"radiusPerVertex",content->radiusPerVertex);
     // bnSet1i(geom,"colorPerVertex",content->colorPerVertex);
     // bnSet1i(geom,"roundedCap",0);
     

@@ -105,7 +105,8 @@ namespace hs {
       createSpheres(SphereSet::SP content,
                     MaterialLibrary<BarneyBackend> *materialLib);
       std::vector<BNGeom>
-      createCylinders(Cylinders::SP content);
+      createCylinders(Cylinders::SP content,
+                      MaterialLibrary<BarneyBackend> *materialLib);
 
       std::vector<BNGeom>
       createCapsules(hs::Capsules::SP caps,

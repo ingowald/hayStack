@@ -151,7 +151,7 @@ namespace hs {
       // render all cyliders
       // -----------------------------------------------------------------
       for (auto content : myData.cylinderSets)
-        for (auto created : impl->createCylinders(content))
+        for (auto created : impl->createCylinders(content,&this->materialLibrary))
           rootGeoms.push_back(created);
     
       // ------------------------------------------------------------------
