@@ -414,7 +414,6 @@ namespace hs {
       anari::setParameter(device,material,"baseColor",
                           "color");
     else {
-      PRINT(disney->baseColor);
       anari::setParameter(device,material,"baseColor",
                           (const anari::math::float3&)disney->baseColor);
     }

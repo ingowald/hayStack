@@ -157,7 +157,7 @@ namespace hs {
   void BarneyBackend::Global::renderFrame()
   {
     bnRender(renderer,model,camera,fb);
-    bnFrameBufferRead(fb,BN_FB_COLOR,hostRGBA,BN_UFIXED8_RGBA);
+    bnFrameBufferRead(fb,BN_FB_COLOR,hostRGBA,BN_UFIXED8_RGBA_SRGB);
   }
 
   void BarneyBackend::Global::resetAccumulation()
