@@ -705,14 +705,6 @@ namespace hs {
   {
     BNGeom geom = bnGeometryCreate(global->context,this->slot,"cylinders");
     if (!geom) return {};
-    // std::vector<vec3f> vertices;
-    // std::vector<vec3f> colors;
-    // std::vector<vec2i>  indices;
-    // std::vector<float> radii;
-
-    // bool colorPerVertex  = false;
-    // bool radiusPerVertex = false;
-    // bool roundedCap      = false;
     BNData vertices = bnDataCreate(global->context,this->slot,BN_FLOAT3,
                                    content->vertices.size(),
                                    content->vertices.data());
@@ -735,18 +727,19 @@ namespace hs {
                                 content->radii.data());
     bnSetAndRelease(geom,"radii",radii);
     
-    // bnSet1i(geom,"radiusPerVertex",content->radiusPerVertex);
-    // bnSet1i(geom,"colorPerVertex",content->colorPerVertex);
-    // bnSet1i(geom,"roundedCap",0);
-    
     BNData colors
       = content->colors.empty()
       ? nullptr
       : bnDataCreate(global->context,this->slot,BN_FLOAT3,
                      content->colors.size(),
                      content->colors.data());
-    if (colors)
-      bnSetAndRelease(geom,"primitive.color",colors);
+    if (colors) {
+      if (content->colorPerVertex) {
+        bnSetAndRelease(geom,"vertex.color",colors);
+      } else {
+        bnSetAndRelease(geom,"primitive.color",colors);
+      }
+    }
 
     bnCommit(geom);
     return { geom };

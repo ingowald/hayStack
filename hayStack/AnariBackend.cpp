@@ -143,7 +143,8 @@ namespace hs {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
-    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
+    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
+    // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
     anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
 
     anari::commitParameters(device, frame);
