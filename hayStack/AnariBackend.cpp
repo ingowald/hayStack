@@ -593,8 +593,6 @@ namespace hs {
     vec3f up = ml.transform.l.vz;
     vec3f dir = - ml.transform.l.vx;
 
-    PRINT(up);
-    PRINT(dir);
     anari::setParameter(device,light,"up",
                         (const anari::math::float3&)up);
     anari::setParameter(device,light,"direction",
@@ -612,7 +610,6 @@ namespace hs {
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",average(ml.radiance));
-    // anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
     anari::commitParameters(device,light);
     return light;
   }
@@ -640,20 +637,14 @@ namespace hs {
     anari::setParameter(device, field, "spacing",
                         (const anari::math::float3&)vol->gridSpacing);
     if (vol->texelFormat == "float") {
-    // switch(vol->texelFormat) {
-    // case BN_FLOAT:
       anari::setParameterArray3D
         (device, field, "data", (const float *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
-    //   break;
-    // case BN_UFIXED8:
     } else if (vol->texelFormat == "uint8_t") {
       anari::setParameterArray3D
         (device, field, "data", (const uint8_t *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
     } else if (vol->texelFormat == "uint16_t") {
-    //   break;
-    // case BN_UFIXED16: {
       std::cout << "volume with uint16s, converting to float" << std::endl;
       static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
       for (size_t i=0;i<volumeAsFloats.size();i++)
@@ -663,8 +654,6 @@ namespace hs {
         (device, field, "data", (const float *)volumeAsFloats.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
     } else {
-    // } break;
-    // default:
       throw std::runtime_error("un-supported scalar type in hanari structured volume");
     }
         
