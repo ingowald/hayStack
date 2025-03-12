@@ -350,11 +350,12 @@ namespace hs {
       = anari::newObject<anari::Material>(device, "physicallyBased");
 
     vec3f baseColor = metal->k * float (1.f/ M_PI);
-    if (colorMapped) 
+    if (colorMapped)  {
       anari::setParameter(device,material,"baseColor","color");
-    else
+    } else {
       anari::setParameter(device,material,"baseColor",
                           (const anari::math::float3&)baseColor);
+    }
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->roughness);
@@ -393,12 +394,13 @@ namespace hs {
       = anari::newObject<anari::Material>(device, "matte");
 
     vec3f color = matte->reflectance / 3.14f;
-    if (1 && colorMapped)
+    if (colorMapped) {
       anari::setParameter(device,material,"color",
                           "color");
-    else
+    } else
       anari::setParameter(device,material,"color",
                           (const anari::math::float3&)color);
+    anari::commitParameters(device, material);
     return material;
   }
   
@@ -798,9 +800,11 @@ namespace hs {
     // std::vector<float> radii;
     // mini::Material::SP material;
     // float radius = .1f;
-    
+
+    bool hasColor = !content->colors.empty();
     auto device = global->device;
-    anari::Material material = materialLib->getOrCreate(content->material);
+    anari::Material material
+      = materialLib->getOrCreate(content->material,hasColor);
     anari::Geometry geom
       = anari::newObject<anari::Geometry>(device, "sphere");
     anari::setParameterArray1D

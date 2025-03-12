@@ -73,10 +73,16 @@ namespace hs {
   void   SpheresFromFile::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     SphereSet::SP spheres = SphereSet::create();
+#if 1
+    mini::Matte::SP mat =
+      std::make_shared<mini::Matte>();;
+    mat->reflectance = .5f;
+#else
     mini::DisneyMaterial::SP mat =
       std::make_shared<mini::DisneyMaterial>();;
     mat->metallic = 0.f;
     mat->ior = 1.f;
+#endif
     spheres->material = mat;
 
     spheres->radius = radius;
@@ -148,7 +154,10 @@ namespace hs {
           { 0,1,1 },
         };
         spheres->origins.push_back(vec3f{v.pos.x,v.pos.y,v.pos.z});
-        spheres->colors.push_back(randomColor(13+(int)v.type));
+        vec3f color = v.type < 6
+          ? baseColors[v.type]
+          : randomColor(13+(int)v.type);
+        spheres->colors.push_back(.7f*color);
       }
     } else if (format =="XYZ") {
       struct
