@@ -88,6 +88,9 @@ namespace hs {
       std::vector<anari::Surface>
       createCylinders(Cylinders::SP content,
                       MaterialLibrary<AnariBackend> *materialLib);
+      std::vector<anari::Surface>
+      createTriangleMesh(TriangleMesh::SP content,
+                         MaterialLibrary<AnariBackend> *materialLib);
 
       std::vector<anari::Surface>
       createCapsules(hs::Capsules::SP caps,

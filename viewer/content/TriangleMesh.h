@@ -20,32 +20,15 @@
 
 namespace hs {
   namespace content {
-  /*! a file of 'raw' spheres */
-    struct SpheresFromFile : public LoadableContent {
-      SpheresFromFile(const ResourceSpecifier &data,
-                      int thisPartID,
-                      float defaultRadius);
+    /*! simple position/normal/color/index triangle meshes in binary format */
+    struct VMDMesh : public LoadableContent {
+      VMDMesh(const ResourceSpecifier &data,
+              int thisPartID);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
       size_t projectedSize() override;
       void   executeLoad(DataRank &dataGroup, bool verbose) override;
-
-      std::string toString() override;
-
-      const float radius;
-      const ResourceSpecifier data;
-      const size_t fileSize;
-      const int thisPartID = 0;
-    };
-
-    struct VMDSpheres : public LoadableContent {
-      VMDSpheres(const ResourceSpecifier &data,
-                 int thisPartID);
-      static void create(DataLoader *loader,
-                         const ResourceSpecifier &dataURL);
-      size_t projectedSize() override;
-      void   executeLoad(DataRank &dataGroup, bool verbose) override;
-
+    
       std::string toString() override;
 
       const ResourceSpecifier data;

@@ -41,6 +41,8 @@ set(SOURCES
   content/Capsules.cpp
   content/TSTris.h
   content/TSTris.cpp
+  content/TriangleMesh.h
+  content/TriangleMesh.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
   content/UMeshContent.h

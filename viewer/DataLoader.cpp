@@ -16,6 +16,7 @@
 
 #include "viewer/DataLoader.h"
 #include "viewer/content/TSTris.h"
+#include "viewer/content/TriangleMesh.h"
 #include "viewer/content/RAWVolumeContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
@@ -318,6 +319,12 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdcyls")) {
+      content::VMDCyls::create(this,addIfRequired("vmdcyls://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdspheres")) {
+      content::VMDSpheres::create(this,addIfRequired("vmdspheres://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdmesh")) {
+      content::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".raw")) {
@@ -325,7 +332,7 @@ namespace hs {
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")
-        SpheresFromFile::create(this,url);
+        content::SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 
@@ -339,7 +346,7 @@ namespace hs {
       else if (url.type == "boxes") 
         BoxesFromFile::create(this,url/*contentDescriptor*/);
       else if (url.type == "cylinders") 
-        CylindersFromFile::create(this,url);
+        content::CylindersFromFile::create(this,url);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
         SpatiallyPartitionedUMeshContent::create(this,url);

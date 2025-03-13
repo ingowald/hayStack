@@ -698,6 +698,13 @@ namespace hs {
     bnCommit(geom);
     return { geom };
   }
+
+  std::vector<BNGeom>
+  BarneyBackend::Slot::createTriangleMesh(TriangleMesh::SP content,
+                                          MaterialLibrary<BarneyBackend> *materialLib)
+  {
+    throw std::runtime_error("not implemented");
+  }
   
   std::vector<BNGeom>
   BarneyBackend::Slot::createCylinders(Cylinders::SP content,

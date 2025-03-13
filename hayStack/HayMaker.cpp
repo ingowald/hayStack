@@ -148,10 +148,17 @@ namespace hs {
           rootGeoms.push_back(created);
       
       // ------------------------------------------------------------------
-      // render all cyliders
+      // render all cylinders
       // -----------------------------------------------------------------
       for (auto content : myData.cylinderSets)
         for (auto created : impl->createCylinders(content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+    
+      // ------------------------------------------------------------------
+      // render all individual meshes
+      // -----------------------------------------------------------------
+      for (auto content : myData.triangleMeshes)
+        for (auto created : impl->createTriangleMesh(content,&this->materialLibrary))
           rootGeoms.push_back(created);
     
       // ------------------------------------------------------------------

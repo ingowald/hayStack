@@ -19,6 +19,7 @@
 #include "hayStack/DataRank.h"
 #include "hayStack/MPIWrappers.h"
 #include "hayStack/LocalModel.h"
+#include <fstream>
 
 namespace hs {
 
@@ -147,5 +148,24 @@ namespace hs {
     
   };
 
+  template<typename T>
+  std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+  {
+    std::vector<T> vec;
+    size_t count;
+    in.read((char *)&count,sizeof(count));
+    size_t begin = part * count / numParts;
+    size_t end = (part+1) * count / numParts;
+    T t;
+    for (size_t i=0;i<begin;i++)
+      in.read((char *)&t,sizeof(t));
+    for (size_t i=begin;i<end;i++) {
+      in.read((char *)&t,sizeof(t));
+      vec.push_back(t);
+    }
+    for (size_t i=end;i<count;i++)
+      in.read((char *)&t,sizeof(t));
+    return vec;
+  }
 }
 

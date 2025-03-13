@@ -522,7 +522,10 @@ namespace hs {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
       anari::setParameter(device, inst, "group", groups[i]);
-      // anari::setAndReleaseParameter(device, inst, "group", groups[i]);
+
+      // vec3f rc = randomColor(i);
+      // anari::math::float4 instColor(rc.x,rc.y,rc.z,1.f);
+      // anari::setParameter(device, inst, "color", instColor);
 
       const affine3f xfm = xfms[i];
 
@@ -835,7 +838,45 @@ namespace hs {
 
     return { surface };
   }
+
+  std::vector<anari::Surface>
+  AnariBackend::Slot::createTriangleMesh(TriangleMesh::SP content,
+                                         MaterialLibrary<AnariBackend> *materialLib)
+  {
+    auto device = global->device;
+
+    bool colorMapped = content->colors.size();
+      
+    anari::Material material = materialLib->getOrCreate(content->material,colorMapped);
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "triangle");
+    anari::setParameterArray1D
+      (device, geom, "vertex.position",
+       (const anari::math::float3*)content->vertices.data(),
+       content->vertices.size());
+    anari::setParameterArray1D
+      (device, geom, "vertex.normal",
+       (const anari::math::float3*)content->normals.data(),
+       content->normals.size());
+    anari::setParameterArray1D
+      (device, geom, "primitive.index",
+       (const anari::math::uint3*)content->indices.data(),
+       content->indices.size());
+    anari::setParameterArray1D
+      (device, geom, "vertex.color",
+       (const anari::math::float3*)content->colors.data(),
+       content->colors.size());
     
+    anari::commitParameters(device, geom);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+
+    return {surface};
+  }
+  
   std::vector<anari::Surface>
   AnariBackend::Slot::createCylinders(Cylinders::SP content,
                                       MaterialLibrary<AnariBackend> *materialLib)
@@ -851,12 +892,6 @@ namespace hs {
       (device, geom, "vertex.position",
        (const anari::math::float3*)content->vertices.data(),
        content->vertices.size());
-    // if (!content->colors.empty()) {
-    //   anari::setParameterArray1D
-    //     (device, geom, "vertex.color",
-    //      (const anari::math::float3*)content->colors.data(),
-    //      content->origins.size());
-    // }
     if (content->radii.empty()) {
       std::vector<float> radii;
       for (int i=0;i<content->vertices.size();i++)
