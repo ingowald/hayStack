@@ -274,7 +274,6 @@ namespace hs {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
     bnSet(mat,"reflectance",(const bn_float3&)matte->reflectance);
 #endif
-    std::cout << "committing " << (int*)mat << std::endl;
     bnCommit(mat);
     
     return mat;

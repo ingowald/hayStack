@@ -108,7 +108,7 @@ namespace hs {
 
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
     // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-    anari::setParameter(device, renderer, "ambientRadiance", .5f);
+    anari::setParameter(device, renderer, "ambientRadiance", .6f);
     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
 #if 1
     std::vector<vec4f> bgGradient = {
@@ -397,9 +397,10 @@ namespace hs {
     if (colorMapped) {
       anari::setParameter(device,material,"color",
                           "color");
-    } else
+    } else {
       anari::setParameter(device,material,"color",
                           (const anari::math::float3&)color);
+    }
     anari::commitParameters(device, material);
     return material;
   }
@@ -409,6 +410,18 @@ namespace hs {
   {
     auto device = global->device;
 
+#if 0
+    {
+      anari::Material material
+        = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"color",
+                          (const anari::math::float3&)disney->baseColor);
+      anari::commitParameters(device, material);
+      return material;
+    }
+#endif
+    
+    
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
 
@@ -463,6 +476,38 @@ namespace hs {
     return material;
   }
 
+  anari::Material AnariBackend::Slot::create(mini::Plastic::SP plastic, bool colorMapped)
+  {
+    auto device = global->device;
+
+#if 0
+    {
+      vec3f base(1,0,0);
+      anari::Material material
+        = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"color",(const anari::math::float3&)base);
+      anari::commitParameters(device, material);
+      return material;
+    }
+#endif
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+    anari::setParameter(device,material,"ior",plastic->eta);
+    /* this is almost certainly wrong, but in the embree imported
+       xml files all the plastic's have Ks==1.f and only non-one
+       value is pigmentcolor... */
+    vec3f base = min(plastic->Ks,plastic->pigmentColor);;
+    anari::setParameter(device,material,"baseColor",(const anari::math::float3&)base);
+    anari::setParameter(device,material,"transmission",0.f);
+    anari::setParameter(device,material,"metallic",0.f);
+    anari::setParameter(device,material,"specular",0.f);
+    anari::setParameter(device,material,"roughness",plastic->roughness);
+
+    anari::commitParameters(device, material);
+    return material;
+  }
+  
   
   anari::Material AnariBackend::Slot::create(mini::Material::SP miniMat, bool colorMapped)
   {
@@ -478,8 +523,8 @@ namespace hs {
 
     auto device = global->device;
 
-    // if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
-    //   return create(plastic);
+    if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+      return create(plastic, colorMapped);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
       return create(disney, colorMapped);
     if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
@@ -492,8 +537,8 @@ namespace hs {
       return create(matte, colorMapped);
     if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
       return create(metal, colorMapped);
-    // if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
-    //   return create(dielectric);
+    if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+      return create(dielectric, colorMapped);
     // if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
     //   return create(thinGlass);
     // throw std::runtime_error("could not create barney material for mini mat "
@@ -613,6 +658,8 @@ namespace hs {
     auto device = global->device;
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
+    std::cout << "dir light direction "
+              << (const vec3f&)ml.direction << std::endl;
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",average(ml.radiance));
     anari::commitParameters(device,light);
