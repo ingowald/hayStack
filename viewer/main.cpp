@@ -153,6 +153,15 @@ namespace hs {
       case '!':
         screenShot();
         break;
+      case '*': {
+        hs::Camera camera;
+        OWLViewer::getCameraOrientation
+          ((viewer::vec3f&)camera.vp,
+           (viewer::vec3f&)camera.vi,
+           (viewer::vec3f&)camera.vu,
+           camera.fovy);
+        PRINT(normalize(camera.vi - camera.vp));
+      } break;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
           std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;

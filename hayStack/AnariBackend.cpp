@@ -258,6 +258,7 @@ namespace hs {
       if (hostRGBA)
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
     }
+    anari::unmap(device,frame,"channel.color");
   }
 
   void AnariBackend::Global::resetAccumulation()
@@ -274,6 +275,7 @@ namespace hs {
     vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera,
                         "direction", (const anari::math::float3&)camera_dir);
+    // PRINT(camera_dir);
     anari::setParameter(device, this->camera,
                         "up",        (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera);
@@ -611,6 +613,9 @@ namespace hs {
 
   float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
 
+
+  //#define CHECK_HDRI 1
+  
   anari::Light AnariBackend::Slot::create(const mini::EnvMapLight &ml)
   {
     std::cout << MINI_TERMINAL_YELLOW
@@ -623,10 +628,53 @@ namespace hs {
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
     vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
-#if 0
+    PING; PRINT(size);
+#if CHECK_HDRI
+    // ==================================================================
+    // base pattern is thin black grid on white background
+    // ==================================================================
     for (int iy=0;iy<size.y;iy++) {
       for (int ix=0;ix<size.x;ix++) {
-        as3f[ix+iy*size.x] = vec3f(0.f,0.,(iy % 100)/100.f);
+        vec3f color 
+          = ((ix%16==0)||(iy%16==0))
+          ? vec3f(0.f)
+          : vec3f(1.f);
+        as3f[ix+iy*size.x] = color;
+      }
+    }
+    // ==================================================================
+    // red square in lower left corner
+    // ==================================================================
+    for (int iy=0;iy<size.y/32;iy++) {
+      for (int ix=0;ix<size.x/32;ix++) {
+        vec3f color = vec3f(1,0,0);
+        as3f[ix+iy*size.x] = color;
+      }
+    }
+    // ==================================================================
+    // blue crosshair through center image, 
+    // ==================================================================
+    for (int iy=0;iy<size.y;iy++) {
+      int ix = size.x/2;
+      as3f[ix+iy*size.x] = vec3f(0,0,1);
+    }
+    for (int ix=0;ix<size.x;ix++) {
+      int iy = size.y/2;
+      as3f[ix+iy*size.x] = vec3f(0,0,1);
+    }
+    // ==================================================================
+    // gradient
+    // ==================================================================
+    int iy0 = size.y/2-16;
+    int ix0 = size.x/2-16;
+    int iy1 = size.y/2+16;
+    int ix1 = size.x/2+16;
+    for (int iy=iy0;iy<=iy1;iy++) {
+      for (int ix=ix0;ix<=ix1;ix++) {
+        float r = float(ix-ix0)/float(ix1-ix0);
+        float g = float(iy-iy0)/float(iy1-iy0);
+        // as3f[ix+iy*size.x] = vec3f(0,1,0);
+        as3f[ix+iy*size.x] = vec3f(r,g,(r+g)/2.f);
       }
     }
 #else
@@ -643,6 +691,7 @@ namespace hs {
     vec3f up = ml.transform.l.vz;
     vec3f dir = - ml.transform.l.vx;
 
+    std::cout << "setting HDRI orientation dir = " << dir << ", up = " << up << std::endl;
     anari::setParameter(device,light,"up",
                         (const anari::math::float3&)up);
     anari::setParameter(device,light,"direction",
