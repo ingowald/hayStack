@@ -350,7 +350,8 @@ namespace hs {
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-
+    anari::setParameter(device,material,"alphaMode","blend");
+    
     vec3f baseColor = metal->k * float (1.f/ M_PI);
     if (colorMapped)  {
       anari::setParameter(device,material,"baseColor","color");
@@ -358,6 +359,7 @@ namespace hs {
       anari::setParameter(device,material,"baseColor",
                           (const anari::math::float3&)baseColor);
     }
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->roughness);
@@ -372,10 +374,12 @@ namespace hs {
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
+    anari::setParameter(device,material,"alphaMode","blend");
 
     vec3f baseColor = (const vec3f&)metal->shadeColor;
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)baseColor);
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->glitterSpread);
@@ -394,6 +398,7 @@ namespace hs {
     auto device = global->device;
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
+    anari::setParameter(device,material,"alphaMode","blend");
 
     vec3f color = matte->reflectance / 3.14f;
     if (colorMapped) {
@@ -416,6 +421,7 @@ namespace hs {
     {
       anari::Material material
         = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"alphaMode","blend");
       anari::setParameter(device,material,"color",
                           (const anari::math::float3&)disney->baseColor);
       anari::commitParameters(device, material);
@@ -426,6 +432,7 @@ namespace hs {
     
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
+    anari::setParameter(device,material,"alphaMode","blend");
 
     if (colorMapped)
       anari::setParameter(device,material,"baseColor",
@@ -468,6 +475,7 @@ namespace hs {
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
 
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"ior",dielectric->etaInside);
     anari::setParameter(device,material,"transmission",1.f);
     anari::setParameter(device,material,"metallic",0.f);
@@ -487,6 +495,7 @@ namespace hs {
       vec3f base(1,0,0);
       anari::Material material
         = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"alphaMode","blend");
       anari::setParameter(device,material,"color",(const anari::math::float3&)base);
       anari::commitParameters(device, material);
       return material;
@@ -495,6 +504,7 @@ namespace hs {
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
 
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"ior",plastic->eta);
     /* this is almost certainly wrong, but in the embree imported
        xml files all the plastic's have Ks==1.f and only non-one
@@ -553,6 +563,7 @@ namespace hs {
     
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::math::float3 color(.7f,.7f,.7f);
     anari::setParameter(device,material,"color",color);
     anari::commitParameters(device, material);
