@@ -85,17 +85,16 @@ namespace hs {
                                 const ResourceSpecifier &dataURL)
   {
     std::string type = dataURL.get("type",dataURL.get("format",""));
-    PRINT(type);
     std::string texelFormat;
     if (type == "") {
-      std::cout << "#hs.raw: no type specified, trying to guess..." << std::endl;
+      std::cout << "#hs.raw: no type specified, trying to guess form '" << dataURL.where << "'..." << std::endl;
       if (contains(dataURL,"uint8"))
         texelFormat = "uint8_t";
       else if (contains(dataURL,"uint16"))
         texelFormat = "uint16_t";
       else if (contains(dataURL,"float64"))
         texelFormat = "double";
-      if (contains(dataURL,"float"))
+      else if (contains(dataURL,"float"))
         texelFormat = "float";
       else
         throw std::runtime_error("could not get raw volume file format");
