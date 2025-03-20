@@ -321,7 +321,7 @@ namespace hs {
     }
 #endif
 
-    void cameraChanged()
+    void cameraChanged() override
     {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation
