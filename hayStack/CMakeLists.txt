@@ -60,11 +60,13 @@ target_include_directories(hayStack PUBLIC
 
 # link to respective version(s) of barney/barney_mpi,banari
 if (NO_BARNEY)
+  message("no mpi, only anari")
   # explicitly don't link to barney - we'll get everything through
   # anari.
   target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 elseif (WIN32)
+  message("win")
   # windows: we don't support mpi, anyway, always link to barney
   target_link_libraries(hayStack PUBLIC barney::barney)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
@@ -73,8 +75,9 @@ elseif (TARGET barney::barney_mpi)
   # we're NOT on windows, so we _can_ use mpi mode. check if we have
   # it, and if so, use it.
   find_package(MPI REQUIRED)
-  target_link_libraries(hayStack PUBLIC barney::barney_mpi MPI::MPI_CXX)
+  target_link_libraries(hayStack PUBLIC barney::barney_mpi -DBARNEY_MPI=ON MPI::MPI_CXX)
 else()
+  message("no mpi, linking to barney")
   # we're on linux, but the barney we foudn doesn't feature any mpi
   # support - use non-mpi barney.
   target_link_libraries(hayStack PUBLIC barney::barney)

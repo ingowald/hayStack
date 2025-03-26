@@ -325,6 +325,8 @@ namespace hs {
       content::VMDSpheres::create(this,addIfRequired("vmdspheres://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".vmdmesh")) {
       content::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".rgbtris")) {
+      content::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".raw")) {

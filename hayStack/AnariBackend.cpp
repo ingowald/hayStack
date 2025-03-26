@@ -95,7 +95,13 @@ namespace hs {
       for (auto dg : base->localModel.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
       char *envlib = getenv("ANARI_LIBRARY");
-      std::string libname = envlib ? "environment" : "barney";
+      std::string libname = envlib ? "environment" :
+#if 
+        "barney_mpi"
+#else
+        "barney"
+#endif
+        ;
       auto library = anari::loadLibrary(libname.c_str(), statusFunc);
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
@@ -961,19 +967,23 @@ namespace hs {
       (device, geom, "vertex.position",
        (const anari::math::float3*)content->vertices.data(),
        content->vertices.size());
-    anari::setParameterArray1D
-      (device, geom, "vertex.normal",
-       (const anari::math::float3*)content->normals.data(),
-       content->normals.size());
+    if (!content->normals.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.normal",
+         (const anari::math::float3*)content->normals.data(),
+         content->normals.size());
+    }
     anari::setParameterArray1D
       (device, geom, "primitive.index",
        (const anari::math::uint3*)content->indices.data(),
        content->indices.size());
-    anari::setParameterArray1D
-      (device, geom, "vertex.color",
-       (const anari::math::float3*)content->colors.data(),
-       content->colors.size());
-    
+    if (!content->colors.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.color",
+         (const anari::math::float3*)content->colors.data(),
+         content->colors.size());
+    }
+      
     anari::commitParameters(device, geom);
 
     anari::Surface  surface = anari::newObject<anari::Surface>(device);
