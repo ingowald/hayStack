@@ -96,7 +96,7 @@ namespace hs {
         dataGroupIDs.push_back(dg.dataGroupID);
       char *envlib = getenv("ANARI_LIBRARY");
       std::string libname = envlib ? "environment" :
-#if 
+#if HS_MPI
         "barney_mpi"
 #else
         "barney"

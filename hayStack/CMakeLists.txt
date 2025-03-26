@@ -14,8 +14,6 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-find_package(anari 0.8.0)
-
 add_library(hayStack
   MPIWrappers.h
   MPIWrappers.cpp
@@ -56,35 +54,37 @@ target_link_libraries(hayStack
 )
 target_include_directories(hayStack PUBLIC
   ${PROJECT_SOURCE_DIR}
-  )
+)
 
-# link to respective version(s) of barney/barney_mpi,banari
-if (NO_BARNEY)
-  message("no mpi, only anari")
+if (HS_MPI)
+  find_package(MPI REQUIRED)
+  target_compile_definitions(hayStack PUBLIC -DHS_MPI=1)
+  target_link_libraries(hayStack PUBLIC MPI::MPI_CXX)
+else()
+  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
+endif()
+
+# link to respective version(s) of barney/barney_mpi
+if (HS_BARNEY)
+  find_package(barney REQUIRED)
+  if (HS_MPI)
+    if (BARNEY_FEATURE_MPI)
+      message(FATAL "HS_MPI is ON, but the barney we found doesn't offer MPI support")
+    endif()
+    target_link_libraries(hayStack PUBLIC barney::barney_mpi -DBARNEY_MPI=ON)
+  else()
+    target_link_libraries(hayStack PUBLIC barney::barney)
+  endif()
+else()
   # explicitly don't link to barney - we'll get everything through
   # anari.
   target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
-elseif (WIN32)
-  message("win")
-  # windows: we don't support mpi, anyway, always link to barney
-  target_link_libraries(hayStack PUBLIC barney::barney)
-  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
-elseif (TARGET barney::barney_mpi)
-  message("we HAVE MPI in barney")
-  # we're NOT on windows, so we _can_ use mpi mode. check if we have
-  # it, and if so, use it.
-  find_package(MPI REQUIRED)
-  target_link_libraries(hayStack PUBLIC barney::barney_mpi -DBARNEY_MPI=ON MPI::MPI_CXX)
-else()
-  message("no mpi, linking to barney")
-  # we're on linux, but the barney we foudn doesn't feature any mpi
-  # support - use non-mpi barney.
-  target_link_libraries(hayStack PUBLIC barney::barney)
-  target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-if (TARGET anari::anari)
+
+if (HS_ANARI)
+  find_package(anari 0.14.0 REQUIRED)
   target_compile_definitions(hayStack
     PUBLIC
     -DHANARI=1
@@ -93,12 +93,6 @@ if (TARGET anari::anari)
     PUBLIC
     anari::anari
   )
-  #  if (MPI_FOUND)
-  #    target_link_libraries(hayStack
-  #      PUBLIC
-  #      MPI::MPI_CXX
-  #    )
-  #  endif()
 endif()
 
 if (HS_HAVE_CUDA)

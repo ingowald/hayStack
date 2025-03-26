@@ -27,6 +27,10 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
 endif()
 
+option(HS_MPI    "Enable MPI support in haystack" OFF)
+option(HS_ANARI  "Enable ANARI Backend" ON)
+option(HS_BARNEY "Enabel Barney Native Backend" ON)
+  
 if (APPLE)
   set(HS_HAVE_CUDA OFF)
 else()
@@ -50,7 +54,6 @@ endif()
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
-option(NO_BARNEY "do not build barney?" OFF)
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
 endif()
@@ -59,19 +62,12 @@ if (HS_HAVE_CUDA)
   add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
 endif()
 
-if (NOT NO_BARNEY)
-  find_package(barney)
-  #find_package(barney COMPONENTS barney )#barney_mpi)
-endif()
-
- 
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 endif()
 if (HT_CUTEE)
   add_subdirectory(submodules/cuteeOWL     EXCLUDE_FROM_ALL)
 endif()
-
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
