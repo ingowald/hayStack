@@ -17,6 +17,10 @@
 #if HANARI
 #include "AnariBackend.h"
 
+#if 0
+# define TEST_IDCHANNEL "channel.primitiveId"    
+#endif
+
 namespace hs {
 
     static void statusFunc(const void * /*userData*/,
@@ -134,7 +138,7 @@ namespace hs {
 
     frame = anari::newObject<anari::Frame>(device);
     // anari::setParameter(device, frame, "size", imgSize);
-    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
+    // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
     anari::setParameter(device, frame, "world",    model);
     anari::setParameter(device, frame, "renderer", renderer);
 
@@ -151,7 +155,10 @@ namespace hs {
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
     // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
-    anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+    // anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+#ifdef TEST_IDCHANNEL
+    anari::setParameter(device, frame, TEST_IDCHANNEL, ANARI_UINT32);
+#endif
 
     anari::commitParameters(device, frame);
   }
@@ -257,14 +264,42 @@ namespace hs {
   {
     // anari::commitParameters(device, frame);
     anari::render(device, frame);
+#ifdef TEST_IDCHANNEL
+    auto fb = anari::map<uint32_t>(device, frame, "TEST_IDCHANNEL");
+#else
     auto fb = anari::map<uint32_t>(device, frame, "channel.color");
+#endif
+    
     if (fb.width != fbSize.x || fb.height != fbSize.y)
       std::cout << "resized frame!?" << std::endl;
     else {
-      if (hostRGBA)
+      if (hostRGBA) {
+#ifdef TEST_IDCHANNEL
+        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
+        const uint64_t FNV_prime = 0x100000001b3ULL;
+        for (int i=0;i<fb.width*fb.height;i++) {
+          uint32_t ID = fb.data[i];
+          uint64_t s = FNV_basis + FNV_prime * ID;
+          
+          s = s * FNV_prime ^ ID;
+          int r = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int g = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int b = s & 0xff;
+          uint32_t rgba = b<<24 | g<<16 | r<<8 | 0xff;
+          hostRGBA[i] = rgba;
+        }
+#else
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+#endif
+      }
     }
+#ifdef TEST_IDCHANNEL
+    anari::unmap(device,frame,TEST_IDCHANNEL);
+#else
     anari::unmap(device,frame,"channel.color");
+#endif
   }
 
   void AnariBackend::Global::resetAccumulation()

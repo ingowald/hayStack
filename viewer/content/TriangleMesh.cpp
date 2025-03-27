@@ -103,7 +103,6 @@ namespace hs {
         mesh->indices.push_back(3*i+vec3i(0,1,2));
 #if 1
       mini::Matte::SP mat = std::make_shared<mini::Matte>();
-      // mat->reflectance = vec3f(1.f,0.f,0.f);
 #else
       mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();
       mat->metallic = .2f;
