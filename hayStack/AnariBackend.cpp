@@ -17,8 +17,10 @@
 #if HANARI
 #include "AnariBackend.h"
 
-#if 0
-# define TEST_IDCHANNEL "channel.primitiveId"    
+#if 1
+// # define TEST_IDCHANNEL "channel.objectId"    
+# define TEST_IDCHANNEL "channel.instanceId"    
+// # define TEST_IDCHANNEL "channel.primitiveId"    
 #endif
 
 namespace hs {
@@ -150,6 +152,7 @@ namespace hs {
 
   void AnariBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
+    PING; PRINT(fbSize);
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
@@ -265,13 +268,13 @@ namespace hs {
     // anari::commitParameters(device, frame);
     anari::render(device, frame);
 #ifdef TEST_IDCHANNEL
-    auto fb = anari::map<uint32_t>(device, frame, "TEST_IDCHANNEL");
+    auto fb = anari::map<uint32_t>(device, frame, TEST_IDCHANNEL);
 #else
     auto fb = anari::map<uint32_t>(device, frame, "channel.color");
 #endif
-    
+
     if (fb.width != fbSize.x || fb.height != fbSize.y)
-      std::cout << "resized frame!?" << std::endl;
+      std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
       if (hostRGBA) {
 #ifdef TEST_IDCHANNEL
@@ -287,7 +290,7 @@ namespace hs {
           int g = s & 0xff;
           s = s * FNV_prime ^ ID;
           int b = s & 0xff;
-          uint32_t rgba = b<<24 | g<<16 | r<<8 | 0xff;
+          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
           hostRGBA[i] = rgba;
         }
 #else
@@ -620,6 +623,8 @@ namespace hs {
     for (int i=0;i<groups.size();i++) {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
+      
+      anari::setParameter(device, inst, "id", i);
       anari::setParameter(device, inst, "group", groups[i]);
 
       // vec3f rc = randomColor(i);

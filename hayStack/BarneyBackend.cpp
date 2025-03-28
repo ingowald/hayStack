@@ -126,7 +126,7 @@ namespace hs {
   {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
-    bnFrameBufferResize(fb,fbSize.x,fbSize.y,BN_FB_COLOR);
+    bnFrameBufferResize(fb,BN_UFIXED8_RGBA_SRGB,fbSize.x,fbSize.y,BN_FB_COLOR);
   }
 
   void BarneyBackend::Slot::applyTransferFunction(const TransferFunction &xf)
@@ -178,7 +178,7 @@ namespace hs {
     BNDataType texelFormat;
     switch (miniTex->format) {
     case mini::Texture::FLOAT4:
-      texelFormat = BN_FLOAT4_RGBA;
+      texelFormat = BN_FLOAT4;
       break;
     case mini::Texture::FLOAT1:
       texelFormat = BN_FLOAT;
@@ -478,7 +478,7 @@ namespace hs {
       = (const vec4f *)ml.texture->data.data();
     BNTexture2D texture
       = bnTexture2DCreate(global->context,this->slot,
-                          BN_FLOAT4_RGBA,
+                          BN_FLOAT4,
                           size.x,size.y,
                           texels);
     
