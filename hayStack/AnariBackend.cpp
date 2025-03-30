@@ -17,11 +17,9 @@
 #if HANARI
 #include "AnariBackend.h"
 
-#if 1
 // # define TEST_IDCHANNEL "channel.objectId"    
-# define TEST_IDCHANNEL "channel.instanceId"    
+// # define TEST_IDCHANNEL "channel.instanceId"    
 // # define TEST_IDCHANNEL "channel.primitiveId"    
-#endif
 
 namespace hs {
 
