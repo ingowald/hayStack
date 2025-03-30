@@ -46,9 +46,9 @@ namespace hs {
       mesh->colors = loadVectorOf<vec3f>(in);
       mesh->indices = loadVectorOf<vec3i>(in);
       mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();
-      mat->metallic = 1.f;
+      mat->metallic = .8f;
       mat->roughness = 0.2f;
-      mat->transmission = .7f;
+      mat->transmission = .6f;
       mesh->material = mat;//mini::Matte::create();
       if (data.numParts > 1)
         throw std::runtime_error("cannot split meshes yet");

@@ -235,8 +235,8 @@ namespace hs {
       if (!cs->material) {
         DisneyMaterial::SP mat = std::make_shared<DisneyMaterial>();
         mat->baseColor = .5f;
-        mat->metallic = 1.f;
-        mat->roughness = 1.f;
+        mat->metallic = .5f;
+        mat->roughness = .2f;
         cs->material = mat;
       }
       // cs->material = std::make_shared<Matte>();
@@ -270,7 +270,14 @@ namespace hs {
       cyls->vertices = loadVectorOf<vec3f>(in);
       cyls->radii = loadVectorOf<float>(in);
       cyls->colors = loadVectorOf<vec3f>(in);
-      cyls->material = mini::Matte::create();
+      // cyls->material = mini::Matte::create();
+      if (!cyls->material) {
+        DisneyMaterial::SP mat = std::make_shared<DisneyMaterial>();
+        mat->baseColor = .5f;
+        mat->metallic = .8f;
+        mat->roughness = .1f;
+        cyls->material = mat;
+      }
       if (data.numParts > 1)
         throw std::runtime_error("cannot split cylses yet");
       dataGroup.cylinderSets.push_back(cyls);
