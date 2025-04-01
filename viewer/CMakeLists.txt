@@ -106,7 +106,7 @@ target_link_libraries(hsOffline
 
 # ------------------------------------------------------------------
 
-if (HT_CUTEE)
+if (HS_CUTEE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
   

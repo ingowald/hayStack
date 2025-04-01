@@ -18,7 +18,7 @@
 #include "AnariBackend.h"
 
 // # define TEST_IDCHANNEL "channel.objectId"    
-// # define TEST_IDCHANNEL "channel.instanceId"    
+# define TEST_IDCHANNEL "channel.instanceId"    
 // # define TEST_IDCHANNEL "channel.primitiveId"    
 
 namespace hs {
