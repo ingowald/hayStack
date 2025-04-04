@@ -150,7 +150,6 @@ namespace hs {
 
   void AnariBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
-    PING; PRINT(fbSize);
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
@@ -317,7 +316,6 @@ namespace hs {
     vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera,
                         "direction", (const anari::math::float3&)camera_dir);
-    // PRINT(camera_dir);
     anari::setParameter(device, this->camera,
                         "up",        (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera);
@@ -683,7 +681,6 @@ namespace hs {
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
     vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
-    PING; PRINT(size);
 #if CHECK_HDRI
     // ==================================================================
     // base pattern is thin black grid on white background
