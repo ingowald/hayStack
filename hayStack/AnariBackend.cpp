@@ -17,6 +17,10 @@
 #if HANARI
 #include "AnariBackend.h"
 
+// # define TEST_IDCHANNEL "channel.objectId"    
+// # define TEST_IDCHANNEL "channel.instanceId"    
+// # define TEST_IDCHANNEL "channel.primitiveId"    
+
 namespace hs {
 
     static void statusFunc(const void * /*userData*/,
@@ -95,7 +99,13 @@ namespace hs {
       for (auto dg : base->localModel.dataGroups)
         dataGroupIDs.push_back(dg.dataGroupID);
       char *envlib = getenv("ANARI_LIBRARY");
-      std::string libname = envlib ? "environment" : "barney";
+      std::string libname = envlib ? "environment" :
+#if HS_MPI
+        "barney_mpi"
+#else
+        "barney"
+#endif
+        ;
       auto library = anari::loadLibrary(libname.c_str(), statusFunc);
       device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
@@ -128,7 +138,7 @@ namespace hs {
 
     frame = anari::newObject<anari::Frame>(device);
     // anari::setParameter(device, frame, "size", imgSize);
-    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
+    // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
     anari::setParameter(device, frame, "world",    model);
     anari::setParameter(device, frame, "renderer", renderer);
 
@@ -145,7 +155,10 @@ namespace hs {
     anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
     anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
     // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
-    anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+    // anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+#ifdef TEST_IDCHANNEL
+    anari::setParameter(device, frame, TEST_IDCHANNEL, ANARI_UINT32);
+#endif
 
     anari::commitParameters(device, frame);
   }
@@ -251,14 +264,42 @@ namespace hs {
   {
     // anari::commitParameters(device, frame);
     anari::render(device, frame);
+#ifdef TEST_IDCHANNEL
+    auto fb = anari::map<uint32_t>(device, frame, TEST_IDCHANNEL);
+#else
     auto fb = anari::map<uint32_t>(device, frame, "channel.color");
+#endif
+
     if (fb.width != fbSize.x || fb.height != fbSize.y)
-      std::cout << "resized frame!?" << std::endl;
+      std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
-      if (hostRGBA)
+      if (hostRGBA) {
+#ifdef TEST_IDCHANNEL
+        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
+        const uint64_t FNV_prime = 0x100000001b3ULL;
+        for (int i=0;i<fb.width*fb.height;i++) {
+          uint32_t ID = fb.data[i];
+          uint64_t s = FNV_basis + FNV_prime * ID;
+          
+          s = s * FNV_prime ^ ID;
+          int r = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int g = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int b = s & 0xff;
+          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
+          hostRGBA[i] = rgba;
+        }
+#else
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+#endif
+      }
     }
+#ifdef TEST_IDCHANNEL
+    anari::unmap(device,frame,TEST_IDCHANNEL);
+#else
     anari::unmap(device,frame,"channel.color");
+#endif
   }
 
   void AnariBackend::Global::resetAccumulation()
@@ -275,7 +316,6 @@ namespace hs {
     vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(device, this->camera,
                         "direction", (const anari::math::float3&)camera_dir);
-    // PRINT(camera_dir);
     anari::setParameter(device, this->camera,
                         "up",        (const anari::math::float3&)camera.vu);
     anari::commitParameters(device, this->camera);
@@ -579,6 +619,8 @@ namespace hs {
     for (int i=0;i<groups.size();i++) {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
+      
+      anari::setParameter(device, inst, "id", i);
       anari::setParameter(device, inst, "group", groups[i]);
 
       // vec3f rc = randomColor(i);
@@ -639,7 +681,6 @@ namespace hs {
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
     vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
-    PING; PRINT(size);
 #if CHECK_HDRI
     // ==================================================================
     // base pattern is thin black grid on white background
@@ -961,19 +1002,23 @@ namespace hs {
       (device, geom, "vertex.position",
        (const anari::math::float3*)content->vertices.data(),
        content->vertices.size());
-    anari::setParameterArray1D
-      (device, geom, "vertex.normal",
-       (const anari::math::float3*)content->normals.data(),
-       content->normals.size());
+    if (!content->normals.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.normal",
+         (const anari::math::float3*)content->normals.data(),
+         content->normals.size());
+    }
     anari::setParameterArray1D
       (device, geom, "primitive.index",
        (const anari::math::uint3*)content->indices.data(),
        content->indices.size());
-    anari::setParameterArray1D
-      (device, geom, "vertex.color",
-       (const anari::math::float3*)content->colors.data(),
-       content->colors.size());
-    
+    if (!content->colors.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.color",
+         (const anari::math::float3*)content->colors.data(),
+         content->colors.size());
+    }
+      
     anari::commitParameters(device, geom);
 
     anari::Surface  surface = anari::newObject<anari::Surface>(device);

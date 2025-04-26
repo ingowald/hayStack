@@ -35,5 +35,21 @@ namespace hs {
       const size_t fileSize;
       const int thisPartID = 0;
     };
+
+    /*! simple position/normal/color/index triangle meshes in binary format */
+    struct RGBTris : public LoadableContent {
+      RGBTris(const ResourceSpecifier &data,
+              int thisPartID);
+      static void create(DataLoader *loader,
+                         const ResourceSpecifier &dataURL);
+      size_t projectedSize() override;
+      void   executeLoad(DataRank &dataGroup, bool verbose) override;
+    
+      std::string toString() override;
+
+      const ResourceSpecifier data;
+      const size_t fileSize;
+      const int thisPartID = 0;
+    };
   }
 }

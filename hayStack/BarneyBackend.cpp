@@ -17,12 +17,6 @@
 #if !NO_BARNEY
 #include "BarneyBackend.h"
 
-// #if BARNEY_MPI
-// # pragma message("Barney has MPI enabled")
-// #else
-// # define HS_FAKE_MPI 1
-// #endif
-
 namespace hs {
 
   BNGroup    BarneyBackend::Slot::createGroup(const std::vector<BNGeom> &geoms,
@@ -109,7 +103,6 @@ namespace hs {
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
     bnSet1f(renderer,"ambientRadiance",0.5f);
 
-
 #if 1
     vec4f gradient[2] = {
       vec4f(.9f,.9f,.9f,1.f),
@@ -133,7 +126,7 @@ namespace hs {
   {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
-    bnFrameBufferResize(fb,fbSize.x,fbSize.y,BN_FB_COLOR);
+    bnFrameBufferResize(fb,BN_UFIXED8_RGBA_SRGB,fbSize.x,fbSize.y,BN_FB_COLOR);
   }
 
   void BarneyBackend::Slot::applyTransferFunction(const TransferFunction &xf)
@@ -185,7 +178,7 @@ namespace hs {
     BNDataType texelFormat;
     switch (miniTex->format) {
     case mini::Texture::FLOAT4:
-      texelFormat = BN_FLOAT4_RGBA;
+      texelFormat = BN_FLOAT4;
       break;
     case mini::Texture::FLOAT1:
       texelFormat = BN_FLOAT;
@@ -268,8 +261,12 @@ namespace hs {
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
-    vec3f color = matte->reflectance / 3.14f;
-    bnSet(mat,"color",(const bn_float3&)color);
+    if (colorMapped) {
+      bnSetString(mat,"color","color");
+    } else {
+      vec3f color = matte->reflectance / 3.14f;
+      bnSet(mat,"color",(const bn_float3&)color);
+    }
 #else
     BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
     bnSet(mat,"reflectance",(const bn_float3&)matte->reflectance);
@@ -481,7 +478,7 @@ namespace hs {
       = (const vec4f *)ml.texture->data.data();
     BNTexture2D texture
       = bnTexture2DCreate(global->context,this->slot,
-                          BN_FLOAT4_RGBA,
+                          BN_FLOAT4,
                           size.x,size.y,
                           texels);
     
@@ -702,7 +699,43 @@ namespace hs {
   BarneyBackend::Slot::createTriangleMesh(TriangleMesh::SP content,
                                           MaterialLibrary<BarneyBackend> *materialLib)
   {
-    throw std::runtime_error("not implemented");
+    auto model = global->model;
+    auto context = global->context;
+    bool colorMapped = content->colors.size()>0;
+    BNMaterial mat = materialLib->getOrCreate(content->material,colorMapped);
+    BNGeom geom = bnGeometryCreate(context,slot,"triangles");
+
+    int numVertices = content->vertices.size();
+    int numIndices = content->indices.size();
+    const bn_float3 *vertices = (const bn_float3*)content->vertices.data();
+    const bn_float3 *normals = (const bn_float3*)content->normals.data();
+    const bn_float3 *colors = (const bn_float3*)content->colors.data();
+    const bn_int3 *indices = (const bn_int3*)content->indices.data();
+    BNData _vertices = bnDataCreate(context,slot,BN_FLOAT3,
+                                    numVertices,vertices);
+    bnSetAndRelease(geom,"vertices",_vertices);
+
+    if (!content->colors.empty()) {
+      BNData _colors = bnDataCreate(context,slot,BN_FLOAT3,
+                                    numVertices,colors);
+      PING;
+      PRINT((int)colorMapped);
+      bnSetAndRelease(geom,"vertex.color",_colors);
+    }
+
+    BNData _indices  = bnDataCreate(context,slot,BN_INT3,
+                                    numIndices,indices);
+    bnSetAndRelease(geom,"indices",_indices);
+
+    if (normals) {
+      BNData _normals  = bnDataCreate(context,slot,BN_FLOAT3,
+                                      normals?numVertices:0,normals);
+      bnSetAndRelease(geom,"normals",_normals);
+    }
+
+    bnSetObject(geom,"material",mat);
+    bnCommit(geom);
+    return {geom};
   }
   
   std::vector<BNGeom>

@@ -553,11 +553,9 @@ int main(int ac, char **av)
               << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
     hayMaker->buildSlots();
-    // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
-    //   hayMaker->buildDataGroup(dgID);
   
   world.barrier();
-  
+
   Renderer *renderer = nullptr;
   if (world.size == 1)
     // no MPI, render direcftly

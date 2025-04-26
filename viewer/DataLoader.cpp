@@ -33,13 +33,8 @@ namespace hs {
   /*! default radius to use for spheres that do not have a radius specified */
   float DataLoader::defaultRadius = .1f;
 
-  ResourceSpecifier::ResourceSpecifier(std::string resource,
-                                       bool fileNameOnly)
+  ResourceSpecifier::ResourceSpecifier(std::string resource)
   {
-    if (fileNameOnly) {
-      where = resource;
-      return;
-    }
     int pos = resource.find("://");
     if (pos == resource.npos)
       throw std::runtime_error
@@ -325,10 +320,12 @@ namespace hs {
       content::VMDSpheres::create(this,addIfRequired("vmdspheres://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".vmdmesh")) {
       content::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".rgbtris")) {
+      content::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".raw")) {
-      RAWVolumeContent::create(this,ResourceSpecifier(contentDescriptor,true));
+      RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")
