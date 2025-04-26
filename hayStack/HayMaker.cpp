@@ -169,12 +169,22 @@ namespace hs {
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
       }
-      for (auto vol : myData.unsts) {
+      // ------------------------------------------------------------------
+      // render all *UN*-structured volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.amr) {
         VolumeHandle createdVolume = impl->create(vol);
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
       }
-
+      // ------------------------------------------------------------------
+      // render all *AMR* volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.structuredVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
       // ==================================================================
       // now that all light and instances have been _created_ and
       // appended to the respective arrays, add these to the model

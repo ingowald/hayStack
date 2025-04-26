@@ -59,7 +59,7 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
-    std::vector<tamr::Model::SP>      amrVolumes;
+    std::vector<tamr::Model::SP>      amr;
     int                               dataGroupID = -1;
   };
 

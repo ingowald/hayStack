@@ -819,6 +819,12 @@ namespace hs {
     return volume;
   }
 
+  anari::Volume AnariBackend::Slot::create(const tamr::Model::SP &input)
+  {
+    std::cout << "skipping amr volume ..." << std::endl;
+    return 0;
+  }
+  
   anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
     auto mesh = meshAndDomain.first;

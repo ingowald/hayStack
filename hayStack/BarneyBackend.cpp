@@ -275,7 +275,9 @@ namespace hs {
     
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal, bool colorMapped)
+  
+  BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal,
+                                         bool colorMapped)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
@@ -289,7 +291,9 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender, bool colorMapped)
+  
+  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender,
+                                         bool colorMapped)
   {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
     bnSet1f(mat,"metallic",blender->metallic);
@@ -299,7 +303,9 @@ namespace hs {
     bnCommit(mat);
     return mat;
   }
-  BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass, bool colorMapped)
+  
+  BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass,
+                                         bool colorMapped)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
@@ -539,6 +545,12 @@ namespace hs {
     return volume;
   }
 
+  BNVolume BarneyBackend::Slot::create(const tamr::Model::SP &input)
+  {
+    std::cout << "skipping amr volume ..." << std::endl;
+    return 0;
+  }
+  
   BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &up)
   {
     umesh::UMesh::SP mesh = up.first;
