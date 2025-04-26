@@ -45,6 +45,8 @@ set(SOURCES
   content/TriangleMesh.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/TAMRContent.h
+  content/TAMRContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
   )  

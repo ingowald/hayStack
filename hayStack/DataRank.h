@@ -26,6 +26,7 @@
 #include "hayStack/StructuredVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
+#include <tinyAMR/Model.h>
 
 namespace hs {
 
@@ -58,6 +59,7 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
+    std::vector<tamr::Model::SP>      amrVolumes;
     int                               dataGroupID = -1;
   };
 

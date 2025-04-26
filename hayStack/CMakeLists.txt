@@ -51,6 +51,7 @@ target_link_libraries(hayStack
   PUBLIC
   miniScene
   umesh
+  tinyAMR
 )
 target_include_directories(hayStack PUBLIC
   ${PROJECT_SOURCE_DIR}

@@ -18,6 +18,7 @@
 #include "viewer/content/TSTris.h"
 #include "viewer/content/TriangleMesh.h"
 #include "viewer/content/RAWVolumeContent.h"
+#include "viewer/content/TAMRContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/MaterialsTest.h"
@@ -326,6 +327,8 @@ namespace hs {
       MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".raw")) {
       RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".tamr")) {
+      TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")
@@ -340,6 +343,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+      else if (url.type == "tamr") 
+        TAMRContent::create(this,url);
       else if (url.type == "boxes") 
         BoxesFromFile::create(this,url/*contentDescriptor*/);
       else if (url.type == "cylinders") 

@@ -17,7 +17,6 @@
 #include "RAWVolumeContent.h"
 #include <fstream>
 #include <umesh/UMesh.h>
-// #include <umesh/tetrahedralize.h>
 #include <umesh/extractIsoSurface.h>
 #include <miniScene/Scene.h>
 
