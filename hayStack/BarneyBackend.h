@@ -119,7 +119,7 @@ namespace hs {
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<BarneyBackend> *materialLib);
 
-      BNVolume create(const tamr::Model::SP &v);
+      BNVolume create(const TAMRVolume::SP &v);
       BNVolume create(const StructuredVolume::SP &v);
       BNVolume create(const std::pair<umesh::UMesh::SP,box3f> &v);
       // BNVolume create(const UMeshVolume::SP &v);

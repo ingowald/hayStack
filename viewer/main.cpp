@@ -65,6 +65,7 @@ namespace hs {
     int ndg = 1;
 
     bool mergeUnstructuredMeshes = false;
+    bool useBackground = true;
     
     std::string xfFileName = "";
     std::string outFileName = "hayStack.png";
@@ -427,6 +428,10 @@ int main(int ac, char **av)
     const std::string arg = av[i];
     if (arg[0] != '-') {
       loader.addContent(arg);
+    } else if (arg == "--no-bg") {
+      fromCL.useBackground = false;
+    } else if (arg == "-bg") {
+      fromCL.useBackground = true;
     } else if (arg == "-env" || arg == "--env-map") {
       fromCL.envMapFileName = av[++i];
       loader.sharedLights.envMap = fromCL.envMapFileName;
@@ -504,11 +509,13 @@ int main(int ac, char **av)
     ? HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
                                           fromCL.spp,
+                                          fromCL.useBackground,
                                           thisRankData,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            fromCL.spp,
+                                           fromCL.useBackground,
                                            thisRankData,
                                            verbose());
 // #if HANARI

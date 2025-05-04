@@ -30,11 +30,13 @@ namespace hs {
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
                      int   pixelSamples,
+                     bool useBG,
                      LocalModel &_localModel,
                      bool verbose)
     : world(world),
       workers(workers),
       pixelSamples(pixelSamples),
+      useBackground(useBG),
       localModel(std::move(_localModel)),
       verbose(verbose)
   {}
@@ -43,9 +45,10 @@ namespace hs {
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
                                 int pathsPerPixel,
+                                bool useBG,
                                 LocalModel &localModel,
                                 bool verbose)
-    : HayMaker(world,workers,pathsPerPixel,localModel,verbose),
+    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,verbose),
       global(this)
   {
     for (int i=0;i<this->localModel.size();i++)
@@ -290,6 +293,7 @@ namespace hs {
   ::createAnariImplementation(Comm &world,
                               Comm &workers,
                               int pathsPerPixel,
+                              bool useBG,
                               LocalModel &localModel,
                               bool verbose)
   {
@@ -297,6 +301,7 @@ namespace hs {
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
                                        pathsPerPixel,
+                                       useBG,
                                        localModel,
                                        verbose);
 #else
@@ -309,6 +314,7 @@ namespace hs {
   ::createBarneyImplementation(Comm &world,
                                Comm &workers,
                                int pathsPerPixel,
+                               bool useBG,
                                LocalModel &localModel,
                                bool verbose)
   { throw std::runtime_error("barney support not compiled in"); }
@@ -317,12 +323,14 @@ namespace hs {
   ::createBarneyImplementation(Comm &world,
                                Comm &workers,
                                int pathsPerPixel,
+                               bool useBG,
                                LocalModel &localModel,
                                bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
                                         /* the workers */workers,
                                         pathsPerPixel,
+                                        useBG,
                                         localModel,
                                         verbose);
   }

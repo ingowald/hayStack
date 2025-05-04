@@ -46,7 +46,7 @@ namespace hs {
   void TAMRContent::executeLoad(DataRank &dataGroup, bool verbose)
   {
     tamr::Model::SP model = tamr::Model::load(fileName);
-    dataGroup.amr.push_back(model);
+    dataGroup.amr.push_back(std::make_shared<TAMRVolume>(model));
   }
   
   std::string TAMRContent::toString() 

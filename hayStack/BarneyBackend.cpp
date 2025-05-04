@@ -103,18 +103,18 @@ namespace hs {
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
     bnSet1f(renderer,"ambientRadiance",0.5f);
 
-#if 1
-    vec4f gradient[2] = {
-      vec4f(.9f,.9f,.9f,1.f),
-      vec4f(0.15f, 0.25f, .8f,1.f),
-    };
-    BNTexture2D tex = bnTexture2DCreate(context,-1,
-                                        BN_FLOAT4,1,2,
-                                        gradient,
-                                        BN_TEXTURE_LINEAR,
-                                        BN_TEXTURE_CLAMP,BN_TEXTURE_CLAMP);
-    bnSetObject(renderer,"bgTexture",tex);
-#endif
+    if (base->useBackground) {
+      vec4f gradient[2] = {
+        vec4f(.9f,.9f,.9f,1.f),
+        vec4f(0.15f, 0.25f, .8f,1.f),
+      };
+      BNTexture2D tex = bnTexture2DCreate(context,-1,
+                                          BN_FLOAT4,1,2,
+                                          gradient,
+                                          BN_TEXTURE_LINEAR,
+                                          BN_TEXTURE_CLAMP,BN_TEXTURE_CLAMP);
+      bnSetObject(renderer,"bgTexture",tex);
+    }
     bnCommit(renderer);
     
     fb     = bnFrameBufferCreate(context,0);
@@ -545,10 +545,56 @@ namespace hs {
     return volume;
   }
 
-  BNVolume BarneyBackend::Slot::create(const tamr::Model::SP &input)
+  BNVolume BarneyBackend::Slot::create(const TAMRVolume::SP &model)
   {
-    std::cout << "skipping amr volume ..." << std::endl;
-    return 0;
+    auto input = model->model;
+    
+    std::vector<vec3i>    origins;
+    std::vector<vec3i>    dims;
+    std::vector<int>      levels;
+    std::vector<uint64_t> offsets;
+    const std::vector<int> &refinements = input->refinementOfLevel;
+
+    for (auto &grid : input->grids) {
+      origins.push_back((const vec3i&)grid.origin);
+      dims.push_back((const vec3i&)grid.dims);
+      offsets.push_back(grid.offset);
+      levels.push_back(grid.level);
+    }
+    PRINT(dims.size());
+    BNScalarField sf
+      = bnScalarFieldCreate(global->context,this->slot,"BlockStructuredAMR");
+    BNData originsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT3,origins.size(),origins.data());
+    bnSetData(sf,"grid.origins",originsData);
+    BNData dimsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT3,dims.size(),dims.data());
+    bnSetData(sf,"grid.dims",dimsData);
+    BNData levelsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT,levels.size(),levels.data());
+    bnSetData(sf,"grid.levels",levelsData);
+    BNData offsetsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_LONG,offsets.size(),offsets.data());
+    bnSetData(sf,"grid.offsets",offsetsData);
+
+    BNData scalarsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_FLOAT,input->numCellsAcrossAllGrids,
+                     input->scalars.data());
+    bnSetData(sf,"scalars",scalarsData);
+    BNData refinementsData
+      = bnDataCreate(global->context,this->slot,
+                     BN_INT,refinements.size(),refinements.data());
+    bnSetData(sf,"level.refinements",refinementsData);
+    bnCommit(sf);
+    
+    BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
+    bnRelease(sf);
+    return volume;
   }
   
   BNVolume BarneyBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &up)

@@ -24,9 +24,9 @@
 #include "hayStack/TriangleMesh.h"
 #include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
+#include "hayStack/TAMRVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
-#include <tinyAMR/Model.h>
 
 namespace hs {
 
@@ -59,7 +59,7 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
-    std::vector<tamr::Model::SP>      amr;
+    std::vector<TAMRVolume::SP>       amr;
     int                               dataGroupID = -1;
   };
 

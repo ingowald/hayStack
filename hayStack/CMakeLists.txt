@@ -32,6 +32,8 @@ add_library(hayStack
   Spheres.cpp
   StructuredVolume.h
   StructuredVolume.cpp
+  TAMRVolume.h
+  TAMRVolume.cpp
 
   Renderer.h
   MPIRenderer.h

@@ -819,7 +819,7 @@ namespace hs {
     return volume;
   }
 
-  anari::Volume AnariBackend::Slot::create(const tamr::Model::SP &input)
+  anari::Volume AnariBackend::Slot::create(const TAMRVolume::SP &input)
   {
     std::cout << "skipping amr volume ..." << std::endl;
     return 0;

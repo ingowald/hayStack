@@ -78,7 +78,7 @@ namespace hs {
       anari::Material create(mini::DisneyMaterial::SP disney, bool colorMapped);
       anari::Material create(mini::Material::SP miniMat, bool colorMapped);
       
-      anari::Volume create(const tamr::Model::SP &v);
+      anari::Volume create(const TAMRVolume::SP &v);
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 

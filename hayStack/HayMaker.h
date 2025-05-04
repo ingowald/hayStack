@@ -39,6 +39,7 @@ namespace hs {
     HayMaker(Comm &world,
              Comm &workers,
              int   pixelSamples,
+             bool  useBG,
              LocalModel &localModel,
              bool verbose);
 
@@ -49,12 +50,14 @@ namespace hs {
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
                                                int pathsPerPixel,
+                                               bool useBG,
                                                LocalModel &localModel,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
                                                 int pathsPerPixel,
+                                                bool useBG,
                                                 LocalModel &localModel,
                                                 bool verbose);
 
@@ -62,6 +65,7 @@ namespace hs {
     Comm         workers;
     LocalModel localModel;
     bool         verbose;
+    bool         useBackground = true;
     const int    pixelSamples;
   };
   
@@ -114,6 +118,7 @@ namespace hs {
     HayMakerT(Comm &world,
               Comm &workers,
               int pathsPerPixel,
+              bool useBG,
               LocalModel &localModel,
               bool verbose);
     
