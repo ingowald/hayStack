@@ -28,6 +28,8 @@ namespace hs {
     typedef anari::Surface  GeomHandle;
     typedef anari::Volume   VolumeHandle;
 
+    struct Slot;
+    
     struct Global {
       Global(HayMaker *base);
 
@@ -42,20 +44,21 @@ namespace hs {
       
       HayMaker *const base;
 
-      anari::Device device = 0;
-      anari::Frame  frame  = 0;
-      anari::World  model  = 0;
-      anari::Camera camera = 0;
       uint32_t     *hostRGBA   = 0;
       vec2i         fbSize;
       /*! whether we have to re-commit the model next frame */
       bool          dirty = true;
+
+      /*! points to the first slot, which is the only slot in
+          non-data-parallel, and the master slot in data-parallel */
+      std::vector<Slot *> slots;
+      // the library used to create the device(s)
+      anari::Library library;
     };
 
     struct Slot {
       Slot(Global *global, int slot,
-           typename HayMakerT<AnariBackend>::Slot *impl)
-        : global(global), slot(slot), impl(impl) {}
+           typename HayMakerT<AnariBackend>::Slot *impl);
     
       void applyTransferFunction(const TransferFunction &xf);
       // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
@@ -106,23 +109,20 @@ namespace hs {
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<AnariBackend> *materialLib);
 
-      inline void release(anari::Sampler t) { anari::release(global->device, t); }
-      inline void release(anari::Material m) { anari::release(global->device, m); }
+      inline void release(anari::Sampler t) { anari::release(device, t); }
+      inline void release(anari::Material m) { anari::release(device, m); }
       
       void finalizeSlot() { PING; }
       
       typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;
       int     const slot;
-      // std::vector<anari::Volume> rootVolumes;
-      // anari::Group volumeGroup = 0;
-    };
 
-    // void buildDataGroup(int dgID);
-    
-    // struct PerDG {
-    // };
-    // std::vector<PerDG> perDG;
+      anari::Frame  frame  = 0;
+      anari::Device device = 0;
+      anari::World  model  = 0;
+      anari::Camera camera = 0;
+    };
   };
   
 } // ::hs
