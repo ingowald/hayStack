@@ -50,29 +50,35 @@ namespace hs {
                            typename HayMakerT<AnariBackend>::Slot *impl)
     : global(global), slot(slot), impl(impl)
   {
-    if (global->slots.size() < slot+1) {
-      global->slots.resize(slot+1);
-      global->slots[slot] = this;
-    }
+    int numDataGroups = (int)global->base->localModel.size();
+    // if (global->slots.size() < slot+1) {
+    //   global->slots.resize(slot+1);
+    //   global->slots[slot] = this;
+    // }
+    global->slots.resize(numDataGroups);
+    global->slots[slot] = this;
     
-    auto library = global->library;
-    device = anari::newDevice(library, "default");
+    // auto library = global->library;
+    // device = anari::newDevice(library, "default");
+    // std::cout << "#hanari: creating slot " << slot << "/" << numDataGroups << std::endl;
 
-    // ==================================================================
-    // FIRST COMMIT: set data parallel slot stuff.
-    anari::setParameter(device, device,
-                        "tetherIndex", (int)slot);
-    anari::setParameter(device, device,
-                        "tetherCount", (int)global->slots.size());
-    if (slot > 0) {
-      assert(global->slots[0] != 0);
-      anari::setParameter(device, device,
-                          "tetherDevice",
-                          // (uint64_t)
-                          global->slots[0]->device);
-    }
-    // ==================================================================
-    anari::commitParameters(device, device);
+    // // ==================================================================
+    // // FIRST COMMIT: set data parallel slot stuff.
+    // anari::setParameter(device, device,
+    //                     "tetherIndex", (int)slot);
+    // anari::setParameter(device, device,
+    //                     "tetherCount", (int)numDataGroups);
+    // if (slot > 0) {
+    //   assert(global->slots[0] != 0);
+    //   anari::setParameter(device, device,
+    //                       "tetherDevice",
+    //                       // (uint64_t)
+    //                       global->slots[0]->device);
+    // }
+    // // ==================================================================
+    // anari::commitParameters(device, device);
+    // }
+    device = global->devices[slot];//.device;
     
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
@@ -160,7 +166,7 @@ namespace hs {
   {
     // bool isActiveWorker = !base->localModel.empty();
     // if (isActiveWorker) {
-    std::vector<int> dataGroupIDs;
+    // std::vector<int> dataGroupIDs;
     // for (auto dg : base->localModel.dataGroups)
     //   dataGroupIDs.push_back(dg.dataGroupID);
     char *envlib = getenv("ANARI_LIBRARY");
@@ -172,6 +178,30 @@ namespace hs {
 #endif
       ;
     library = anari::loadLibrary(libname.c_str(), statusFunc);
+    int numDataGroups = (int)base->localModel.size();
+    /* create all N devices in one sweep, so they're properly tethered
+       before we create anything else */
+    for (int slot=0;slot<numDataGroups;slot++) {
+      auto device = anari::newDevice(library, "default");
+      std::cout << "#hanari: creating tethered device #" << slot << "/" << numDataGroups << std::endl;
+      anari::setParameter(device, device,
+                          "tetherIndex", (int)slot);
+      anari::setParameter(device, device,
+                          "tetherCount", (int)numDataGroups);
+
+      auto &dg = base->localModel.dataGroups[slot];
+      anari::setParameter(device, device,
+                          "dataGroupID", (int)dg.dataGroupID);
+      if (slot > 0) {
+        anari::setParameter(device, device,
+                            "tetherDevice",
+                            // (uint64_t)
+                            devices[0]);
+      }
+      anari::commitParameters(device, device);
+      devices.push_back(device);
+    }
+    
 // xxx    
 //     bool isActiveWorker = !base->localModel.empty();
 //     if (isActiveWorker) {

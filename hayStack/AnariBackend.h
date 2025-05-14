@@ -52,6 +52,7 @@ namespace hs {
       /*! points to the first slot, which is the only slot in
           non-data-parallel, and the master slot in data-parallel */
       std::vector<Slot *> slots;
+      std::vector<anari::Device> devices;
       // the library used to create the device(s)
       anari::Library library;
     };

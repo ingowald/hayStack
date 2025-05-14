@@ -99,7 +99,10 @@ namespace hs {
 #endif
     }
 
+    PING;
+    PRINT(context);
     renderer = bnRendererCreate(context,"default");
+    PING;
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
     bnSet1f(renderer,"ambientRadiance",0.5f);
 
