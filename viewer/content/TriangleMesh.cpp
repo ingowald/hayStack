@@ -92,15 +92,19 @@ namespace hs {
         vec3f rgb;
       };
       PING;
-      std::vector<Vtx> vertices = noheader::loadVectorOf<Vtx>(in);
-      vertices.resize(3*1024*1000);
+      std::vector<Vtx> vertices = noheader::loadVectorOf<Vtx>(in,0,-1,thisPartID,data.numParts);
+      // vertices.resize(3*1024*1000);
       PING;
+#if 0
+#else
       for (auto v : vertices) {
         mesh->vertices.push_back(v.pos);
         mesh->colors.push_back(v.rgb);
       }
       for (int i=0;i<mesh->vertices.size()/3;i++)
         mesh->indices.push_back(3*i+vec3i(0,1,2));
+#endif
+      
 #if 1
       mini::Matte::SP mat = std::make_shared<mini::Matte>();
 #else
@@ -110,8 +114,6 @@ namespace hs {
       mat->transmission = 0.f;
 #endif
       mesh->material = mat;//mini::Matte::create();
-      if (data.numParts > 1)
-        throw std::runtime_error("cannot split meshes yet");
       dataGroup.triangleMeshes.push_back(mesh);
     }
     

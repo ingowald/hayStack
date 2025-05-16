@@ -169,15 +169,20 @@ namespace hs {
 
   namespace noheader {
   template<typename T>
-  std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+  std::vector<T> loadVectorOf(std::ifstream &in,
+                              uint64_t _begin = 0,
+                              uint64_t _maxElements   = ULONG_LONG_MAX,
+                              int part=0, int numParts=1)
   {
     in.seekg(0,std::ios::end);
     size_t size = in.tellg();
     in.seekg(0,std::ios::beg);
-    size_t count = size/sizeof(T);
+    size_t totalInFile = size/sizeof(T);
+    size_t count = std::min(totalInFile-_begin,_maxElements);
+    PRINT(count);
     std::vector<T> vec;
-    size_t begin = part * count / numParts;
-    size_t end = (part+1) * count / numParts;
+    size_t begin = _begin + part * count / numParts;
+    size_t end = _begin + (part+1) * count / numParts;
     T t;
     for (size_t i=0;i<begin;i++)
       in.read((char *)&t,sizeof(t));
@@ -185,8 +190,8 @@ namespace hs {
       in.read((char *)&t,sizeof(t));
       vec.push_back(t);
     }
-    for (size_t i=end;i<count;i++)
-      in.read((char *)&t,sizeof(t));
+    // for (size_t i=end;i<count;i++)
+    //   in.read((char *)&t,sizeof(t));
     return vec;
   }
   }

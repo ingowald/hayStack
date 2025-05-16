@@ -338,6 +338,8 @@ namespace hs {
         content::SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
+      else if (url.type == "rgbtris") 
+        content::RGBTris::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 
         MaterialsTest::create(this,contentDescriptor);
       else if (url.type == "capsules") 

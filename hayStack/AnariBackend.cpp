@@ -164,11 +164,6 @@ namespace hs {
   AnariBackend::Global::Global(HayMaker *base)
     : base(base)
   {
-    // bool isActiveWorker = !base->localModel.empty();
-    // if (isActiveWorker) {
-    // std::vector<int> dataGroupIDs;
-    // for (auto dg : base->localModel.dataGroups)
-    //   dataGroupIDs.push_back(dg.dataGroupID);
     char *envlib = getenv("ANARI_LIBRARY");
     std::string libname = envlib ? "environment" :
 #if HS_MPI
@@ -202,59 +197,6 @@ namespace hs {
       devices.push_back(device);
     }
     
-// xxx    
-//     bool isActiveWorker = !base->localModel.empty();
-//     if (isActiveWorker) {
-//       std::vector<int> dataGroupIDs;
-//       for (auto dg : base->localModel.dataGroups)
-//         dataGroupIDs.push_back(dg.dataGroupID);
-//       char *envlib = getenv("ANARI_LIBRARY");
-//       std::string libname = envlib ? "environment" :
-// #if HS_MPI
-//         "barney_mpi"
-// #else
-//         "barney"
-// #endif
-//         ;
-//       device = anari::newDevice(library, "default");
-//       anari::commitParameters(device, device);
-//     } else {
-//       throw std::runtime_error("passive master not yet implemented");
-//     }
-
-//     model = anari::newObject<anari::World>(device);
-//     anari::commitParameters(device, model);
-
-//     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-//     // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-//     anari::setParameter(device, renderer, "ambientRadiance", .6f);
-//     anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
-// #if 1
-//     std::vector<vec4f> bgGradient = {
-//       // vec4f(1,1,1,1),vec4f(.4,.4,1,1)
-//       // };
-//       // vec4f gradient[2] = {
-//       vec4f(.9f,.9f,.9f,1.f),
-//       vec4f(0.15f, 0.25f, .8f,1.f),
-//     };
-//     anari::setAndReleaseParameter
-//       (device,renderer,"background",
-//        anari::newArray2D(device,
-//                          (const anari::math::float4*)bgGradient.data(),
-//                          1,2));//bgGradient.size()));
-// #endif
-//     anari::commitParameters(device, renderer);
-
-//     frame = anari::newObject<anari::Frame>(device);
-//     // anari::setParameter(device, frame, "size", imgSize);
-//     // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
-//     anari::setParameter(device, frame, "world",    model);
-//     anari::setParameter(device, frame, "renderer", renderer);
-
-//     this->camera = anari::newObject<anari::Camera>(device, "perspective");
-
-//     anari::setParameter(device, frame, "camera",   camera);
-//     anari::commitParameters(device, frame);
   }
 
   void AnariBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
