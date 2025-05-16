@@ -99,10 +99,7 @@ namespace hs {
 #endif
     }
 
-    PING;
-    PRINT(context);
     renderer = bnRendererCreate(context,"default");
-    PING;
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
     bnSet1f(renderer,"ambientRadiance",0.5f);
 
@@ -779,8 +776,6 @@ namespace hs {
     if (!content->colors.empty()) {
       BNData _colors = bnDataCreate(context,slot,BN_FLOAT3,
                                     numVertices,colors);
-      PING;
-      PRINT((int)colorMapped);
       bnSetAndRelease(geom,"vertex.color",_colors);
     }
 

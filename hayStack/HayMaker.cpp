@@ -51,8 +51,6 @@ namespace hs {
     : HayMaker(world,workers,pathsPerPixel,useBG,localModel,verbose),
       global(this)
   {
-    PING;
-    PRINT(this->localModel.size());
     for (int i=0;i<this->localModel.size();i++) {
       perSlot.push_back(new Slot(&global,i));
     }
