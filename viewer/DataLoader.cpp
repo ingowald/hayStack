@@ -358,8 +358,6 @@ namespace hs {
     }    
     // else if (startsWith(contentDescriptor,"en-dump://")) {
     //   ENDumpContent::create(this,contentDescriptor);
-    // } else if (startsWith(contentDescriptor,"ts.tri://")) {
-    //   TSTriContent::create(this,contentDescriptor);
     // } else
     //   throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }
