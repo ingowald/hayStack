@@ -19,14 +19,12 @@
 
 namespace hs {
 
-  TSTriContent::TSTriContent(const std::string &fileName,
-                                   size_t fileSize,
-                                   int thisPartID,
-                                   int numPartsToSplitInto)
-    : fileName(fileName),
+  TSTriContent::TSTriContent(const ResourceSpecifier &data,
+                             size_t fileSize,
+                             int thisPartID)
+    : data(data),
       fileSize(fileSize),
-      thisPartID(thisPartID),
-      numPartsToSplitInto(numPartsToSplitInto)
+      thisPartID(thisPartID)
   {}
     
   void TSTriContent::create(DataLoader *loader,
@@ -34,20 +32,32 @@ namespace hs {
   {
     for (int i=0;i<data.numParts;i++)
       loader->addContent
-        (new TSTriContent(data.where,getFileSize(data.where),i,
-                          data.numParts));
+        (new TSTriContent(data,getFileSize(data.where),i));
   }
     
   size_t TSTriContent::projectedSize() 
   {
-    int numTriangles = divRoundUp(divRoundUp(fileSize,3*sizeof(vec3f)),(size_t)numPartsToSplitInto);
-    return 100*numTriangles;
+    size_t sizeOfTri = 3*sizeof(vec3f);
+    
+    size_t numTrisTotal = fileSize / sizeOfTri;
+    numTrisTotal = data.get_size("count",numTrisTotal);
+
+    int numPartsToSplitInto = data.numParts;
+    size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
+    size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
+    size_t my_count = my_end - my_begin;
+
+    return 100*my_count;
   }
     
   void   TSTriContent::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     size_t sizeOfTri = 3*sizeof(vec3f);
+    
     size_t numTrisTotal = fileSize / sizeOfTri;
+    numTrisTotal = data.get_size("count",numTrisTotal);
+
+    int numPartsToSplitInto = data.numParts;
     size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
     size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
     size_t my_count = my_end - my_begin;
@@ -55,7 +65,7 @@ namespace hs {
     mini::Mesh::SP mesh = mini::Mesh::create();
     mesh->vertices.resize(3*my_count);
     
-    FILE *file = fopen(fileName.c_str(),"rb");
+    FILE *file = fopen(data.where.c_str(),"rb");
     fseek(file,my_begin*sizeOfTri,SEEK_SET);
     size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
     assert(numRead == my_count);
@@ -63,12 +73,25 @@ namespace hs {
 
     if (verbose) {
       std::cout << "   ... done loading " << prettyNumber(my_count)
-                << " triangles from " << fileName << std::endl << std::flush;
+                << " triangles from " << data.where << std::endl << std::flush;
       fflush(0);
     }
     mesh->indices.resize(my_count);
     for (int i=0;i<my_count;i++)
       mesh->indices[i] = 3*i + vec3i(0,1,2);
+
+#if 0
+    mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();;
+    mat->metallic = .1f;
+    mat->ior = 1.f;
+    mat->roughness = .25f;
+    mat->baseColor = .5f;
+#else
+    mini::Matte::SP mat = mini::Matte::create();
+    mat->reflectance = 3.14f * vec3f(.8f);
+#endif
+    mesh->material = mat;
+    
 
     mini::Object::SP object = mini::Object::create({mesh});
     mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});

@@ -776,8 +776,6 @@ namespace hs {
     if (!content->colors.empty()) {
       BNData _colors = bnDataCreate(context,slot,BN_FLOAT3,
                                     numVertices,colors);
-      PING;
-      PRINT((int)colorMapped);
       bnSetAndRelease(geom,"vertex.color",_colors);
     }
 
