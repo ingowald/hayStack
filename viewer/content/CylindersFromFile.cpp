@@ -267,9 +267,9 @@ namespace hs {
     {
       std::ifstream in(data.where.c_str(),std::ios::binary);
       Cylinders::SP cyls = std::make_shared<Cylinders>();
-      cyls->vertices = loadVectorOf<vec3f>(in);
-      cyls->radii = loadVectorOf<float>(in);
-      cyls->colors = loadVectorOf<vec3f>(in);
+      cyls->vertices = withHeader::loadVectorOf<vec3f>(in);
+      cyls->radii = withHeader::loadVectorOf<float>(in);
+      cyls->colors = withHeader::loadVectorOf<vec3f>(in);
       // cyls->material = mini::Matte::create();
       if (!cyls->material) {
         DisneyMaterial::SP mat = std::make_shared<DisneyMaterial>();

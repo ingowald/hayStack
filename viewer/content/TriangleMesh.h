@@ -51,5 +51,21 @@ namespace hs {
       const size_t fileSize;
       const int thisPartID = 0;
     };
+
+    /*! haystack triangle-mesh format */
+    struct HSTriangles : public LoadableContent {
+      HSTriangles(const ResourceSpecifier &data,
+                  int thisPartID);
+      static void create(DataLoader *loader,
+                         const ResourceSpecifier &dataURL);
+      size_t projectedSize() override;
+      void   executeLoad(DataRank &dataGroup, bool verbose) override;
+      
+      std::string toString() override;
+
+      const ResourceSpecifier data;
+      const size_t fileSize;
+      const int thisPartID = 0;
+    };
   }
 }

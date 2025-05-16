@@ -237,9 +237,9 @@ namespace hs {
     {
       std::ifstream in(data.where.c_str(),std::ios::binary);
       SphereSet::SP spheres = std::make_shared<SphereSet>();
-      spheres->origins = loadVectorOf<vec3f>(in,thisPartID,data.numParts);
-      spheres->radii = loadVectorOf<float>(in,thisPartID,data.numParts);
-      spheres->colors = loadVectorOf<vec3f>(in,thisPartID,data.numParts);
+      spheres->origins = withHeader::loadVectorOf<vec3f>(in,thisPartID,data.numParts);
+      spheres->radii = withHeader::loadVectorOf<float>(in,thisPartID,data.numParts);
+      spheres->colors = withHeader::loadVectorOf<vec3f>(in,thisPartID,data.numParts);
       spheres->material = mini::Matte::create();
       dataGroup.sphereSets.push_back(spheres);
     }

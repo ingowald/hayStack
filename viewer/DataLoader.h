@@ -83,12 +83,12 @@ namespace hs {
     /*! interface for the app to load one particular rank's data
       group(s) */
     virtual void loadDataRank(DataRank &dg,
-                               int dataGroupID,
-                               bool verbose) = 0;
+                              int dataGroupID,
+                              bool verbose) = 0;
 
     /*! actually loads one rank's data, based on which content got
-        assigned to which rank. must get called on every worker
-        collaboratively - but only on active workers */
+      assigned to which rank. must get called on every worker
+      collaboratively - but only on active workers */
     void loadData(LocalModel &localModel,
                   int numDataRanks,
                   int dataPerRank,
@@ -139,56 +139,58 @@ namespace hs {
     void assignGroups(int numDataRanks) override;
 
     void loadDataRank(DataRank &dg,
-                       int dataGroupID,
-                       bool verbose) override;
+                      int dataGroupID,
+                      bool verbose) override;
   private:
     /*! loadable content per data group, after assigning it */
     std::vector<std::vector<LoadableContent *>> contentOfGroup;
     
   };
 
-  template<typename T>
-  std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
-  {
-    std::vector<T> vec;
-    size_t count;
-    in.read((char *)&count,sizeof(count));
-    size_t begin = part * count / numParts;
-    size_t end = (part+1) * count / numParts;
-    T t;
-    for (size_t i=0;i<begin;i++)
-      in.read((char *)&t,sizeof(t));
-    for (size_t i=begin;i<end;i++) {
-      in.read((char *)&t,sizeof(t));
-      vec.push_back(t);
+  namespace withHeader {
+    template<typename T>
+    std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+    {
+      std::vector<T> vec;
+      size_t count;
+      in.read((char *)&count,sizeof(count));
+      size_t begin = part * count / numParts;
+      size_t end = (part+1) * count / numParts;
+      T t;
+      for (size_t i=0;i<begin;i++)
+        in.read((char *)&t,sizeof(t));
+      for (size_t i=begin;i<end;i++) {
+        in.read((char *)&t,sizeof(t));
+        vec.push_back(t);
+      }
+      for (size_t i=end;i<count;i++)
+        in.read((char *)&t,sizeof(t));
+      return vec;
     }
-    for (size_t i=end;i<count;i++)
-      in.read((char *)&t,sizeof(t));
-    return vec;
   }
 
   namespace noheader {
-  template<typename T>
-  std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
-  {
-    in.seekg(0,std::ios::end);
-    size_t size = in.tellg();
-    in.seekg(0,std::ios::beg);
-    size_t count = size/sizeof(T);
-    std::vector<T> vec;
-    size_t begin = part * count / numParts;
-    size_t end = (part+1) * count / numParts;
-    T t;
-    for (size_t i=0;i<begin;i++)
-      in.read((char *)&t,sizeof(t));
-    for (size_t i=begin;i<end;i++) {
-      in.read((char *)&t,sizeof(t));
-      vec.push_back(t);
+    template<typename T>
+    std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+    {
+      in.seekg(0,std::ios::end);
+      size_t size = in.tellg();
+      in.seekg(0,std::ios::beg);
+      size_t count = size/sizeof(T);
+      std::vector<T> vec;
+      size_t begin = part * count / numParts;
+      size_t end = (part+1) * count / numParts;
+      T t;
+      for (size_t i=0;i<begin;i++)
+        in.read((char *)&t,sizeof(t));
+      for (size_t i=begin;i<end;i++) {
+        in.read((char *)&t,sizeof(t));
+        vec.push_back(t);
+      }
+      for (size_t i=end;i<count;i++)
+        in.read((char *)&t,sizeof(t));
+      return vec;
     }
-    for (size_t i=end;i<count;i++)
-      in.read((char *)&t,sizeof(t));
-    return vec;
-  }
   }
 }
 

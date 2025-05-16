@@ -33,6 +33,9 @@ namespace hs {
     std::vector<vec3f> normals;
     std::vector<vec3f> colors;
     std::vector<vec3i> indices;
+    struct {
+      std::vector<float> perVertex;
+    } scalars;
     
     mini::Material::SP material;
   };
