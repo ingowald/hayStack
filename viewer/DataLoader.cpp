@@ -288,7 +288,10 @@ namespace hs {
 
   void DataLoader::addContent(LoadableContent *content) 
   {
-    allContent.push_back({(double)content->projectedSize(),int(allContent.size()),content});
+    allContent.push_back(
+                         {-(double)content->projectedSize(),
+                          int(allContent.size()),content}
+                         );
   }
 
   std::string addIfRequired(std::string prefix, std::string s)
@@ -372,7 +375,8 @@ namespace hs {
 
     std::sort(allContent.begin(),allContent.end());
     for (auto addtl : allContent) {
-      double addtlWeight = - std::get<0>(addtl);
+      double addtlWeight = std::get<0>(addtl);
+      PRINT(addtlWeight);
       LoadableContent *addtlContent = std::get<2>(addtl);
       auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
       double currentWeight = currentlyLeastLoaded.first;
