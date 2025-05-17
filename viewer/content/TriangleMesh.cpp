@@ -131,7 +131,10 @@ namespace hs {
     }
     
     size_t HSMesh::projectedSize()
-    { return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts); }
+    {
+      return 2*fileSize;
+      // return (100/24) * divRoundUp((size_t)fileSize, (size_t)data.numParts);
+    }
     
     void   HSMesh::executeLoad(DataRank &dataGroup, bool verbose)
     {

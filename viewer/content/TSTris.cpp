@@ -47,7 +47,8 @@ namespace hs {
     size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
     size_t my_count = my_end - my_begin;
 
-    return 100*my_count;
+    return 50*my_count;
+    // return 100*my_count;
   }
     
   void   TSTriContent::executeLoad(DataRank &dataGroup, bool verbose) 

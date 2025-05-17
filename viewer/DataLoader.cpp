@@ -230,6 +230,7 @@ namespace hs {
     }
   
     assignGroups(numDataRanks);
+
     localModel.resize(dataPerRank);
 
     for (int i=0;i<dataPerRank;i++) {
@@ -253,8 +254,9 @@ namespace hs {
       //   fflush(0);
       // }
       loadDataRank(localModel.dataGroups[i],
-                    dataGroupID,
-                    verbose);
+                   workers.rank,
+                   dataGroupID,
+                   verbose);
       // if (verbose) 
       //   for (int r=workers.rank;r<workers.size;r++) 
       //     workers.barrier();
@@ -383,9 +385,20 @@ namespace hs {
       contentOfGroup[groupID].push_back(addtlContent);
       loadedGroups.push({currentWeight+addtlWeight,groupID});
     }
+    workers.barrier();
+    if (workers.rank == 0) {
+      std::cout << "content assignment: created " << contentOfGroup.size() << " data groups" << std::endl;
+      for (int i=0;i<contentOfGroup.size();i++) {
+        std::cout << "= data group " << i << std::endl;
+        for (auto content : contentOfGroup[i])
+          std::cout << "  - " << content->toString() << std::endl;
+      }
+    }
+    workers.barrier();
   }
     
   void DynamicDataLoader::loadDataRank(DataRank &dataGroup,
+                                       int rank,
                                         int dataGroupID,
                                         bool verbose)
   {
@@ -396,9 +409,11 @@ namespace hs {
                 << MINI_TERMINAL_DEFAULT << std::endl;
     for (auto content : contentOfGroup[dataGroupID]) {
       if (verbose)
-        std::cout << " - loading content " << content->toString() << std::endl << std::flush;
+        std::cout << " - #" << rank << " loading content " << content->toString() << std::endl << std::flush;
       content->executeLoad(dataGroup, verbose);
     }
+    if (verbose)
+      std::cout << " - #" << rank << " done loading." << std::endl;
   }
   
 }

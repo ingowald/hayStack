@@ -83,6 +83,7 @@ namespace hs {
     /*! interface for the app to load one particular rank's data
       group(s) */
     virtual void loadDataRank(DataRank &dg,
+                              int rank,
                               int dataGroupID,
                               bool verbose) = 0;
 
@@ -139,6 +140,7 @@ namespace hs {
     void assignGroups(int numDataRanks) override;
 
     void loadDataRank(DataRank &dg,
+                      int rank,
                       int dataGroupID,
                       bool verbose) override;
   private:
