@@ -329,7 +329,7 @@ namespace hs {
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".hsmesh")) {
-      content::HSMesh::create(this,contentDescriptor);
+      content::HSMesh::create(this,addIfRequired("hsmesh://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".raw")) {
       RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".tamr")) {
