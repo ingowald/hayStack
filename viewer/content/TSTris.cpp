@@ -53,16 +53,57 @@ namespace hs {
   void   TSTriContent::executeLoad(DataRank &dataGroup, bool verbose) 
   {
     size_t sizeOfTri = 3*sizeof(vec3f);
-    
     size_t numTrisTotal = fileSize / sizeOfTri;
-    numTrisTotal = data.get_size("count",numTrisTotal);
 
     int numPartsToSplitInto = data.numParts;
+    numTrisTotal = data.get_size("count",numTrisTotal);
     size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
     size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
     size_t my_count = my_end - my_begin;
 
     mini::Mesh::SP mesh = mini::Mesh::create();
+    mesh->indices.resize(my_count);
+#if 1
+    std::vector<std::pair<vec3f,int>> vertices;
+    FILE *file = fopen(data.where.c_str(),"rb");
+    fseek(file,my_begin*sizeOfTri,SEEK_SET);
+    for (int i=0;i<my_count;i++) {
+      // vec3f tri[3];
+      // int rc = fread(tri,sizeOfTri,1,file);
+      // assert(rc == 1);
+      std::pair<vec3f,int> v;
+      for (int j=0;j<3;j++) {
+        v.second = vertices.size();
+        int rc = fread(&v.first,sizeof(vec3f),1,file);
+        assert(rc == 1);
+        // vertices.push_back({tri[j],(int)vertices.size()});
+        vertices.push_back(v);
+      }
+    }
+    std::sort(vertices.begin(),vertices.end());
+      std::cout.precision(15);
+    // for (int i=0;i<100;i++)
+    //   std::cout << " vtx " << i << " v " << vertices[i].first << " idx " << vertices[i].second << std::endl;
+    int currentVertexID = -1;
+    // PING;
+    for (int i=0;i<vertices.size();i++) {
+      if (i == 0 || vertices[i].first != vertices[i-1].first) {
+        currentVertexID = mesh->vertices.size();
+        mesh->vertices.push_back(vertices[i].first);
+      }
+      if (vertices[i].second >= mesh->indices.size()*3)
+        throw std::runtime_error("invalid index");
+      ((int*)mesh->indices.data())[vertices[i].second] = currentVertexID;
+    }
+    // for (int i=0;i<10;i++)
+    //   PRINT(mesh->indices[i]);
+    // for (int i=0;i<10;i++)
+    //   PRINT(mesh->indices[mesh->indices.size()-1-i]);
+    // PING;
+    // PRINT(mesh->vertices.size());
+    // PRINT(mesh->indices.size());
+    vertices.clear();
+#else
     mesh->vertices.resize(3*my_count);
     
     FILE *file = fopen(data.where.c_str(),"rb");
@@ -71,14 +112,16 @@ namespace hs {
     assert(numRead == my_count);
     fclose(file);
 
+    mesh->indices.resize(my_count);
+    for (int i=0;i<my_count;i++)
+      mesh->indices[i] = 3*i + vec3i(0,1,2);
+#endif
+
     if (verbose) {
       std::cout << "   ... done loading " << prettyNumber(my_count)
                 << " triangles from " << data.where << std::endl << std::flush;
       fflush(0);
     }
-    mesh->indices.resize(my_count);
-    for (int i=0;i<my_count;i++)
-      mesh->indices[i] = 3*i + vec3i(0,1,2);
 
 #if 0
     mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();;

@@ -46,6 +46,8 @@ add_library(hayStack
   AnariBackend.cpp
   TransferFunction.h
   TransferFunction.cpp
+  TriangleMesh.h
+  TriangleMesh.cpp
 )
 
 # link to miniscene and umesh - we need those in either config

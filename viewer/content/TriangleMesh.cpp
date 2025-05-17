@@ -41,10 +41,10 @@ namespace hs {
     {
       std::ifstream in(data.where.c_str(),std::ios::binary);
       TriangleMesh::SP mesh = std::make_shared<TriangleMesh>();
-      mesh->vertices = loadVectorOf<vec3f>(in);
-      mesh->normals = loadVectorOf<vec3f>(in);
-      mesh->colors = loadVectorOf<vec3f>(in);
-      mesh->indices = loadVectorOf<vec3i>(in);
+      mesh->vertices = withHeader::loadVectorOf<vec3f>(in);
+      mesh->normals = withHeader::loadVectorOf<vec3f>(in);
+      mesh->colors = withHeader::loadVectorOf<vec3f>(in);
+      mesh->indices = withHeader::loadVectorOf<vec3i>(in);
       mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();
       mat->metallic = .8f;
       mat->roughness = 0.2f;
@@ -91,28 +91,16 @@ namespace hs {
         vec3f pos;
         vec3f rgb;
       };
-      PING;
-      std::vector<Vtx> vertices = noheader::loadVectorOf<Vtx>(in,0,-1,thisPartID,data.numParts);
-      // vertices.resize(3*1024*1000);
-      PING;
-#if 0
-#else
+      std::vector<Vtx> vertices
+        = noHeader::loadVectorOf<Vtx>(in,thisPartID,data.numParts);
       for (auto v : vertices) {
         mesh->vertices.push_back(v.pos);
         mesh->colors.push_back(v.rgb);
       }
       for (int i=0;i<mesh->vertices.size()/3;i++)
         mesh->indices.push_back(3*i+vec3i(0,1,2));
-#endif
       
-#if 1
       mini::Matte::SP mat = std::make_shared<mini::Matte>();
-#else
-      mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();
-      mat->metallic = .2f;
-      mat->roughness = 0.6f;
-      mat->transmission = 0.f;
-#endif
       mesh->material = mat;//mini::Matte::create();
       dataGroup.triangleMeshes.push_back(mesh);
     }
@@ -120,6 +108,44 @@ namespace hs {
     std::string RGBTris::toString() 
     {
       return "RGBTris{fileName="+data.where+", part "+std::to_string(thisPartID)+" of "
+        + std::to_string(data.numParts)+", proj size "
+        +prettyNumber(projectedSize())+"B}";
+    }
+    
+
+
+
+    /*! simple position/normal/color/index triangle meshes in binary format */
+    HSMesh::HSMesh(const ResourceSpecifier &data,
+                     int thisPartID)
+    : data(data),
+      fileSize(getFileSize(data.where)),
+      thisPartID(thisPartID)
+    {}
+    
+    void HSMesh::create(DataLoader *loader,
+                                const ResourceSpecifier &dataURL)
+    {
+      for (int i=0;i<dataURL.numParts;i++)
+        loader->addContent(new HSMesh(dataURL,i));
+    }
+    
+    size_t HSMesh::projectedSize()
+    { return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts); }
+    
+    void   HSMesh::executeLoad(DataRank &dataGroup, bool verbose)
+    {
+      TriangleMesh::SP mesh = std::make_shared<TriangleMesh>(data.where);
+      mini::Matte::SP mat = std::make_shared<mini::Matte>();
+      mesh->material = mat;
+      if (data.numParts > 1)
+        throw std::runtime_error("cannot split meshes yet");
+      dataGroup.triangleMeshes.push_back(mesh);
+    }
+    
+    std::string HSMesh::toString() 
+    {
+      return "HSMesh{fileName="+data.where+", part "+std::to_string(thisPartID)+" of "
         + std::to_string(data.numParts)+", proj size "
         +prettyNumber(projectedSize())+"B}";
     }

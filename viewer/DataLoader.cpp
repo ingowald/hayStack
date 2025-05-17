@@ -328,6 +328,8 @@ namespace hs {
       content::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".hsmesh")) {
+      content::HSMesh::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".raw")) {
       RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".tamr")) {
@@ -361,10 +363,6 @@ namespace hs {
         throw std::runtime_error
           ("could not recognize content type '"+url.type+"'");
     }    
-    // else if (startsWith(contentDescriptor,"en-dump://")) {
-    //   ENDumpContent::create(this,contentDescriptor);
-    // } else
-    //   throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }
     
   void DynamicDataLoader::assignGroups(int numDifferentDataRanks)
@@ -378,7 +376,6 @@ namespace hs {
     std::sort(allContent.begin(),allContent.end());
     for (auto addtl : allContent) {
       double addtlWeight = std::get<0>(addtl);
-      PRINT(addtlWeight);
       LoadableContent *addtlContent = std::get<2>(addtl);
       auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
       double currentWeight = currentlyLeastLoaded.first;

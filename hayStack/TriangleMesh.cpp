@@ -16,32 +16,33 @@
 
 /*! a hay-*stack* is a description of data-parallel data */
 
-#pragma once
-
-#include "hayStack/HayStack.h"
+#include "hayStack/TriangleMesh.h"
+#include "viewer/DataLoader.h"
+#include <fstream>
 
 namespace hs {
+
+  TriangleMesh::TriangleMesh(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str(),std::ios::binary);
+    
+    vertices = withHeader::loadVectorOf<vec3f>(in);
+    normals = withHeader::loadVectorOf<vec3f>(in);
+    colors = withHeader::loadVectorOf<vec3f>(in);
+    indices = withHeader::loadVectorOf<vec3i>(in);
+    scalars.perVertex = withHeader::loadVectorOf<float>(in);
+  }
   
-  struct TriangleMesh {
-    typedef std::shared_ptr<TriangleMesh> SP;
-
-    static SP create() { return std::make_shared<TriangleMesh>(); }
-
-    TriangleMesh() {};
-    TriangleMesh(const std::string &fileName);
-    void write(const std::string &fileName);
+  void TriangleMesh::write(const std::string &fileName)
+  {
+    std::ofstream out(fileName.c_str(),std::ios::binary);
     
-    box3f getBounds() const { box3f bb; for (auto v : vertices) bb.extend(v); return bb; }
-    
-    std::vector<vec3f> vertices;
-    std::vector<vec3f> normals;
-    std::vector<vec3f> colors;
-    std::vector<vec3i> indices;
-    struct {
-      std::vector<float> perVertex;
-    } scalars;
-    
-    mini::Material::SP material;
-  };
+    withHeader::writeVector(out,vertices);
+    withHeader::writeVector(out,normals);
+    withHeader::writeVector(out,colors);
+    withHeader::writeVector(out,indices);
+    withHeader::writeVector(out,scalars.perVertex);
+  }
+  
+}
 
-} // ::hs
