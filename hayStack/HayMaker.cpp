@@ -54,7 +54,6 @@ namespace hs {
     }
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
-      PING;
       hs::ColorMap::init();
       int cmID = localModel.colorMapIndex % hs::ColorMap::maps.size();
       std::cout << "#hs: using scalar-mapping color map #" << cmID
@@ -182,9 +181,18 @@ namespace hs {
       // ------------------------------------------------------------------
       // render all individual meshes
       // -----------------------------------------------------------------
-      for (auto content : myData.triangleMeshes)
+      for (auto content : myData.triangleMeshes) {
+#if 1
+        auto created = impl->createTriangleMesh(content,&this->materialLibrary);
+        auto meshGroup = impl->createGroup(created,{});
+        rootInstances.groups.push_back(meshGroup);
+        affine3f xfm;
+        rootInstances.xfms.push_back((const affine3f&)xfm);
+#else
         for (auto created : impl->createTriangleMesh(content,&this->materialLibrary))
           rootGeoms.push_back(created);
+#endif
+      }
     
       // ------------------------------------------------------------------
       // render all structured volumes

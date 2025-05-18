@@ -541,9 +541,6 @@ int main(int ac, char **av)
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
   bool modelHasVolumeData = !worldBounds.scalars.empty();
-  bool modelHasColorMapping = !worldBounds.mapped.empty();
-  PRINT((int)modelHasColorMapping);
-  PRINT(worldBounds.mapped);
   
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
@@ -636,8 +633,6 @@ int main(int ac, char **av)
                      &viewer, &Viewer::rangeChanged);
     QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
                      &viewer, &Viewer::opacityScaleChanged);
-    // QObject::connect(&viewer.lightInteractor,&LightInteractor::lightPosChanged,
-    //                  &viewer, &Viewer::lightPosChanged);
     
     
     if (!fromCL.xfFileName.empty())

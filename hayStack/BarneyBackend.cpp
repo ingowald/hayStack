@@ -48,7 +48,6 @@ namespace hs {
     bnSetString(sampler,"inAttribute","attribute0");
     bnSet1i(sampler,"filterMode",BN_TEXTURE_LINEAR);
     bnCommit(sampler);
-    std::cout << "color mapper created" << std::endl;
     this->scalarMapper = sampler;
   }
 
@@ -59,7 +58,6 @@ namespace hs {
   
   void BarneyBackend::Slot::setScalarMapping(BNMaterial mat, const std::string &colorName)
   {
-    PING; PRINT(scalarMapper);
     bnSetObject(mat,colorName.c_str(),scalarMapper);
     bnCommit(mat);
   }
@@ -479,12 +477,6 @@ namespace hs {
   void BarneyBackend::Slot::setInstances(const std::vector<BNGroup> &groups,
                                          const std::vector<affine3f> &xfms)
   {
-    PING;
-    PRINT(groups.size());
-    if (groups.size() > 0) PRINT(groups[0]);
-    if (groups.size() > 1) PRINT(groups[1]);
-
-    PRINT(xfms.size());
     bnSetInstances(global->model,this->slot,
                    (BNGroup*)groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
@@ -498,9 +490,7 @@ namespace hs {
   
   void BarneyBackend::Slot::finalizeSlot()
   {
-    PING;
     if (needRebuild) {
-      PING;
       bnBuild(global->model,slot);
       needRebuild = false;
     }
@@ -817,7 +807,6 @@ namespace hs {
     auto context = global->context;
     bool colorMapped = content->colors.size()>0;
 
-    PING;
     BNMaterial mat = materialLib->getOrCreate(content->material,colorMapped,
                                               content->scalars.perVertex.size()>0);
     BNGeom geom = bnGeometryCreate(context,slot,"triangles");
