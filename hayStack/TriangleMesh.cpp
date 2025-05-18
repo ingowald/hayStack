@@ -43,6 +43,16 @@ namespace hs {
     withHeader::writeVector(out,indices);
     withHeader::writeVector(out,scalars.perVertex);
   }
+
+  BoundsData TriangleMesh::getBounds() const
+  {
+    BoundsData bb;
+    for (auto v : vertices) bb.spatial.extend(v);
+    for (auto v : scalars.perVertex) bb.mapped.extend(v);
+    PING; PRINT(scalars.perVertex.size());
+    PRINT(bb.mapped);
+    return bb;
+  }
   
 }
 

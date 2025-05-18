@@ -19,11 +19,9 @@
 # include "BarneyBackend.h"
 #endif
 #if HANARI
-#include "AnariBackend.h"
-
+# include "AnariBackend.h"
 #endif
-// #include "hayStack/TransferFunction.h"
-// #include <map>
+#include "hayStack/ColorMap.h"
 
 namespace hs {
 
@@ -54,6 +52,17 @@ namespace hs {
     for (int i=0;i<this->localModel.size();i++) {
       perSlot.push_back(new Slot(&global,i));
     }
+    BoundsData bb = getWorldBounds();
+    if (!bb.mapped.empty()) {
+      PING;
+      hs::ColorMap::init();
+      int cmID = localModel.colorMapIndex % hs::ColorMap::maps.size();
+      std::cout << "#hs: using scalar-mapping color map #" << cmID
+                << " : " << hs::ColorMap::maps[cmID].first << std::endl;
+      for (auto slot : perSlot)
+        slot->createColorMapper(bb.mapped,
+                                hs::ColorMap::maps[cmID].second);
+    }
   }
 
   BoundsData HayMaker::getWorldBounds() const
@@ -63,11 +72,13 @@ namespace hs {
     bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
     bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
+    bb.mapped.lower = world.allReduceMin(bb.mapped.lower);
+    bb.mapped.upper = world.allReduceMax(bb.mapped.upper);
     
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
-    }
-      
+    }  
+    
     return bb;
   }
 
@@ -103,13 +114,23 @@ namespace hs {
   template<typename Backend>
   typename Backend::MaterialHandle
   MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat,
-                                        bool colorMapped)
+                                        bool colorMapped,
+                                        bool scalarMapped)
   {
-    auto key = std::pair<mini::Material::SP,bool>(miniMat,colorMapped);
+    auto key = std::tuple<mini::Material::SP,bool,bool>(miniMat,colorMapped,scalarMapped);
     if (alreadyCreated.find(key) != alreadyCreated.end())
       return alreadyCreated[key];
 
-    auto mat = backend->create(miniMat,colorMapped);
+    auto matAndColorName = backend->create(miniMat);
+    auto mat = matAndColorName.first;
+    const std::string colorName = matAndColorName.second;
+    if (colorMapped)
+      backend->setColorMapping(mat,colorName);
+      // bnSetString(mat,colorName.c_str(),"color");
+    if (scalarMapped)
+      backend->setScalarMapping(mat,colorName);
+      // bnSetObject(mat,colorName.c_str(),backend->colorMapper);
+      
     alreadyCreated[key] = mat;
     return mat;
   }

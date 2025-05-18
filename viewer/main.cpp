@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2022++ Ingo Wald                                               //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -42,6 +42,7 @@
 #endif
 // #include <cuda_runtime.h>
 
+
 #if HS_VIEWER
 namespace viewer {
   using namespace owl::common;
@@ -64,6 +65,9 @@ namespace hs {
     /*! num data groups */
     int ndg = 1;
 
+    /*! which color map to use for color mapping (if applicable) */
+    int cmID = 0;
+    
     bool mergeUnstructuredMeshes = false;
     bool useBackground = true;
     
@@ -432,6 +436,8 @@ int main(int ac, char **av)
       fromCL.useBackground = false;
     } else if (arg == "-bg") {
       fromCL.useBackground = true;
+    } else if (arg == "-cm" || arg == "--color-map") {
+      fromCL.cmID = std::stoi(av[++i]);
     } else if (arg == "-env" || arg == "--env-map") {
       fromCL.envMapFileName = av[++i];
       loader.sharedLights.envMap = fromCL.envMapFileName;
@@ -494,6 +500,7 @@ int main(int ac, char **av)
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   LocalModel thisRankData;
+  thisRankData.colorMapIndex = fromCL.cmID;
   if (!isHeadNode) {
     loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
@@ -534,6 +541,9 @@ int main(int ac, char **av)
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
   bool modelHasVolumeData = !worldBounds.scalars.empty();
+  bool modelHasColorMapping = !worldBounds.mapped.empty();
+  PRINT((int)modelHasColorMapping);
+  PRINT(worldBounds.mapped);
   
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
@@ -546,7 +556,7 @@ int main(int ac, char **av)
       + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
     fromCL.camera.vi = worldBounds.spatial.center();
   }
-  
+
   world.barrier();
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN

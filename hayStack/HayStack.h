@@ -27,14 +27,31 @@ namespace hs {
   using range1f = mini::common::interval<float>;
   
   struct BoundsData {
-    void extend(const BoundsData &other)
-    { spatial.extend(other.spatial); scalars.extend(other.scalars); }
-    
-    box3f   spatial;
-    range1f scalars;
-  };
+    void extend(const BoundsData &other);
 
+    /*! the usual spatial-only bounds, in world space */
+    box3f   spatial;
+    
+    /*! range of all scalar fields */
+    range1f scalars;
+    
+    /*! range of all (color-)mapped scalar fields, if present */
+    range1f mapped;
+  };
+  
   inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
-  { o << "{" << bd.spatial << ":" << bd.scalars << "}"; return o; }
+  {
+    o << "{spatial=" << bd.spatial
+      << ":scalarField(s)=" << bd.scalars
+      << ":mappedScalars=" << bd.mapped << "}";
+    return o;
+  }
+  
+  inline void BoundsData::extend(const BoundsData &other)
+  {
+    spatial.extend(other.spatial);
+    scalars.extend(other.scalars);
+    mapped.extend(other.mapped);
+  }
   
 } // ::hs

@@ -63,7 +63,7 @@ namespace hs {
 
     Comm        &world;
     Comm         workers;
-    LocalModel localModel;
+    LocalModel   localModel;
     bool         verbose;
     bool         useBackground = true;
     const int    pixelSamples;
@@ -97,10 +97,12 @@ namespace hs {
     
     MaterialLibrary(typename Backend::Slot *backend);
     ~MaterialLibrary();
-    MaterialHandle getOrCreate(mini::Material::SP miniMat, bool colorMapped = false);
+    MaterialHandle getOrCreate(mini::Material::SP miniMat,
+                               bool colorMapped = false,
+                               bool scalarMapped = false);
 
   private:
-    std::map<std::pair<mini::Material::SP,bool>,MaterialHandle> alreadyCreated;
+    std::map<std::tuple<mini::Material::SP,bool,bool>,MaterialHandle> alreadyCreated;
     typename Backend::Slot *const backend;
   };
   

@@ -34,6 +34,8 @@ add_library(hayStack
   StructuredVolume.cpp
   TAMRVolume.h
   TAMRVolume.cpp
+  ColorMap.h
+  ColorMap.cpp
 
   Renderer.h
   MPIRenderer.h

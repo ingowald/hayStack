@@ -19,6 +19,51 @@
 
 namespace hs {
 
+  void BarneyBackend::Slot::createColorMapper(const range1f &inputRange,
+                                              const std::vector<vec3f> &colorMap)
+  {
+    std::vector<vec4f> as4f;
+    for (auto v : colorMap)
+      as4f.push_back({v.x,v.y,v.z,1.f});
+    int width = as4f.size();
+    int height = 1;
+
+    BNTextureData td = bnTextureData2DCreate(global->context, this->slot,
+                                             BN_FLOAT4, width, height,
+                                             as4f.data());
+    
+    BNSampler sampler = bnSamplerCreate(global->context, this->slot,
+                                        "texture2D");
+    bnSetObject(sampler, "textureData", td);
+    
+    float scale = 1.f / (inputRange.upper-inputRange.lower);
+    struct {
+      vec4f v0,v1,v2,v3;
+    } xfm;
+    xfm.v0={scale,0.f,0.f,-inputRange.lower/scale};
+    xfm.v1={0.f,1.f,0.f,0.f};
+    xfm.v2={0.f,0.f,1.f,0.f};
+    xfm.v3={0.f,0.f,0.f,1.f};
+    bnSet4x4fv(sampler,"inTransform",(const bn_float4*)&xfm);
+    bnSetString(sampler,"inAttribute","attribute0");
+    bnSet1i(sampler,"filterMode",BN_TEXTURE_LINEAR);
+    bnCommit(sampler);
+    std::cout << "color mapper created" << std::endl;
+    this->scalarMapper = sampler;
+  }
+
+  void BarneyBackend::Slot::setColorMapping(BNMaterial mat, const std::string &colorName)
+  {
+    bnSetString(mat,colorName.c_str(),"color");
+  }
+  
+  void BarneyBackend::Slot::setScalarMapping(BNMaterial mat, const std::string &colorName)
+  {
+    PING; PRINT(scalarMapper);
+    bnSetObject(mat,colorName.c_str(),scalarMapper);
+    bnCommit(mat);
+  }
+  
   BNGroup    BarneyBackend::Slot::createGroup(const std::vector<BNGeom> &geoms,
                                               const std::vector<BNVolume> &volumes)
   {
@@ -227,7 +272,7 @@ namespace hs {
     return sampler;
   }
 
-  BNMaterial BarneyBackend::Slot::create(mini::Plastic::SP plastic, bool colorMapped)
+  std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::Plastic::SP plastic)
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
@@ -243,10 +288,10 @@ namespace hs {
     bnSet1f(mat,"eta",plastic->eta);
 #endif
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
   
-  BNMaterial BarneyBackend::Slot::create(mini::Velvet::SP velvet, bool colorMapped)
+  std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::Velvet::SP velvet)
   {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"velvet");
     bnSet(mat,"reflectance",(const bn_float3&)velvet->reflectance);
@@ -254,30 +299,31 @@ namespace hs {
     bnSet1f(mat,"horizonScatteringFallOff",velvet->horizonScatteringFallOff);
     bnSet1f(mat,"backScattering",velvet->backScattering);
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
   
-  BNMaterial BarneyBackend::Slot::create(mini::Matte::SP matte, bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::Matte::SP matte)
   {
-#if 1
+// #if 1
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
-    if (colorMapped) {
-      bnSetString(mat,"color","color");
-    } else {
-      vec3f color = matte->reflectance / 3.14f;
-      bnSet(mat,"color",(const bn_float3&)color);
-    }
-#else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
-    bnSet(mat,"reflectance",(const bn_float3&)matte->reflectance);
-#endif
+    // if (colorMapped) {
+    //   bnSetString(mat,"color","color");
+    // } else {
+    vec3f color = matte->reflectance / 3.14f;
+    bnSet(mat,"color",(const bn_float3&)color);
+//     }
+// #else
+//     BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
+//     bnSet(mat,"reflectance",(const bn_float3&)matte->reflectance);
+// #endif
     bnCommit(mat);
     
-    return mat;
+    return {mat,"color"};
   }
   
-  BNMaterial BarneyBackend::Slot::create(mini::Metal::SP metal,
-                                         bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::Metal::SP metal)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
@@ -289,11 +335,11 @@ namespace hs {
     bnSet1f (mat,"roughness",metal->roughness);
 #endif
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
   
-  BNMaterial BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender,
-                                         bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender)
   {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
     bnSet1f(mat,"metallic",blender->metallic);
@@ -301,11 +347,11 @@ namespace hs {
     bnSet1f(mat,"roughness",blender->roughness);
     bnSet(mat,"baseColor",(const bn_float3&)blender->baseColor);
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
   
-  BNMaterial BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass,
-                                         bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
 #if 0
     BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
@@ -320,9 +366,10 @@ namespace hs {
     bnSet(mat,"reflectance",(const bn_float3&)gray);
 #endif
     bnCommit(mat);
-    return mat;
+    return {mat,"reflectance"};
   }
-  BNMaterial BarneyBackend::Slot::create(mini::Dielectric::SP dielectric, bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::Dielectric::SP dielectric)
   {
 #if 1
     BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
@@ -342,9 +389,9 @@ namespace hs {
     // bnSet1f (mat,"etaOutside",dielectric->etaOutside);
 #endif
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
-  BNMaterial BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint, bool colorMapped)
+  std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint)
   {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"blender");
     bnSet(mat,"baseColor",(const bn_float3&)metallicPaint->shadeColor);
@@ -365,9 +412,9 @@ namespace hs {
     //     bnSet1f(mat,"eta",metallicPaint->eta);
     // #endif
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
-  BNMaterial BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney, bool colorMapped)
+  std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
     // bnSet(mat,"emission",
@@ -392,10 +439,11 @@ namespace hs {
       bnSetObject(mat,"baseColor",tex);
     }
     bnCommit(mat);
-    return mat;
+    return {mat,"baseColor"};
   }
 
-  BNMaterial BarneyBackend::Slot::create(mini::Material::SP miniMat, bool colorMapped)
+  std::pair<BNMaterial,std::string>
+  BarneyBackend::Slot::create(mini::Material::SP miniMat)
   {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
@@ -407,23 +455,23 @@ namespace hs {
       typesCreated.insert(miniMat->toString());
     }
     if (mini::BlenderMaterial::SP blender = miniMat->as<mini::BlenderMaterial>())
-      return create(blender,colorMapped);
+      return create(blender);
     if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
-      return create(plastic,colorMapped);
+      return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
-      return create(disney,colorMapped);
+      return create(disney);
     if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
-      return create(velvet,colorMapped);
+      return create(velvet);
     if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
-      return create(metallicPaint,colorMapped);
+      return create(metallicPaint);
     if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
-      return create(matte,colorMapped);
+      return create(matte);
     if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
-      return create(metal,colorMapped);
+      return create(metal);
     if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
-      return create(dielectric,colorMapped);
+      return create(dielectric);
     if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
-      return create(thinGlass,colorMapped);
+      return create(thinGlass);
     throw std::runtime_error("could not create barney material for mini mat "
                              +miniMat->toString());
   }
@@ -431,6 +479,12 @@ namespace hs {
   void BarneyBackend::Slot::setInstances(const std::vector<BNGroup> &groups,
                                          const std::vector<affine3f> &xfms)
   {
+    PING;
+    PRINT(groups.size());
+    if (groups.size() > 0) PRINT(groups[0]);
+    if (groups.size() > 1) PRINT(groups[1]);
+
+    PRINT(xfms.size());
     bnSetInstances(global->model,this->slot,
                    (BNGroup*)groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
@@ -444,7 +498,9 @@ namespace hs {
   
   void BarneyBackend::Slot::finalizeSlot()
   {
-   if (needRebuild) {
+    PING;
+    if (needRebuild) {
+      PING;
       bnBuild(global->model,slot);
       needRebuild = false;
     }
@@ -760,7 +816,10 @@ namespace hs {
     auto model = global->model;
     auto context = global->context;
     bool colorMapped = content->colors.size()>0;
-    BNMaterial mat = materialLib->getOrCreate(content->material,colorMapped);
+
+    PING;
+    BNMaterial mat = materialLib->getOrCreate(content->material,colorMapped,
+                                              content->scalars.perVertex.size()>0);
     BNGeom geom = bnGeometryCreate(context,slot,"triangles");
 
     int numVertices = content->vertices.size();
@@ -769,6 +828,7 @@ namespace hs {
     const bn_float3 *normals = (const bn_float3*)content->normals.data();
     const bn_float3 *colors = (const bn_float3*)content->colors.data();
     const bn_int3 *indices = (const bn_int3*)content->indices.data();
+    const float *scalars = (const float*)content->scalars.perVertex.data();
     BNData _vertices = bnDataCreate(context,slot,BN_FLOAT3,
                                     numVertices,vertices);
     bnSetAndRelease(geom,"vertices",_vertices);
@@ -777,6 +837,12 @@ namespace hs {
       BNData _colors = bnDataCreate(context,slot,BN_FLOAT3,
                                     numVertices,colors);
       bnSetAndRelease(geom,"vertex.color",_colors);
+    }
+
+    if (!content->scalars.perVertex.empty()) {
+      BNData _scalars = bnDataCreate(context,slot,BN_FLOAT,
+                                     numVertices,scalars);
+      bnSetAndRelease(geom,"vertex.attribute0",_scalars);
     }
 
     BNData _indices  = bnDataCreate(context,slot,BN_INT3,

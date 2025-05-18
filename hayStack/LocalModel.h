@@ -46,6 +46,7 @@ namespace hs {
     void mergeUnstructuredMeshes();
 
     std::vector<DataRank> dataGroups;
+    int colorMapIndex = 0;
   };
 
 } // ::hs

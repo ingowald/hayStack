@@ -60,7 +60,7 @@ namespace hs {
         bounds.spatial.extend(sphereSet->getBounds());
     for (auto &tm : triangleMeshes)
       if (tm)
-        bounds.spatial.extend(tm->getBounds());
+        bounds.extend(tm->getBounds());
     for (auto &capsuleSet : capsuleSets)
       if (capsuleSet)
         bounds.spatial.extend(capsuleSet->getBounds());
