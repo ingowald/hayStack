@@ -192,6 +192,7 @@ namespace hs {
   
   void BarneyBackend::Global::renderFrame()
   {
+    // resetAccumulation();
     bnRender(renderer,model,camera,fb);
     bnFrameBufferRead(fb,BN_FB_COLOR,hostRGBA,BN_UFIXED8_RGBA_SRGB);
   }
@@ -303,18 +304,9 @@ namespace hs {
   std::pair<BNMaterial,std::string>
   BarneyBackend::Slot::create(mini::Matte::SP matte)
   {
-// #if 1
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
-    // if (colorMapped) {
-    //   bnSetString(mat,"color","color");
-    // } else {
     vec3f color = matte->reflectance / 3.14f;
     bnSet(mat,"color",(const bn_float3&)color);
-//     }
-// #else
-//     BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
-//     bnSet(mat,"reflectance",(const bn_float3&)matte->reflectance);
-// #endif
     bnCommit(mat);
     
     return {mat,"color"};
@@ -414,9 +406,14 @@ namespace hs {
   }
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
+#if 1
+    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
+    bnSet(mat,"color",(const bn_float3&)disney->baseColor);
+    bnCommit(mat);
+    
+    return {mat,"color"};
+#else
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
-    // bnSet(mat,"emission",
-    //          (const bn_float3&)disney->emission);
     bnSet(mat,"baseColor",(const bn_float3&)disney->baseColor);
     bnSet1f(mat,"roughness",   disney->roughness);
     bnSet1f(mat,"metallic",    disney->metallic);
@@ -438,6 +435,7 @@ namespace hs {
     }
     bnCommit(mat);
     return {mat,"baseColor"};
+#endif
   }
 
   std::pair<BNMaterial,std::string>
@@ -552,6 +550,7 @@ namespace hs {
                                       const std::vector<BNLight> &lights)
   {
     if (!lights.empty()) {
+      std::cout << "setting lights slot " << this->slot << std::endl;
       BNData lightsData = bnDataCreate(global->context,this->slot,
                                        BN_OBJECT,lights.size(),lights.data());
       bnSetData(rootGroup,"lights",lightsData);

@@ -518,7 +518,7 @@ namespace hs {
   std::pair<anari::Material,std::string>
   AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
-#if 0
+#if 1
     {
       anari::Material material
         = anari::newObject<anari::Material>(device, "matte");
@@ -526,7 +526,7 @@ namespace hs {
       anari::setParameter(device,material,"color",
                           (const anari::math::float3&)disney->baseColor);
       anari::commitParameters(device, material);
-      return material;
+      return {material,"color"};
     }
 #endif
     
