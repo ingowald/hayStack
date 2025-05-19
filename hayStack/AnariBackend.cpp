@@ -518,7 +518,7 @@ namespace hs {
   std::pair<anari::Material,std::string>
   AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
-#if 1
+#if 0
     {
       anari::Material material
         = anari::newObject<anari::Material>(device, "matte");
@@ -535,13 +535,8 @@ namespace hs {
       = anari::newObject<anari::Material>(device, "physicallyBased");
     anari::setParameter(device,material,"alphaMode","blend");
 
-    // if (colorMapped)
-    //   anari::setParameter(device,material,"baseColor",
-    //                       "color");
-    // else {
-      anari::setParameter(device,material,"baseColor",
-                          (const anari::math::float3&)disney->baseColor);
-    // }
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)disney->baseColor);
 #if 1
     // anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"metallic",disney->metallic);
@@ -819,11 +814,8 @@ namespace hs {
   
   anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
   {
-    // auto device = device;
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
-    std::cout << "dir light direction "
-              << (const vec3f&)ml.direction << std::endl;
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",average(ml.radiance));
     anari::commitParameters(device,light);
@@ -833,7 +825,6 @@ namespace hs {
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
   {
-    // auto device = device;
     if (!lights.empty()) {
       anari::setParameterArray1D
         (device, model, "light", lights.data(),lights.size());
@@ -843,8 +834,6 @@ namespace hs {
 
   anari::Volume AnariBackend::Slot::create(const StructuredVolume::SP &vol)
   {
-    // auto device = device;
-
     anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
       
     auto field = anari::newObject<anari::SpatialField>(device, "structuredRegular");

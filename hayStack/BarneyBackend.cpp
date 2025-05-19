@@ -406,7 +406,7 @@ namespace hs {
   }
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
-#if 1
+#if 0
     BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
     bnSet(mat,"color",(const bn_float3&)disney->baseColor);
     bnCommit(mat);
