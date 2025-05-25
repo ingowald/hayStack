@@ -661,52 +661,56 @@ namespace hs {
            8*sizeof(int)*mesh->hexes.size());
 
     std::vector<int>     elementOffsets;
-    // std::vector<uint8_t> elementTypes;
+    std::vector<uint8_t> cellTypes;
     for (int i=0;i<mesh->tets.size();i++) {
       elementOffsets.push_back(tetBegin+4*i);
-      // elementTypes.push_back(VTK_TETRA);
+      cellTypes.push_back(BN_UNSTRUCTURED_TET);
     }
     for (int i=0;i<mesh->pyrs.size();i++) {
       elementOffsets.push_back(pyrBegin+5*i);
-      // elementTypes.push_back(VTK_PYRAMID);
+      cellTypes.push_back(BN_UNSTRUCTURED_PYRAMID);
     }
     for (int i=0;i<mesh->wedges.size();i++) {
       elementOffsets.push_back(wedBegin+6*i);
-      // elementTypes.push_back(VTK_WEDGE);
+      cellTypes.push_back(BN_UNSTRUCTURED_PRISM);
     }
     for (int i=0;i<mesh->hexes.size();i++) {
       elementOffsets.push_back(hexBegin+8*i);
-      // elementTypes.push_back(VTK_HEXAHEDRON);
+      cellTypes.push_back(BN_UNSTRUCTURED_HEX);
     }
     
     assert(mesh->perVertex);
     assert(mesh->perVertex->values.size() == mesh->vertices.size());
     
-    std::vector<vec4f> vertices;
-    for (int i=0;i<mesh->vertices.size();i++) {
-      vec4f v;
-      (umesh::vec3f&)v = mesh->vertices[i];
-      v.w = mesh->perVertex->values[i];
-      vertices.push_back(v);
-    }
-    // for (int i=0;i<mesh->hexes.size();i++)
-    //   makeVTKOrder(vertices.data(),
-
     BNScalarField sf
       = bnScalarFieldCreate(global->context,this->slot,
                             "unstructured");
     BNData vertexData
       = bnDataCreate(global->context,this->slot,
-                     BN_FLOAT4,vertices.size(),vertices.data());
+                     BN_FLOAT3,
+                     mesh->vertices.size(),
+                     mesh->vertices.data());
+    BNData cellTypeData
+      = bnDataCreate(global->context,this->slot,
+                     BN_UINT8,
+                     cellTypes.size(),
+                     cellTypes.data());
+    BNData scalarData
+      = bnDataCreate(global->context,this->slot,
+                     BN_FLOAT,
+                     mesh->perVertex->values.size(),
+                     mesh->perVertex->values.data());
     BNData indicesData
       = bnDataCreate(global->context,this->slot,
                      BN_INT,indices.size(),indices.data());
     BNData offsetsData
       = bnDataCreate(global->context,this->slot,
                      BN_INT,elementOffsets.size(),elementOffsets.data());
-    bnSetAndRelease(sf,"vertices",vertexData);
-    bnSetAndRelease(sf,"indices",indicesData);
-    bnSetAndRelease(sf,"elementOffsets",offsetsData);
+    bnSetAndRelease(sf,"vertex.position",vertexData);
+    bnSetAndRelease(sf,"vertex.data",scalarData);
+    bnSetAndRelease(sf,"index",indicesData);
+    bnSetAndRelease(sf,"cell.index",offsetsData);
+    bnSetAndRelease(sf,"cell.type",cellTypeData);
     bnCommit(sf);
 
     BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
