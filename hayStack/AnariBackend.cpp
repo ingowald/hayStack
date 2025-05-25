@@ -877,11 +877,11 @@ namespace hs {
     return 0;
   }
   
-  anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
+  anari::Volume
+  AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
     auto mesh = meshAndDomain.first;
     assert(mesh);
-    // auto device = device;
 
     auto field = anari::newObject<anari::SpatialField>(device, "unstructured");
 
@@ -930,7 +930,7 @@ namespace hs {
        (const uint8_t *)cellTypeData.data(),
        cellTypeData.size());
     anari::setParameterArray1D
-      (device, field, "cell.begin",
+      (device, field, "cell.index",
        (const uint32_t *)cellBeginData.data(),
        cellBeginData.size());
     anari::setParameterArray1D
@@ -1069,7 +1069,7 @@ namespace hs {
     }
     if (!content->scalars.perVertex.empty()) {
       anari::setParameterArray1D
-        (device, geom, "vertex.attribute0",
+        (device, geom, "vertex.data",
          (const float*)content->scalars.perVertex.data(),
          content->scalars.perVertex.size());
     }

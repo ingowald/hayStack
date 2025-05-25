@@ -205,7 +205,7 @@ namespace hs {
       // ------------------------------------------------------------------
       // render all *UN*-structured volumes
       // -----------------------------------------------------------------
-      for (auto vol : myData.amr) {
+      for (auto vol : myData.unsts) {
         VolumeHandle createdVolume = impl->create(vol);
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
@@ -213,7 +213,7 @@ namespace hs {
       // ------------------------------------------------------------------
       // render all *AMR* volumes
       // -----------------------------------------------------------------
-      for (auto vol : myData.structuredVolumes) {
+      for (auto vol : myData.amr) {
         VolumeHandle createdVolume = impl->create(vol);
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
