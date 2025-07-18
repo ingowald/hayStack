@@ -58,13 +58,22 @@ namespace hs {
 
   double t_last_render;
   
+  typedef enum { DPMODE_NOT_SPECIFIED,
+                 DPMODE_DATA_PARALLEL,
+                 DPMODE_DATA_REPLICATED } DPMode;
+  
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
       many as we have to fit for given number of ranks */
     int dpr = 0;
-    /*! num data groups */
-    int ndg = 1;
+    /*! num data groups. '0' will become '1' by default, but allows us
+        for specifying 'hasn't been specified', which in turn allows
+        the mpi mode to set it to either '1' or '1 per rank' depending
+        on choesn dpmode */
+    int ndg = 0;
 
+    DPMode dpMode = DPMODE_NOT_SPECIFIED;
+    
     /*! which color map to use for color mapping (if applicable) */
     int cmID = 0;
     
@@ -436,6 +445,10 @@ int main(int ac, char **av)
       fromCL.useBackground = false;
     } else if (arg == "-bg") {
       fromCL.useBackground = true;
+    } else if (arg == "-dp" || arg == "--data-parallel") {
+      fromCL.dpMode = DPMODE_DATA_PARALLEL;
+    } else if (arg == "-dr" || arg == "--data-replicated") {
+      fromCL.dpMode = DPMODE_DATA_REPLICATED;
     } else if (arg == "-cm" || arg == "--color-map") {
       fromCL.cmID = std::stoi(av[++i]);
     } else if (arg == "-env" || arg == "--env-map") {
@@ -477,6 +490,10 @@ int main(int ac, char **av)
       fromCL.fbSize.y = std::stoi(av[++i]);
     } else if (arg == "-ndg") {
       fromCL.ndg = std::stoi(av[++i]);
+      fromCL.dpMode
+        = (fromCL.ndg == 1)
+        ? DPMODE_DATA_REPLICATED
+        : DPMODE_DATA_PARALLEL;
     } else if (arg == "-dpr") {
       fromCL.dpr = std::stoi(av[++i]);
     } else if (arg == "-nhn" || arg == "--no-head-node") {
@@ -495,6 +512,20 @@ int main(int ac, char **av)
 
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   hs::mpi::Comm workers = world.split(!isHeadNode);
+
+  if (world.size > 1 && fromCL.dpMode == DPMODE_NOT_SPECIFIED)
+    throw std::runtime_error("you're running haystack in MPI mode, and with more than one rank, but didn't specify num data groups (-ndg <n>), or whether you want to run data parallel (-dp|--data-parallel) or data replicated (-dr|--data-replicated). Just to make sure we're not actually running the wrong mode I'll hereby bail out ...");
+  
+  if (fromCL.ndg == 0) {
+    if (fromCL.dpMode == DPMODE_DATA_PARALLEL && world.size > 1)
+      // we _are_ run in mpi mode with more than one rank, and in data
+      // _parallel_mode. if not otherwise specified, use one data
+      // group per rank
+      fromCL.ndg = world.size;
+    else
+      fromCL.ndg = 1;
+  }
+  
 
   
   int numDataGroupsGlobally = fromCL.ndg;
