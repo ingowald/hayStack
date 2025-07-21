@@ -26,7 +26,7 @@
 # include <anari/anari_cpp.hpp>
 # include "anari/anari_cpp/ext/linalg.h"
 #else
-# include "barney.h"
+# include "barney/barney.h"
 #endif
 
 namespace hs {
