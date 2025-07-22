@@ -100,6 +100,69 @@ namespace hs {
         sizeOfSphere = sizeof(vec4f);
       } else if (format == "pcr" /*! pr = position color radius :-/ */) {
         sizeOfSphere = 7*sizeof(float);
+      } else if (format == "dlaf") {
+        size_t numSpheresInFile;
+        fread(&numSpheresInFile,sizeof(numSpheresInFile),1,file);
+        PRINT(numSpheresInFile);
+        float radius;
+        fread(&radius,sizeof(radius),1,file);
+        spheres->radius = radius;
+        float maxDistance;
+        fread(&maxDistance,sizeof(maxDistance),1,file);
+        size_t begin = data.get_size("begin",0);
+        size_t count = std::min(data.get_size("count",0),
+                                numSpheresInFile-begin);
+        PRINT(count);
+        int64_t end = std::min(numSpheresInFile,
+                               data.get_size("end",
+                                             count
+                                             ? begin+count
+                                             : numSpheresInFile));
+        int64_t numSpheresToLoad
+          = end-begin;
+        // std::min((int64_t)data.get_size("count",numSpheresInFile),
+        //              (int64_t)(numSpheresInFile-data.get_size("begin",0)));
+        size_t my_begin
+          = begin
+          + (numSpheresToLoad * (thisPartID+0)) / data.numParts;
+        size_t my_end
+          = begin
+          + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
+        PRINT(my_begin);
+        PRINT(my_end);
+        size_t my_count = my_end - my_begin;
+        PRINT(my_count);
+        spheres->origins.resize(my_count);
+        size_t skipBytes
+          = sizeof(size_t)
+          + sizeof(float)
+          + sizeof(float)
+          + 6*sizeof(float)
+          + my_begin*sizeof(vec3f);
+        fseek(file,skipBytes,SEEK_SET);
+        fread(spheres->origins.data(),my_count,sizeof(vec3f),file);
+
+        skipBytes
+          = sizeof(size_t)
+          + sizeof(float)
+          + sizeof(float)
+          + 6*sizeof(float)
+          + numSpheresInFile*sizeof(vec3f)
+          + my_begin*sizeof(float);
+        fseek(file,skipBytes,SEEK_SET);
+        std::vector<float> distances(my_count);
+        fread(distances.data(),sizeof(float),my_count,file);
+
+        spheres->colors.clear();
+        for (auto d : distances) {
+          vec3f color = temperature_to_rgb(powf(d/maxDistance,1.f));
+          spheres->colors.push_back(color);
+        }
+
+        fclose(file);
+        
+        dataGroup.sphereSets.push_back(spheres);
+        return;
       } else
         throw std::runtime_error("unsupported format '"+format+"'");
 
