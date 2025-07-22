@@ -19,7 +19,7 @@
 #include "HayMaker.h"
 #if HS_FAKE_MPI
 # include <barney/barney.h>
-#else
+#else 
 # include <barney/barney.h>
 # include <barney/barney_mpi.h>
 #endif
