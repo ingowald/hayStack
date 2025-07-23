@@ -109,6 +109,8 @@ namespace hs {
         spheres->radius = radius;
         float maxDistance;
         rc = fread(&maxDistance,sizeof(maxDistance),1,file); assert(rc);
+
+        
         size_t begin = data.get_size("begin",0);
         size_t count = std::min(data.get_size("count",0),
                                 numSpheresInFile-begin);
@@ -177,23 +179,36 @@ namespace hs {
       } else
         throw std::runtime_error("unsupported format '"+format+"'");
 
-      int64_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
+      size_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
+
+      size_t begin = data.get_size("begin",0);
+      size_t count = std::min(data.get_size("count",0),
+                              numSpheresInFile-begin);
+      int64_t end = std::min(numSpheresInFile,
+                             data.get_size("end",
+                                           count
+                                           ? begin+count
+                                           : numSpheresInFile));
+
+      
       int64_t numSpheresToLoad
-        = std::min((int64_t)data.get_size("count",numSpheresInFile),
-                   (int64_t)(numSpheresInFile-data.get_size("begin",0)));
+        = end-begin;
+      // std::min((int64_t)data.get_size("count",numSpheresInFile),
+      //              (int64_t)(numSpheresInFile-data.get_size("begin",0)));
       if (numSpheresToLoad <= 0)
         throw std::runtime_error("no spheres to load for these begin/count values!?");
   
       size_t my_begin
-        = data.get_size("begin",0)
+        = begin//data.get_size("begin",0)
         + (numSpheresToLoad * (thisPartID+0)) / data.numParts;
       size_t my_end
-        = data.get_size("end",0)
+        = begin//data.get_size("end",0)
         + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
       size_t my_count = my_end - my_begin;
       // spheres->origins.resize(my_count);
       fseek(file,skipBytes+my_begin*sizeOfSphere,SEEK_SET);
       range1f scalarRange;
+      range1f inputRange;
       if (format =="xyzf") {
         vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
         vec4f v;
@@ -201,7 +216,7 @@ namespace hs {
           int rc = fread((char*)&v,sizeof(v),1,file);
           assert(rc);
           spheres->origins.push_back(vec3f{v.x,v.y,v.z});
-
+          inputRange.extend(v.w);
           if (colorMapRange.x != colorMapRange.y) {
             float f = v.w;
             scalarRange.extend(f);
@@ -210,6 +225,7 @@ namespace hs {
             spheres->colors.push_back(color);
           }
         }
+        std::cout << "range of input scalar values was " << inputRange << std::endl;
       } else if (format =="xyzi") {
         struct
         {
