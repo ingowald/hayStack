@@ -702,6 +702,44 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
+#if 1
+  if (fromCL.measure) {
+    int numFramesRendered = 0;
+    const int measure_warmup_frames = 2;
+    const int measure_max_frames = 100;
+    const float measure_max_seconds = 60.f;
+    double measure_t0 = 0.;
+
+    while (true) {
+      if (numFramesRendered == measure_warmup_frames)
+        measure_t0 = getCurrentTime();
+      
+      double t0 = getCurrentTime();
+      renderer->renderFrame();
+      ++numFramesRendered;
+      double t1 = getCurrentTime();
+      
+      int numFramesMeasured = numFramesRendered - measure_warmup_frames;
+      float numSecondsMeasured
+        = (numFramesMeasured < 1)
+        ? 0.f
+        : float(t1 - measure_t0);
+      
+      if (numFramesMeasured >= measure_max_frames ||
+          numSecondsMeasured >= measure_max_seconds) {
+        std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
+        std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
+        stbi_flip_vertically_on_write(true);
+        std::cout << "saving in " << fromCL.outFileName.c_str() << std::endl;
+        stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
+                       pixels.data(),fbSize.x*sizeof(uint32_t));
+        
+        renderer->terminate();
+        exit(0);
+      }
+    }
+  }
+#endif
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame();
 

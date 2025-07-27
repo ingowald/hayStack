@@ -102,17 +102,18 @@ namespace hs {
         sizeOfSphere = 7*sizeof(float);
       } else if (format == "dlaf") {
         size_t numSpheresInFile;
-        fread(&numSpheresInFile,sizeof(numSpheresInFile),1,file);
-        PRINT(numSpheresInFile);
+        int rc;
+        rc = fread(&numSpheresInFile,sizeof(numSpheresInFile),1,file); assert(rc);
         float radius;
-        fread(&radius,sizeof(radius),1,file);
+        rc = fread(&radius,sizeof(radius),1,file); assert(rc);
         spheres->radius = radius;
         float maxDistance;
-        fread(&maxDistance,sizeof(maxDistance),1,file);
+        rc = fread(&maxDistance,sizeof(maxDistance),1,file); assert(rc);
+
+        
         size_t begin = data.get_size("begin",0);
         size_t count = std::min(data.get_size("count",0),
                                 numSpheresInFile-begin);
-        PRINT(count);
         int64_t end = std::min(numSpheresInFile,
                                data.get_size("end",
                                              count
@@ -128,10 +129,7 @@ namespace hs {
         size_t my_end
           = begin
           + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
-        PRINT(my_begin);
-        PRINT(my_end);
         size_t my_count = my_end - my_begin;
-        PRINT(my_count);
         spheres->origins.resize(my_count);
         size_t skipBytes
           = sizeof(size_t)
@@ -140,7 +138,7 @@ namespace hs {
           + 6*sizeof(float)
           + my_begin*sizeof(vec3f);
         fseek(file,skipBytes,SEEK_SET);
-        fread(spheres->origins.data(),my_count,sizeof(vec3f),file);
+        rc = fread(spheres->origins.data(),my_count,sizeof(vec3f),file); assert(rc);
 
         skipBytes
           = sizeof(size_t)
@@ -151,8 +149,23 @@ namespace hs {
           + my_begin*sizeof(float);
         fseek(file,skipBytes,SEEK_SET);
         std::vector<float> distances(my_count);
-        fread(distances.data(),sizeof(float),my_count,file);
+        rc = fread(distances.data(),sizeof(float),my_count,file); assert(rc);
 
+        size_t skip = data.get_size("skip",0);
+        if (skip) {
+          std::vector<float> skipped_distances;
+          std::vector<vec3f> skipped_origins;
+          for (size_t i=0;i<spheres->origins.size();i++) {
+            size_t idx = my_begin + i;
+            if (idx % skip != 0) continue;
+            skipped_distances.push_back(distances[i]);
+            skipped_origins.push_back(spheres->origins[i]);
+          }
+          distances = skipped_distances;
+          spheres->origins = skipped_origins;
+        }
+
+        
         spheres->colors.clear();
         for (auto d : distances) {
           vec3f color = temperature_to_rgb(powf(d/maxDistance,1.f));
@@ -166,23 +179,36 @@ namespace hs {
       } else
         throw std::runtime_error("unsupported format '"+format+"'");
 
-      int64_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
+      size_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
+
+      size_t begin = data.get_size("begin",0);
+      size_t count = std::min(data.get_size("count",0),
+                              numSpheresInFile-begin);
+      int64_t end = std::min(numSpheresInFile,
+                             data.get_size("end",
+                                           count
+                                           ? begin+count
+                                           : numSpheresInFile));
+
+      
       int64_t numSpheresToLoad
-        = std::min((int64_t)data.get_size("count",numSpheresInFile),
-                   (int64_t)(numSpheresInFile-data.get_size("begin",0)));
+        = end-begin;
+      // std::min((int64_t)data.get_size("count",numSpheresInFile),
+      //              (int64_t)(numSpheresInFile-data.get_size("begin",0)));
       if (numSpheresToLoad <= 0)
         throw std::runtime_error("no spheres to load for these begin/count values!?");
   
       size_t my_begin
-        = data.get_size("begin",0)
+        = begin//data.get_size("begin",0)
         + (numSpheresToLoad * (thisPartID+0)) / data.numParts;
       size_t my_end
-        = data.get_size("end",0)
+        = begin//data.get_size("end",0)
         + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
       size_t my_count = my_end - my_begin;
       // spheres->origins.resize(my_count);
       fseek(file,skipBytes+my_begin*sizeOfSphere,SEEK_SET);
       range1f scalarRange;
+      range1f inputRange;
       if (format =="xyzf") {
         vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
         vec4f v;
@@ -190,7 +216,7 @@ namespace hs {
           int rc = fread((char*)&v,sizeof(v),1,file);
           assert(rc);
           spheres->origins.push_back(vec3f{v.x,v.y,v.z});
-
+          inputRange.extend(v.w);
           if (colorMapRange.x != colorMapRange.y) {
             float f = v.w;
             scalarRange.extend(f);
@@ -199,6 +225,7 @@ namespace hs {
             spheres->colors.push_back(color);
           }
         }
+        std::cout << "range of input scalar values was " << inputRange << std::endl;
       } else if (format =="xyzi") {
         struct
         {
