@@ -41,6 +41,7 @@ namespace hs {
              int   pixelSamples,
              bool  useBG,
              LocalModel &localModel,
+             int gpusPerRank,
              bool verbose);
 
     virtual void buildSlots() = 0;
@@ -52,6 +53,7 @@ namespace hs {
                                                int pathsPerPixel,
                                                bool useBG,
                                                LocalModel &localModel,
+                                               int gpusPerRank,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
@@ -59,6 +61,7 @@ namespace hs {
                                                 int pathsPerPixel,
                                                 bool useBG,
                                                 LocalModel &localModel,
+                                                int gpusPerRank,
                                                 bool verbose);
 
     Comm        &world;
@@ -67,6 +70,7 @@ namespace hs {
     bool         verbose;
     bool         useBackground = true;
     const int    pixelSamples;
+    const int    gpusPerRank;
   };
   
   /*! keeps track of which frontend textures have already been
@@ -122,6 +126,7 @@ namespace hs {
               int pathsPerPixel,
               bool useBG,
               LocalModel &localModel,
+              int gpusPerRank,
               bool verbose);
     
     void init();

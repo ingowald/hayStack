@@ -30,12 +30,14 @@ namespace hs {
                      int   pixelSamples,
                      bool useBG,
                      LocalModel &_localModel,
+                     int gpusPerRank,
                      bool verbose)
     : world(world),
       workers(workers),
       pixelSamples(pixelSamples),
       useBackground(useBG),
       localModel(std::move(_localModel)),
+      gpusPerRank(gpusPerRank),
       verbose(verbose)
   {}
 
@@ -45,8 +47,9 @@ namespace hs {
                                 int pathsPerPixel,
                                 bool useBG,
                                 LocalModel &localModel,
+                                int gpusPerRank,
                                 bool verbose)
-    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,verbose),
+    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,gpusPerRank,verbose),
       global(this)
   {
     for (int i=0;i<this->localModel.size();i++) {
@@ -325,6 +328,7 @@ namespace hs {
                               int pathsPerPixel,
                               bool useBG,
                               LocalModel &localModel,
+                              int gpusPerRank,
                               bool verbose)
   {
 #if HANARI
@@ -333,6 +337,7 @@ namespace hs {
                                        pathsPerPixel,
                                        useBG,
                                        localModel,
+                                       gpusPerRank,
                                        verbose);
 #else
     throw std::runtime_error("ANARI support not compiled in");
@@ -346,6 +351,7 @@ namespace hs {
                                int pathsPerPixel,
                                bool useBG,
                                LocalModel &localModel,
+                               int gpusPerRank,
                                bool verbose)
   { throw std::runtime_error("barney support not compiled in"); }
 #else 
@@ -355,6 +361,7 @@ namespace hs {
                                int pathsPerPixel,
                                bool useBG,
                                LocalModel &localModel,
+                               int gpusPerRank,
                                bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
@@ -362,6 +369,7 @@ namespace hs {
                                         pathsPerPixel,
                                         useBG,
                                         localModel,
+                                        gpusPerRank,
                                         verbose);
   }
   

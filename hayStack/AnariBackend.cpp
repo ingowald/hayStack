@@ -189,6 +189,10 @@ namespace hs {
     for (int slot=0;slot<numDataGroups;slot++) {
       auto device = anari::newDevice(library, "default");
       std::cout << "#hanari: creating tethered device #" << slot << "/" << numDataGroups << std::endl;
+
+      anari::setParameter(device, device,
+                          "maxGpuCount", (int)base->gpusPerRank);
+      
       anari::setParameter(device, device,
                           "tetherIndex", (int)slot);
       anari::setParameter(device, device,

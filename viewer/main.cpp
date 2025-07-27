@@ -87,6 +87,8 @@ namespace hs {
     int  numExtraDisplayRanks = 0;
     int  numFramesAccum = 1;
     int  spp            = 1;
+    /*! number of GPUs to use per rank;  '-1' means 'leave it to barney' */
+    int  gpusPerRank    = -1;
     bool verbose = true;
     struct {
       vec3f vp   = vec3f(0.f);
@@ -445,6 +447,8 @@ int main(int ac, char **av)
       fromCL.useBackground = false;
     } else if (arg == "-bg") {
       fromCL.useBackground = true;
+    } else if (arg == "--gpus-per-rank" || arg == "-gpr") {
+      fromCL.gpusPerRank = std::stoi(av[++i]);
     } else if (arg == "-dp" || arg == "--data-parallel") {
       fromCL.dpMode = DPMODE_DATA_PARALLEL;
     } else if (arg == "-dr" || arg == "--data-replicated") {
@@ -549,12 +553,14 @@ int main(int ac, char **av)
                                           fromCL.spp,
                                           fromCL.useBackground,
                                           thisRankData,
+                                          fromCL.gpusPerRank,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            fromCL.spp,
                                            fromCL.useBackground,
                                            thisRankData,
+                                           fromCL.gpusPerRank,
                                            verbose());
 // #if HANARI
 //     hayMaker = new HayMakerT<AnariBackend>(world,
