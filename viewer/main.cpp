@@ -127,8 +127,10 @@ namespace hs {
 #if HS_VIEWER || HS_CUTEE
   struct Viewer : public OWLViewer
   {
-    Viewer(Renderer *const renderer)
-      : renderer(renderer)
+    Viewer(Renderer *const renderer,
+           hs::mpi::Comm *world)
+      : renderer(renderer),
+        world(world)
     {
 #if HS_VIEWER
 # if HS_HAVE_IMGUI
@@ -298,6 +300,10 @@ namespace hs {
           std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
           std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
           screenShot();
+          renderer->terminate();
+          
+          world->barrier();
+          hs::mpi::finalize();
           exit(0);
         }
       }
@@ -353,6 +359,7 @@ namespace hs {
     bool xfDirty = true;
     bool accumDirty = true;
     Renderer *const renderer;
+    hs::mpi::Comm *world;
 #if HS_CUTEE
     XFEditor *xfEditor = 0;
 #elif HS_VIEWER
@@ -624,7 +631,7 @@ int main(int ac, char **av)
   }
 
 #if HS_VIEWER
-  Viewer viewer(renderer);
+  Viewer viewer(renderer,&world);
   
   viewer.enableFlyMode();
   viewer.enableInspectMode((const viewer::box3f&)worldBounds.spatial);
@@ -645,7 +652,7 @@ int main(int ac, char **av)
   viewer.showAndRun();
 #elif HS_CUTEE
   QApplication app(ac,av);
-  Viewer viewer(renderer);
+  Viewer viewer(renderer,&world);
 
   viewer.show();
   viewer.enableFlyMode();
@@ -735,6 +742,8 @@ int main(int ac, char **av)
                        pixels.data(),fbSize.x*sizeof(uint32_t));
         
         renderer->terminate();
+        world.barrier();
+        hs::mpi::finalize();
         exit(0);
       }
     }
