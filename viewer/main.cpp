@@ -513,6 +513,8 @@ int main(int ac, char **av)
   // barrier.
   std::stringstream logFromGettingListOfGPUs;
   std::vector<int> gpuIDs = hs::getListOfGPUs(logFromGettingListOfGPUs);
+  PRINT(gpuIDs.size());
+  for (auto gpu : gpuIDs) PRINT(gpu);
   initGPUs(gpuIDs);
   
   hs::mpi::init(ac, av);

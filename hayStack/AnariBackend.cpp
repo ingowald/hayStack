@@ -209,7 +209,9 @@ namespace hs {
                             "tetherIndex", (int)devIdx);
         anari::setParameter(device, device,
                             "tetherCount", (int)numGPUs);
-          
+        anari::setParameter(device, device,
+                            "cudaDevice", (int)gpuID);
+        
         auto &dg = base->localModel.dataGroups[slot];
         anari::setParameter(device, device,
                             "dataGroupID", (int)dg.dataGroupID);
