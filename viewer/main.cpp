@@ -16,6 +16,9 @@
 
 #include "hayStack/HayMaker.h"
 #include "viewer/DataLoader.h"
+#if HS_HAVE_CUDA
+# include <cuda_runtime.h>
+#endif
 #if HS_VIEWER
 #ifdef _WIN32 
 #  include "glad.h"
@@ -87,8 +90,6 @@ namespace hs {
     int  numExtraDisplayRanks = 0;
     int  numFramesAccum = 1;
     int  spp            = 1;
-    /*! number of GPUs to use per rank;  '-1' means 'leave it to barney' */
-    int  gpusPerRank    = -1;
     bool verbose = true;
     struct {
       vec3f vp   = vec3f(0.f);
@@ -424,12 +425,96 @@ namespace hs {
     float z = std::stof(av[++i]);
     return mini::common::vec3f(x,y,z);
   }
+
+  void initGPUs(const std::vector<int> &gpuIDs)
+  {
+#if HS_HAVE_CUDA
+    assert(!gpuIDs.empty());
+    if (gpuIDs[0] == -1) return;
+
+    int old;
+    cudaGetDevice(&old);
+    for (int i=0;i<gpuIDs.size();i++) {
+      int gpu = gpuIDs[i];
+      cudaSetDevice(gpu);
+      cudaFree(0);
+    }
+    cudaSetDevice(old);
+#else
+    /* nothing to do */
+#endif
+  }
+
+  std::vector<int> parseCommaSeparatedListOfInts(std::string s)
+  {
+    std::vector<std::string> tokens;
+    int last = 0;
+    while (true) {
+      int pos = s.find(",");
+      if (pos == s.npos) {
+        tokens.push_back(s);
+        break;
+      } else {
+        tokens.push_back(s.substr(0,pos));
+        s = s.substr(pos+1);
+      }
+    }
+    
+    std::vector<int> result;
+    for (auto s : tokens)
+      if (s != "")
+        result.push_back(std::stoi(s));
+    return result;
+  }
+  
+  std::vector<int> getListOfGPUs(std::stringstream &logFromGettingListOfGPUs)
+  {
+    char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
+    if (slurm_job_gpus) {
+      logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
+      logFromGettingListOfGPUs << ".. using this" << std::endl;
+      return parseCommaSeparatedListOfInts(slurm_job_gpus);
+    }
+    else 
+      logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
+    
+    char *cvd = getenv("CUDA_VISIBLE_DEVICES");
+    if (cvd) {
+      logFromGettingListOfGPUs << "got CUDA_VISIBLE_DEVICES=" << cvd << std::endl;
+      logFromGettingListOfGPUs << ".. using this" << std::endl;
+      return parseCommaSeparatedListOfInts(cvd);
+    }
+    else 
+      logFromGettingListOfGPUs << "CUDA_VISIBLE_DEVICES was NOT SET" << std::endl;
+    
+    int numGPUs = 0;
+    cudaGetDeviceCount(&numGPUs);
+    logFromGettingListOfGPUs << "cudaGetDeviceCount reported " << numGPUs << std::endl;
+    std::vector<int> allGPUs;
+    if (numGPUs == 0) {
+      logFromGettingListOfGPUs << "no GPUs found, using '-1' for cpu fallback" << std::endl;
+    } else {
+      logFromGettingListOfGPUs << ".. using all of those" << std::endl;
+      for (int i=0;i<numGPUs;i++)
+        allGPUs.push_back(i);
+    }
+    return allGPUs;
+  }
+  
 }
 
 using namespace hs;
 
 int main(int ac, char **av)
 {
+  // let's buffer the logs from GPU initialization 'til after MPI is
+  // initialized.  we want to initalize GPUs _before_ we niitialize
+  // MPI, but we cannot properly format the outputs _after_ we can
+  // barrier.
+  std::stringstream logFromGettingListOfGPUs;
+  std::vector<int> gpuIDs = hs::getListOfGPUs(logFromGettingListOfGPUs);
+  initGPUs(gpuIDs);
+  
   hs::mpi::init(ac, av);
 #if HS_FAKE_MPI
   hs::mpi::Comm world;
@@ -438,10 +523,19 @@ int main(int ac, char **av)
 #endif
 
   world.barrier();
-  if (world.rank == 0)
+  if (world.rank == 0) {
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
+  }
   world.barrier();
 
+  for (int i=0;i<world.size;i++) {
+    if (world.rank == i) {
+      std::cout <<" #hv: GPUs already initialized, here's rank " << i << "'s log from that:" <<std::endl;
+      std::cout << logFromGettingListOfGPUs.str();
+    }
+    world.barrier();
+  }
+  
   // FromCL fromCL;
   // BarnConfig config;
   bool hanari = false;
@@ -454,8 +548,6 @@ int main(int ac, char **av)
       fromCL.useBackground = false;
     } else if (arg == "-bg") {
       fromCL.useBackground = true;
-    } else if (arg == "--gpus-per-rank" || arg == "-gpr") {
-      fromCL.gpusPerRank = std::stoi(av[++i]);
     } else if (arg == "-dp" || arg == "--data-parallel") {
       fromCL.dpMode = DPMODE_DATA_PARALLEL;
     } else if (arg == "-dr" || arg == "--data-replicated") {
@@ -560,14 +652,14 @@ int main(int ac, char **av)
                                           fromCL.spp,
                                           fromCL.useBackground,
                                           thisRankData,
-                                          fromCL.gpusPerRank,
+                                          gpuIDs,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            fromCL.spp,
                                            fromCL.useBackground,
                                            thisRankData,
-                                           fromCL.gpusPerRank,
+                                           gpuIDs,
                                            verbose());
 // #if HANARI
 //     hayMaker = new HayMakerT<AnariBackend>(world,

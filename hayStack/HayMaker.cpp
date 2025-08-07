@@ -30,14 +30,14 @@ namespace hs {
                      int   pixelSamples,
                      bool useBG,
                      LocalModel &_localModel,
-                     int gpusPerRank,
+                     const std::vector<int> &gpuIDs,
                      bool verbose)
     : world(world),
       workers(workers),
       pixelSamples(pixelSamples),
       useBackground(useBG),
       localModel(std::move(_localModel)),
-      gpusPerRank(gpusPerRank),
+      gpuIDs(gpuIDs),
       verbose(verbose)
   {}
 
@@ -47,9 +47,9 @@ namespace hs {
                                 int pathsPerPixel,
                                 bool useBG,
                                 LocalModel &localModel,
-                                int gpusPerRank,
+                                const std::vector<int> &gpuIDs,
                                 bool verbose)
-    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,gpusPerRank,verbose),
+    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,gpuIDs,verbose),
       global(this)
   {
     for (int i=0;i<this->localModel.size();i++) {
@@ -328,7 +328,7 @@ namespace hs {
                               int pathsPerPixel,
                               bool useBG,
                               LocalModel &localModel,
-                              int gpusPerRank,
+                              const std::vector<int> &gpuIDs,
                               bool verbose)
   {
 #if HANARI
@@ -337,7 +337,7 @@ namespace hs {
                                        pathsPerPixel,
                                        useBG,
                                        localModel,
-                                       gpusPerRank,
+                                       gpuIDs,
                                        verbose);
 #else
     throw std::runtime_error("ANARI support not compiled in");
@@ -351,7 +351,7 @@ namespace hs {
                                int pathsPerPixel,
                                bool useBG,
                                LocalModel &localModel,
-                               int gpusPerRank,
+                               const std::vector<int> &gpuIDs,
                                bool verbose)
   { throw std::runtime_error("barney support not compiled in"); }
 #else 
@@ -361,7 +361,7 @@ namespace hs {
                                int pathsPerPixel,
                                bool useBG,
                                LocalModel &localModel,
-                               int gpusPerRank,
+                               const std::vector<int> &gpuIDs,
                                bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
@@ -369,7 +369,7 @@ namespace hs {
                                         pathsPerPixel,
                                         useBG,
                                         localModel,
-                                        gpusPerRank,
+                                        gpuIDs,
                                         verbose);
   }
   

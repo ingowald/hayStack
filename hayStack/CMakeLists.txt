@@ -105,5 +105,9 @@ if (HS_ANARI)
 endif()
 
 if (HS_HAVE_CUDA)
+  target_compile_definitions(hayStack
+    PUBLIC
+    -DHS_HAVE_CUDA=1
+  )
   target_link_libraries(hayStack PUBLIC CUDA::cudart)
 endif()

@@ -125,12 +125,12 @@ namespace hs {
 #if HS_FAKE_MPI
       context = bnContextCreate
         (   /*data*/dataGroupIDs.data(), (int)dataGroupIDs.size(),
-            /*gpus*/nullptr, /*-1 by default*/base->gpusPerRank);
+            /*gpus*/base->gpuIDs.data(), /*-1 by default*/base->gpuIDs.size());
 #else
       context = bnMPIContextCreate
         (base->world.comm,
          /*data*/dataGroupIDs.data(),dataGroupIDs.size(),
-         /*gpus*/nullptr,/*-1 by default*/base->gpusPerRank);
+            /*gpus*/base->gpuIDs.data(), /*-1 by default*/base->gpuIDs.size());
 #endif
     } else {
 #if HS_FAKE_MPI

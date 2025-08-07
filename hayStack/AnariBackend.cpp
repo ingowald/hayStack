@@ -184,33 +184,45 @@ namespace hs {
       ;
     library = anari::loadLibrary(libname.c_str(), statusFunc);
     int numDataGroups = (int)base->localModel.size();
+    int numGPUs = (int)base->gpuIDs.size();
+    assert(numGPUs >= numDataGroups);
+    assert(numGPUs % numDataGroups == 0);
     /* create all N devices in one sweep, so they're properly tethered
        before we create anything else */
-    for (int slot=0;slot<numDataGroups;slot++) {
+
+    bool thisIsBarney = (!envlib || std::string(envlib) == "barney" || std::string(envlib) == "barney_mpi");
+    if (numDataGroups == 1 && !thisIsBarney) {
       auto device = anari::newDevice(library, "default");
-      std::cout << "#hanari: creating tethered device #" << slot << "/" << numDataGroups << std::endl;
-
-      anari::setParameter(device, device,
-                          "maxGpuCount", (int)base->gpusPerRank);
-      
-      anari::setParameter(device, device,
-                          "tetherIndex", (int)slot);
-      anari::setParameter(device, device,
-                          "tetherCount", (int)numDataGroups);
-
-      auto &dg = base->localModel.dataGroups[slot];
-      anari::setParameter(device, device,
-                          "dataGroupID", (int)dg.dataGroupID);
-      if (slot > 0) {
-        anari::setParameter(device, device,
-                            "tetherDevice",
-                            // (uint64_t)
-                            devices[0]);
-      }
       anari::commitParameters(device, device);
       devices.push_back(device);
-    }
-    
+    } else {
+      for (int devIdx=0;devIdx<numGPUs;devIdx++) {
+        int gpuID = base->gpuIDs[devIdx];
+        int slot = devIdx % numDataGroups;
+
+        std::cout << "#hanari: creating tethered device #" << devIdx
+                  << " on slot " << slot << "/" << numDataGroups
+                  << ", and on gpu #" << gpuID
+                  << std::endl;
+        auto device = anari::newDevice(library, "default");
+        anari::setParameter(device, device,
+                            "tetherIndex", (int)devIdx);
+        anari::setParameter(device, device,
+                            "tetherCount", (int)numGPUs);
+          
+        auto &dg = base->localModel.dataGroups[slot];
+        anari::setParameter(device, device,
+                            "dataGroupID", (int)dg.dataGroupID);
+        if (devIdx > 0) {
+          anari::setParameter(device, device,
+                              "tetherDevice",
+                              // (uint64_t)
+                              devices[0]);
+        }
+        anari::commitParameters(device, device);
+        devices.push_back(device);
+      }
+    }    
   }
 
   void AnariBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
