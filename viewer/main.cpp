@@ -469,6 +469,9 @@ namespace hs {
   
   std::vector<int> getListOfGPUs(std::stringstream &logFromGettingListOfGPUs)
   {
+    int numGPUs = 0;
+    cudaGetDeviceCount(&numGPUs);
+    
     char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
     if (slurm_job_gpus) {
       logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
@@ -486,19 +489,47 @@ namespace hs {
     }
     else 
       logFromGettingListOfGPUs << "CUDA_VISIBLE_DEVICES was NOT SET" << std::endl;
+
+    char *ompi_local_rank = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+    logFromGettingListOfGPUs
+      << "OMPI_COMM_WORLD_LOCAL_RANK = "
+      << (ompi_local_rank ? ompi_local_rank : "<NOT SET>") << std::endl;
+    char *ompi_local_size = getenv("OMPI_COMM_WORLD_LOCAL_SIZE");
+    logFromGettingListOfGPUs
+      << "OMPI_COMM_WORLD_LOCAL_SIZE = "
+      << (ompi_local_size ? ompi_local_size : "<NOT SET>") << std::endl;
+    if (ompi_local_rank && ompi_local_size) {
+      logFromGettingListOfGPUs
+        << "selecting from ompi vars...";
+      int localSize = std::stoi(ompi_local_size);
+      int localRank = std::stoi(ompi_local_rank);
+      std::vector<int> allGPUs;
+      logFromGettingListOfGPUs << " using {";
+      for (int r=localRank;r<std::max(numGPUs,localSize);r+=localSize) {
+        int g = r % numGPUs;
+        allGPUs.push_back(g);
+        logFromGettingListOfGPUs << " " << g;
+      }
+      logFromGettingListOfGPUs << " }" << std::endl;
+      return allGPUs;
+    } else {
+      logFromGettingListOfGPUs
+        << "(either one of them not set, skipping this)"
+        << std::endl;
+    }
     
-    int numGPUs = 0;
-    cudaGetDeviceCount(&numGPUs);
     logFromGettingListOfGPUs << "cudaGetDeviceCount reported " << numGPUs << std::endl;
-    std::vector<int> allGPUs;
     if (numGPUs == 0) {
       logFromGettingListOfGPUs << "no GPUs found, using '-1' for cpu fallback" << std::endl;
+      return { -1 } ;
     } else {
+      std::vector<int> allGPUs;
       logFromGettingListOfGPUs << ".. using all of those" << std::endl;
       for (int i=0;i<numGPUs;i++)
         allGPUs.push_back(i);
+      return allGPUs;
     }
-    return allGPUs;
+    throw std::runtime_error("could not determine list of gpus");
   }
   
 }
@@ -647,6 +678,7 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
+  PING; PRINT(world.rank); world.barrier();
   HayMaker *hayMaker
     = hanari
     ? HayMaker::createAnariImplementation(world,
