@@ -447,72 +447,113 @@ namespace hs {
 #endif
   }
 
-  std::vector<int> parseCommaSeparatedListOfInts(std::string s)
+  size_t computeHashFromString(const char *s)
   {
-    std::vector<std::string> tokens;
-    int last = 0;
-    while (true) {
-      int pos = s.find(",");
-      if (pos == s.npos) {
-        tokens.push_back(s);
-        break;
-      } else {
-        tokens.push_back(s.substr(0,pos));
-        s = s.substr(pos+1);
-      }
-    }
-    
-    std::vector<int> result;
-    for (auto s : tokens)
-      if (s != "")
-        result.push_back(std::stoi(s));
-    return result;
+    size_t hash = 0;
+    size_t FNV_PRIME = 0x00000100000001b3ull;
+    for (int i=0;s[i] != 0;i++)
+      hash = hash * FNV_PRIME ^ s[i];
+    return hash;
   }
+  
+  // std::vector<int> parseCommaSeparatedListOfInts(std::string s)
+  // {
+  //   std::vector<std::string> tokens;
+  //   int last = 0;
+  //   while (true) {
+  //     int pos = s.find(",");
+  //     if (pos == s.npos) {
+  //       tokens.push_back(s);
+  //       break;
+  //     } else {
+  //       tokens.push_back(s.substr(0,pos));
+  //       s = s.substr(pos+1);
+  //     }
+  //   }
+    
+  //   std::vector<int> result;
+  //   for (auto s : tokens)
+  //     if (s != "")
+  //       result.push_back(std::stoi(s));
+  //   return result;
+  // }
 
-  struct GPUSelection {
-    virtual std::vector<int> selectGPUs(std::stringstream &logFromGettingListOfGPUs) = 0;
-  };
-  
-  /*! data parallel, 1 GPU per rank, assume that each rank has its own
-      cuda-visible-devices set to slurm */
-  struct GPUSelection_Slurm_CVD1 : public GPUSelection {
-    std::vector<int> selectGPUs(std::stringstream &logFromGettingListOfGPUs) override
-    { return { 0 }; };
-  };
-  
-  std::vector<int> getListOfGPUs(std::stringstream &logFromGettingListOfGPUs)
-  {
-    char *cvd = getenv("CUDA_VISIBLE_DEVICES");
-    if (cvd) {
-      logFromGettingListOfGPUs << "got CUDA_VISIBLE_DEVICES=" << cvd << std::endl;
-      logFromGettingListOfGPUs << ".. using this" << std::endl;
-      return parseCommaSeparatedListOfInts(cvd);
-    }
-    else 
-      logFromGettingListOfGPUs << "CUDA_VISIBLE_DEVICES was NOT SET" << std::endl;
+  // std::vector<int> getListOfGPUs(int localRank, int localSize,
+  //                                mpi::Comm &world)
+  // {
+  //   int numGPUs = 0;
+  //   cudaGetDeviceCount(&numGPUs);
     
-    char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
-    if (slurm_job_gpus) {
-      logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
-      logFromGettingListOfGPUs << ".. using this" << std::endl;
-      return parseCommaSeparatedListOfInts(slurm_job_gpus);
-    }
-    else 
-      logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
+  //   char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
+  //   if (slurm_job_gpus) {
+  //     logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
+  //     logFromGettingListOfGPUs << ".. using this" << std::endl;
+  //     return parseCommaSeparatedListOfInts(slurm_job_gpus);
+  //   }
+  //   else 
+  //     logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
     
-    int numGPUs = 0;
-    cudaGetDeviceCount(&numGPUs);
-    logFromGettingListOfGPUs << "cudaGetDeviceCount reported " << numGPUs << std::endl;
-    std::vector<int> allGPUs;
-    if (numGPUs == 0) {
-      logFromGettingListOfGPUs << "no GPUs found, using '-1' for cpu fallback" << std::endl;
-    } else {
-      logFromGettingListOfGPUs << ".. using all of those" << std::endl;
-      for (int i=0;i<numGPUs;i++)
-        allGPUs.push_back(i);
-    }
-    return allGPUs;
-  }
+  //   char *cvd = getenv("CUDA_VISIBLE_DEVICES");
+  //   if (cvd) {
+  //     logFromGettingListOfGPUs << "got CUDA_VISIBLE_DEVICES=" << cvd << std::endl;
+  //     logFromGettingListOfGPUs << ".. using this" << std::endl;
+  //     return parseCommaSeparatedListOfInts(cvd);
+  //   }
+  //   else 
+  //     logFromGettingListOfGPUs << "CUDA_VISIBLE_DEVICES was NOT SET" << std::endl;
+
+  //   char *ompi_local_rank = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+  //   logFromGettingListOfGPUs
+  //     << "OMPI_COMM_WORLD_LOCAL_RANK = "
+  //     << (ompi_local_rank ? ompi_local_rank : "<NOT SET>") << std::endl;
+  //   char *ompi_local_size = getenv("OMPI_COMM_WORLD_LOCAL_SIZE");
+  //   logFromGettingListOfGPUs
+  //     << "OMPI_COMM_WORLD_LOCAL_SIZE = "
+  //     << (ompi_local_size ? ompi_local_size : "<NOT SET>") << std::endl;
+  //   if (ompi_local_rank && ompi_local_size) {
+  //     logFromGettingListOfGPUs
+  //       << "selecting from ompi vars...";
+  //     int localSize = std::stoi(ompi_local_size);
+  //     int localRank = std::stoi(ompi_local_rank);
+  //     std::vector<int> allGPUs;
+  //     logFromGettingListOfGPUs << " using {";
+  //     for (int r=localRank;r<std::max(numGPUs,localSize);r+=localSize) {
+  //       int g = r % numGPUs;
+  //       allGPUs.push_back(g);
+  //       logFromGettingListOfGPUs << " " << g;
+  //     }
+  //     logFromGettingListOfGPUs << " }" << std::endl;
+  //     return allGPUs;
+  //   } else {
+  //     logFromGettingListOfGPUs
+  //       << "(either one of them not set, skipping this)"
+  //       << std::endl;
+  //   }
+    
+  //   char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
+  //   if (slurm_job_gpus) {
+  //     logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
+  //     logFromGettingListOfGPUs << ".. using this" << std::endl;
+  //     return parseCommaSeparatedListOfInts(slurm_job_gpus);
+  //   }
+  //   else 
+  //     logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
+    
+  //   int numGPUs = 0;
+  //   cudaGetDeviceCount(&numGPUs);
+  //   logFromGettingListOfGPUs << "cudaGetDeviceCount reported " << numGPUs << std::endl;
+  //   if (numGPUs == 0) {
+  //     logFromGettingListOfGPUs << "no GPUs found, using '-1' for cpu fallback" << std::endl;
+  //     return { -1 } ;
+  //   } else {
+  //     std::vector<int> allGPUs;
+  //     logFromGettingListOfGPUs << ".. using all of those" << std::endl;
+  //     for (int i=0;i<numGPUs;i++)
+  //       allGPUs.push_back(i);
+  //     return allGPUs;
+  //   }
+  //   throw std::runtime_error("could not determine list of gpus");
+  // }
 
   void initAllGPUs()
   {
@@ -528,40 +569,127 @@ namespace hs {
     cudaSetDevice(0);
   }
 
-  int determineLocalProcessID(mpi::Comm &world)
+  void determineLocalProcessID(mpi::Comm &world, int &localRank, int &localSize)
   {
-    std::cout << "#hs(" << world.rank << "): determining local process ID ..." << std::endl;
-    char *
-    
+  world.barrier();
+    std::vector<char> hostName(10000);
+    gethostname(hostName.data(),hostName.size());
+    size_t hash = computeHashFromString(hostName.data());
+    std::vector<size_t> allHostNames(world.size);
+    MPI_Allgather(&hash,sizeof(hash),MPI_BYTE,
+                  allHostNames.data(),sizeof(hash),MPI_BYTE,
+                  world.comm);
+    localRank = 0;
+    localSize = 0;
+    for (int i=0;i<world.size;i++) {
+      if (allHostNames[i] != hash) continue;
+      localSize++;
+      if (i < world.rank) localRank++;
+    }
+
+    for (int i=0;i<world.size;i++) {
+      world.barrier();
+      if (i != world.rank) continue;
+      std::cout << "#hs(" << world.rank << "): determined local rank/size as "
+                << localRank << "/" << localSize << std::endl;
+    }
+  }
+
+  int getIntFromEnv(const char *varName, int fallback)
+  {
+    const char *var = getenv(varName);
+    if (!var) return fallback;
+    return std::stoi(var);
+  }
+
+  std::string getPhysicalString(int gpuID)
+  {
+    cudaDeviceProp props;
+    cudaError_t rc = cudaGetDeviceProperties(&props, gpuID);
+    if (rc != cudaSuccess)
+      throw std::runtime_error("could not query cuda Device properties");
+    return "PCI:"
+      +std::to_string(props.pciDomainID)+"."
+      +std::to_string(props.pciBusID)+"."
+      +std::to_string(props.pciDeviceID);
   }
   
-  std::shared_ptr<GPUSelector> createGpuSelector(bool forceSingleGPU,
-                                                 mpi::Comm &world)
+  std::vector<int> selectGPUs(mpi::Comm &world, int localRank, int localSize)
   {
-    std::cout << "#hs(" << world.rank << "): choosing GPU(s) to use ..." << std::endl;
-    bool cvdIsSet = (getenv("CUDA_VISIBLE_DEVICES") != nullptr);
-    int localProcessID = determineLocalProcessID();
-     
-    if (forceSingleGPU) {
-      std::cout << "#hs(" << world.rank << "): "
-                << "user asked for using a single GPU, "
-                << "and CUDA_VISIBLE_DEVICES is set ...." << std::endl;
-      int numGPUs = 0;
-      cudaGetDeviceCount(&numGPUs);
-      int localID
-    } else {
-    }
+    const char *cvd = getenv("CUDA_VISIBLE_DEVICES");
+    int slurm_localID = getIntFromEnv("SLURM_LOCALID",-1);
+    int ompi_locad_rank = getIntFromEnv("OMPI_COMM_WORLD_LOCAL_RANK",-1);
+    int numGPUs;
+    cudaGetDeviceCount(&numGPUs);
+    std::cout << "#hs(" << world.rank << "): selecting GPUs ... " << std::endl;
+    if (fromCL.forceSingleGPU) {
+      std::cout << "#hs(" << world.rank << "): user requested single GPU per rank ... " << std::endl;
+      if (slurm_localID >= 0) {
+        int gpuID = slurm_localID % numGPUs;
+        std::cout << "#hs(" << world.rank << "): "
+                    << "SLURM_LOCALID=" << slurm_localID
+                  << " (mod numGPUs=" << numGPUs << ")"
+                    << " -> { " << gpuID << " }"
+                  << " ... (that's physical GPU " << getPhysicalString(gpuID) << ")"
+                  << std::endl;
+        return { gpuID };
+      }
+      else
+        std::cout << "#hs(" << world.rank << "): "
+                  << "SLURM_LOCALID=<not set> ... not using slurm(?)" << std::endl;
       
-      std::stringstream logFromGettingListOfGPUs;
-      std::vector<int> gpuIDs
-        = gpuSelector->selectGPUs(logFromGettingListOfGPUs);
-      std::cout <<" #hv: GPUs already initialized, here's rank " << i << "'s log from that:" <<std::endl;
-      std::cout << logFromGettingListOfGPUs.str();
+      int gpuID = localRank % numGPUs;
+      std::cout << "#hs(" << world.rank << "): "
+                << " setting from self-determined localrank "
+                << localRank << "/" << localSize
+                << " (mod numGPUs=" << numGPUs << ")"
+                << " -> { " << gpuID << " }"
+                << " ... (that's physical GPU " << getPhysicalString(gpuID) << ")"
+                << std::endl;
+      return { gpuID };
+    } else {
+      std::cout << "#hs(" << world.rank << "): user requested *multiple* GPUs per rank ... " << std::endl;
+      if (cvd && slurm_localID) {
+        std::cout << "#hs(" << world.rank << "): *both* SLURM_LOCALID *and* CUDA_VISIBLE_DVIES are set ... I assume slurm has pre-selected the GPUs to use, and stored it in CUDA_VISIBLE_DEVICES -> using all GPUs reported by CUDA " << std::endl;
+        std::vector<int> gpuIDs;
+        for (int i=0;i<numGPUs;i++)
+          gpuIDs.push_back(i);
+        return gpuIDs;
+      }
+      std::cout << "#hs(" << world.rank << "): assume we see the actual physical devices... distribut these " << numGPUs << " GPUs over " << localSize << " local processes..." << std::endl;
+        std::vector<int> gpuIDs;
+        int gpusPerRank = std::max(1,numGPUs/localSize);
+        for (int i=0;i<gpusPerRank;i++)
+          gpuIDs.push_back((localRank+i*localSize)%numGPUs);
+        return gpuIDs;
     }
-cccccbldulnhvuljibietfdkjcuficfhdunbbtrjeent
-world.barrier();
-    if (fromCL.dpMode == DPMODE_DATA_PARALLEL && slurmIsBeingUsed
-
+  }
+    
+  // std::shared_ptr<GPUSelector> createGpuSelector(bool forceSingleGPU,
+  //                                                mpi::Comm &world)
+  // {
+  //   std::cout << "#hs(" << world.rank << "): choosing GPU(s) to use ..." << std::endl;
+  //   bool cvdIsSet = (getenv("CUDA_VISIBLE_DEVICES") != nullptr);
+  //   int localProcessID = 
+     
+  //   if (forceSingleGPU) {
+  //     std::cout << "#hs(" << world.rank << "): "
+  //               << "user asked for using a single GPU, "
+  //               << "and CUDA_VISIBLE_DEVICES is set ...." << std::endl;
+  //     int numGPUs = 0;
+  //     cudaGetDeviceCount(&numGPUs);
+  //     int localID
+  //   } else {
+  //   }
+      
+  //     std::stringstream logFromGettingListOfGPUs;
+  //     std::vector<int> gpuIDs
+  //       = gpuSelector->selectGPUs(logFromGettingListOfGPUs);
+  //     std::cout <<" #hv: GPUs already initialized, here's rank " << i << "'s log from that:" <<std::endl;
+  //     std::cout << logFromGettingListOfGPUs.str();
+  //   }
+  // world.barrier();
+  // if (fromCL.dpMode == DPMODE_DATA_PARALLEL && slurmIsBeingUsed
   
 }
 
@@ -573,10 +701,6 @@ int main(int ac, char **av)
       initailized before mpi even gets to run */
   hs::initAllGPUs();
 
-  // PRINT(gpuIDs.size());
-  // for (auto gpu : gpuIDs) PRINT(gpu);
-  // initGPUs(gpuIDs);
-  
   hs::mpi::init(ac, av);
 #if HS_FAKE_MPI
   hs::mpi::Comm world;
@@ -590,10 +714,6 @@ int main(int ac, char **av)
   }
   world.barrier();
 
-  std::shared_ptr<GPUSelection> gpuSelector = {};
-  
-  // FromCL fromCL;
-  // BarnConfig config;
   bool hanari = false;
   DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
@@ -610,7 +730,7 @@ int main(int ac, char **av)
       fromCL.forceSingleGPU = true;
     } else if (arg == "-dp1" || arg == "-dpsg" || arg == "--data-parallel-single-gpu") {
       fromCL.dpMode = DPMODE_DATA_PARALLEL;
-      forceSingleGPU = true;
+      fromCL.forceSingleGPU = true;
     } else if (arg == "-dr" || arg == "--data-replicated") {
       fromCL.dpMode = DPMODE_DATA_REPLICATED;
     } else if (arg == "-cm" || arg == "--color-map") {
@@ -674,14 +794,16 @@ int main(int ac, char **av)
     }    
   }
 
+  int localRank = 0, localSize = 1;
+  determineLocalProcessID(world,localRank,localSize);
+
+  std::vector<int> gpuIDs;
   for (int i=0;i<world.size;i++) {
     world.barrier();
-    if (world.rank != i) continue;
-
-    gpuSelector = createGpuSelector(forceSingleGPU,world);
+    if (i != world.rank) continue;
+    gpuIDs == selectGPUs(world,localRank,localSize);
   }
   world.barrier();
-  assert((bool)gpuSelector);
   
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   hs::mpi::Comm workers = world.split(!isHeadNode);
@@ -699,8 +821,6 @@ int main(int ac, char **av)
       fromCL.ndg = 1;
   }
   
-
-  
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   LocalModel thisRankData;
@@ -715,6 +835,7 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
+  PING; PRINT(world.rank); world.barrier();
   HayMaker *hayMaker
     = hanari
     ? HayMaker::createAnariImplementation(world,
