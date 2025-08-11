@@ -75,6 +75,8 @@ namespace hs {
         on choesn dpmode */
     int ndg = 0;
 
+    bool forceSingleGPU = false;
+    
     DPMode dpMode = DPMODE_NOT_SPECIFIED;
     
     /*! which color map to use for color mapping (if applicable) */
@@ -466,18 +468,20 @@ namespace hs {
         result.push_back(std::stoi(s));
     return result;
   }
+
+  struct GPUSelection {
+    virtual std::vector<int> selectGPUs(std::stringstream &logFromGettingListOfGPUs) = 0;
+  };
+  
+  /*! data parallel, 1 GPU per rank, assume that each rank has its own
+      cuda-visible-devices set to slurm */
+  struct GPUSelection_Slurm_CVD1 : public GPUSelection {
+    std::vector<int> selectGPUs(std::stringstream &logFromGettingListOfGPUs) override
+    { return { 0 }; };
+  };
   
   std::vector<int> getListOfGPUs(std::stringstream &logFromGettingListOfGPUs)
   {
-    char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
-    if (slurm_job_gpus) {
-      logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
-      logFromGettingListOfGPUs << ".. using this" << std::endl;
-      return parseCommaSeparatedListOfInts(slurm_job_gpus);
-    }
-    else 
-      logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
-    
     char *cvd = getenv("CUDA_VISIBLE_DEVICES");
     if (cvd) {
       logFromGettingListOfGPUs << "got CUDA_VISIBLE_DEVICES=" << cvd << std::endl;
@@ -486,6 +490,15 @@ namespace hs {
     }
     else 
       logFromGettingListOfGPUs << "CUDA_VISIBLE_DEVICES was NOT SET" << std::endl;
+    
+    char *slurm_job_gpus = getenv("SLURM_JOB_GPUS");
+    if (slurm_job_gpus) {
+      logFromGettingListOfGPUs << "got SLURM_JOB_GPUS=" << slurm_job_gpus << std::endl;
+      logFromGettingListOfGPUs << ".. using this" << std::endl;
+      return parseCommaSeparatedListOfInts(slurm_job_gpus);
+    }
+    else 
+      logFromGettingListOfGPUs << "SLURM_JOB_GPUS was NOT SET" << std::endl;
     
     int numGPUs = 0;
     cudaGetDeviceCount(&numGPUs);
@@ -500,6 +513,55 @@ namespace hs {
     }
     return allGPUs;
   }
+
+  void initAllGPUs()
+  {
+    int numGPUs = 0;
+    cudaGetDeviceCount(&numGPUs);
+    std::cout << "#hs: found " << numGPUs
+              << " CUDA devices... initializing each one of them"
+              << "\n(we may use only some of them, but still...) " << std::endl;
+    for (int i=0;i<numGPUs;i++) {
+      cudaSetDevice(i);
+      cudaFree(0);
+    }
+    cudaSetDevice(0);
+  }
+
+  int determineLocalProcessID(mpi::Comm &world)
+  {
+    std::cout << "#hs(" << world.rank << "): determining local process ID ..." << std::endl;
+    char *
+    
+  }
+  
+  std::shared_ptr<GPUSelector> createGpuSelector(bool forceSingleGPU,
+                                                 mpi::Comm &world)
+  {
+    std::cout << "#hs(" << world.rank << "): choosing GPU(s) to use ..." << std::endl;
+    bool cvdIsSet = (getenv("CUDA_VISIBLE_DEVICES") != nullptr);
+    int localProcessID = determineLocalProcessID();
+     
+    if (forceSingleGPU) {
+      std::cout << "#hs(" << world.rank << "): "
+                << "user asked for using a single GPU, "
+                << "and CUDA_VISIBLE_DEVICES is set ...." << std::endl;
+      int numGPUs = 0;
+      cudaGetDeviceCount(&numGPUs);
+      int localID
+    } else {
+    }
+      
+      std::stringstream logFromGettingListOfGPUs;
+      std::vector<int> gpuIDs
+        = gpuSelector->selectGPUs(logFromGettingListOfGPUs);
+      std::cout <<" #hv: GPUs already initialized, here's rank " << i << "'s log from that:" <<std::endl;
+      std::cout << logFromGettingListOfGPUs.str();
+    }
+cccccbldulnhvuljibietfdkjcuficfhdunbbtrjeent
+world.barrier();
+    if (fromCL.dpMode == DPMODE_DATA_PARALLEL && slurmIsBeingUsed
+
   
 }
 
@@ -507,15 +569,13 @@ using namespace hs;
 
 int main(int ac, char **av)
 {
-  // let's buffer the logs from GPU initialization 'til after MPI is
-  // initialized.  we want to initalize GPUs _before_ we niitialize
-  // MPI, but we cannot properly format the outputs _after_ we can
-  // barrier.
-  std::stringstream logFromGettingListOfGPUs;
-  std::vector<int> gpuIDs = hs::getListOfGPUs(logFromGettingListOfGPUs);
-  PRINT(gpuIDs.size());
-  for (auto gpu : gpuIDs) PRINT(gpu);
-  initGPUs(gpuIDs);
+  /*! init ALL gpus - let's do that right away, so gpus are
+      initailized before mpi even gets to run */
+  hs::initAllGPUs();
+
+  // PRINT(gpuIDs.size());
+  // for (auto gpu : gpuIDs) PRINT(gpu);
+  // initGPUs(gpuIDs);
   
   hs::mpi::init(ac, av);
 #if HS_FAKE_MPI
@@ -530,13 +590,7 @@ int main(int ac, char **av)
   }
   world.barrier();
 
-  for (int i=0;i<world.size;i++) {
-    if (world.rank == i) {
-      std::cout <<" #hv: GPUs already initialized, here's rank " << i << "'s log from that:" <<std::endl;
-      std::cout << logFromGettingListOfGPUs.str();
-    }
-    world.barrier();
-  }
+  std::shared_ptr<GPUSelection> gpuSelector = {};
   
   // FromCL fromCL;
   // BarnConfig config;
@@ -552,6 +606,11 @@ int main(int ac, char **av)
       fromCL.useBackground = true;
     } else if (arg == "-dp" || arg == "--data-parallel") {
       fromCL.dpMode = DPMODE_DATA_PARALLEL;
+    } else if (arg == "-sg" || arg == "--single-gpu") {
+      fromCL.forceSingleGPU = true;
+    } else if (arg == "-dp1" || arg == "-dpsg" || arg == "--data-parallel-single-gpu") {
+      fromCL.dpMode = DPMODE_DATA_PARALLEL;
+      forceSingleGPU = true;
     } else if (arg == "-dr" || arg == "--data-replicated") {
       fromCL.dpMode = DPMODE_DATA_REPLICATED;
     } else if (arg == "-cm" || arg == "--color-map") {
@@ -615,6 +674,15 @@ int main(int ac, char **av)
     }    
   }
 
+  for (int i=0;i<world.size;i++) {
+    world.barrier();
+    if (world.rank != i) continue;
+
+    gpuSelector = createGpuSelector(forceSingleGPU,world);
+  }
+  world.barrier();
+  assert((bool)gpuSelector);
+  
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
   hs::mpi::Comm workers = world.split(!isHeadNode);
 
