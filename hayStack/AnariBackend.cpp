@@ -65,7 +65,7 @@ namespace hs {
     int numDataGroups = (int)global->base->localModel.size();
     global->slots.resize(numDataGroups);
     global->slots[slot] = this;
-    
+
     device = global->devices[slot];
     
     model = anari::newObject<anari::World>(device);
@@ -95,7 +95,7 @@ namespace hs {
 
     anari::setParameter(device, frame, "camera",   camera);
     anari::commitParameters(device, frame);
-
+    
   }
 
   void AnariBackend::Slot::createColorMapper(const range1f &inputRange,

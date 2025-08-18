@@ -39,7 +39,9 @@ namespace hs {
       localModel(std::move(_localModel)),
       gpuIDs(gpuIDs),
       verbose(verbose)
-  {}
+  {
+    assert(!gpuIDs.empty());
+  }
 
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
@@ -332,6 +334,7 @@ namespace hs {
                               bool verbose)
   {
 #if HANARI
+    assert(!gpuIDs.empty());
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
                                        pathsPerPixel,

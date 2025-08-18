@@ -428,24 +428,24 @@ namespace hs {
     return mini::common::vec3f(x,y,z);
   }
 
-  void initGPUs(const std::vector<int> &gpuIDs)
-  {
-#if HS_HAVE_CUDA
-    assert(!gpuIDs.empty());
-    if (gpuIDs[0] == -1) return;
+//   void initGPUs(const std::vector<int> &gpuIDs)
+//   {
+// #if HS_HAVE_CUDA
+//     assert(!gpuIDs.empty());
+//     if (gpuIDs[0] == -1) return;
 
-    int old;
-    cudaGetDevice(&old);
-    for (int i=0;i<gpuIDs.size();i++) {
-      int gpu = gpuIDs[i];
-      cudaSetDevice(gpu);
-      cudaFree(0);
-    }
-    cudaSetDevice(old);
-#else
-    /* nothing to do */
-#endif
-  }
+//     int old;
+//     cudaGetDevice(&old);
+//     for (int i=0;i<gpuIDs.size();i++) {
+//       int gpu = gpuIDs[i];
+//       cudaSetDevice(gpu);
+//       cudaFree(0);
+//     }
+//     cudaSetDevice(old);
+// #else
+//     /* nothing to do */
+// #endif
+//   }
 
   size_t computeHashFromString(const char *s)
   {
@@ -656,12 +656,18 @@ namespace hs {
           gpuIDs.push_back(i);
         return gpuIDs;
       }
-      std::cout << "#hs(" << world.rank << "): assume we see the actual physical devices... distribut these " << numGPUs << " GPUs over " << localSize << " local processes..." << std::endl;
-        std::vector<int> gpuIDs;
-        int gpusPerRank = std::max(1,numGPUs/localSize);
-        for (int i=0;i<gpusPerRank;i++)
-          gpuIDs.push_back((localRank+i*localSize)%numGPUs);
-        return gpuIDs;
+      std::cout << "#hs(" << world.rank << "): assume we see the actual physical devices... "
+                << "distribute these " << numGPUs << " GPUs over " << localSize
+                << " local processes..." << std::endl;
+      std::vector<int> gpuIDs;
+      int gpusPerRank = std::max(1,numGPUs/localSize);
+      PRINT(gpusPerRank);
+      assert(gpusPerRank > 0);
+      for (int i=0;i<gpusPerRank;i++)
+        gpuIDs.push_back((localRank+i*localSize)%numGPUs);
+      assert(!gpuIDs.empty());
+      PRINT(gpuIDs.size());
+      return gpuIDs;
     }
   }
     
@@ -801,8 +807,9 @@ int main(int ac, char **av)
   for (int i=0;i<world.size;i++) {
     world.barrier();
     if (i != world.rank) continue;
-    gpuIDs == selectGPUs(world,localRank,localSize);
+    gpuIDs = selectGPUs(world,localRank,localSize);
   }
+  assert(!gpuIDs.empty());
   world.barrier();
   
   const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
@@ -835,7 +842,7 @@ int main(int ac, char **av)
   }
 
   int numDataGroupsLocally = thisRankData.size();
-  PING; PRINT(world.rank); world.barrier();
+  world.barrier();
   HayMaker *hayMaker
     = hanari
     ? HayMaker::createAnariImplementation(world,
@@ -1014,7 +1021,6 @@ int main(int ac, char **av)
         = (numFramesMeasured < 1)
         ? 0.f
         : float(t1 - measure_t0);
-      
       if (numFramesMeasured >= measure_max_frames ||
           numSecondsMeasured >= measure_max_seconds) {
         std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
