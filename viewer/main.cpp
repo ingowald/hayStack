@@ -569,6 +569,7 @@ namespace hs {
     cudaSetDevice(0);
   }
 
+#if HS_MPI
   void determineLocalProcessID(mpi::Comm &world, int &localRank, int &localSize)
   {
   world.barrier();
@@ -594,6 +595,7 @@ namespace hs {
                 << localRank << "/" << localSize << std::endl;
     }
   }
+#endif
 
   int getIntFromEnv(const char *varName, int fallback)
   {
@@ -801,8 +803,9 @@ int main(int ac, char **av)
   }
 
   int localRank = 0, localSize = 1;
+#if HS_MPI
   determineLocalProcessID(world,localRank,localSize);
-
+#endif
   std::vector<int> gpuIDs;
   for (int i=0;i<world.size;i++) {
     world.barrier();
