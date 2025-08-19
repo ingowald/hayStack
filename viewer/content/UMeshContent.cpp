@@ -51,7 +51,7 @@ namespace hs {
 #endif
     dataRank.unsts.push_back({mesh,box3f()});
 
-    if (1 && (mesh->triangles.size() || mesh->quads.size())) {
+    if (0 && (mesh->triangles.size() || mesh->quads.size())) {
       std::cout << "#hs: umesh seems to have surface triangles - extracting those." << std::endl;
       umesh::UMesh::SP extracted = umesh::extractSurfaceMesh(mesh);
       std::cout << "#hs: got " << extracted->toString() << std::endl;
