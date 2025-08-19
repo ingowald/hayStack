@@ -623,7 +623,7 @@ namespace hs {
     cudaGetDeviceCount(&numGPUs);
     std::cout << "#hs(" << world.rank << "): selecting GPUs ... " << std::endl;
     if (fromCL.forceSingleGPU) {
-      std::cout << "#hs(" << world.rank << "): user requested single GPU per rank ... " << std::endl;
+      // std::cout << "#hs(" << world.rank << "): user requested single GPU per rank ... " << std::endl;
       if (slurm_localID >= 0) {
         int gpuID = slurm_localID % numGPUs;
         std::cout << "#hs(" << world.rank << "): "
