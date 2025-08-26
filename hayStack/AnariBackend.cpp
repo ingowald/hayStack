@@ -17,6 +17,10 @@
 #if HANARI
 #include "AnariBackend.h"
 
+// # define TEST_IDCHANNEL "channel.objectId"    
+// # define TEST_IDCHANNEL "channel.instanceId"    
+// # define TEST_IDCHANNEL "channel.primitiveId"    
+
 namespace hs {
 
     static void statusFunc(const void * /*userData*/,
@@ -40,21 +44,102 @@ namespace hs {
     // Ignore INFO/DEBUG messages
   }
 
+
+  void AnariBackend::Slot::setColorMapping(anari::Material mat,
+                                           const std::string &colorName)
+  {
+    anari::setParameter(device,mat,colorName.c_str(),"color");
+  }
+  
+  void AnariBackend::Slot::setScalarMapping(anari::Material mat,
+                                            const std::string &colorName)
+  {
+    anari::setParameter(device,mat,colorName.c_str(),scalarMapper);
+  }
+  
+  AnariBackend::Slot::Slot(Global *global,
+                           int slot,
+                           typename HayMakerT<AnariBackend>::Slot *impl)
+    : global(global), slot(slot), impl(impl)
+  {
+    int numDataGroups = (int)global->base->localModel.size();
+    global->slots.resize(numDataGroups);
+    global->slots[slot] = this;
+
+    device = global->devices[slot];
+    
+    model = anari::newObject<anari::World>(device);
+    anari::commitParameters(device, model);
+  
+    auto renderer = anari::newObject<anari::Renderer>(device, "default");
+    anari::setParameter(device, renderer, "ambientRadiance", .6f);
+    anari::setParameter(device, renderer, "pixelSamples", global->base->pixelSamples);
+#if 1
+    std::vector<vec4f> bgGradient = {
+      vec4f(.9f,.9f,.9f,1.f),
+      vec4f(0.15f, 0.25f, .8f,1.f),
+    };
+    anari::setAndReleaseParameter
+      (device,renderer,"background",
+       anari::newArray2D(device,
+                         (const anari::math::float4*)bgGradient.data(),
+                         1,2));
+#endif
+    anari::commitParameters(device, renderer);
+
+    frame = anari::newObject<anari::Frame>(device);
+    anari::setParameter(device, frame, "world",    model);
+    anari::setParameter(device, frame, "renderer", renderer);
+
+    this->camera = anari::newObject<anari::Camera>(device, "perspective");
+
+    anari::setParameter(device, frame, "camera",   camera);
+    anari::commitParameters(device, frame);
+    
+  }
+
+  void AnariBackend::Slot::createColorMapper(const range1f &inputRange,
+                                             const std::vector<vec3f> &colorMap)
+  {
+    std::vector<vec4f> as4f;
+    for (auto v : colorMap)
+      as4f.push_back({v.x,v.y,v.z,1.f});
+    scalarMapper = anari::newObject<anari::Sampler>(device,"image1D");
+    anari::setParameterArray1D(device, scalarMapper, "image",
+                               (const anari::math::float4*)as4f.data(),as4f.size());
+    float scale = 1.f / (inputRange.upper-inputRange.lower);
+    struct {
+      vec4f v0,v1,v2,v3;
+    } xfm;
+    xfm.v0={scale,0.f,0.f,-inputRange.lower/scale};
+    xfm.v1={0.f,1.f,0.f,0.f};
+    xfm.v2={0.f,0.f,1.f,0.f};
+    xfm.v3={0.f,0.f,0.f,1.f};
+    anariSetParameter(device,scalarMapper,
+                      "inTransform",
+                      ANARI_FLOAT32_MAT4,
+                      &xfm);
+    anari::setParameter(device,scalarMapper,"inAttribute","attribute0");
+    anari::setParameter(device,scalarMapper,"filter","linear");
+    anari::commitParameters(device,scalarMapper);
+    std::cout << "color mapper created" << std::endl;
+  }
+  
   anari::Group AnariBackend::Slot::createGroup(const std::vector<anari::Surface> &geoms,
                                                const std::vector<anari::Volume> &volumes)
   {
     anari::Group meshGroup
-      = anari::newObject<anari::Group>(global->device);
-    anari::setParameterArray1D(global->device, meshGroup, "surface", geoms.data(),geoms.size());
-    anari::setParameterArray1D(global->device, meshGroup, "volume", volumes.data(),volumes.size());
-    anari::commitParameters(global->device, meshGroup);
+      = anari::newObject<anari::Group>(device);
+    anari::setParameterArray1D(device, meshGroup, "surface", geoms.data(),geoms.size());
+    anari::setParameterArray1D(device, meshGroup, "volume", volumes.data(),volumes.size());
+    anari::commitParameters(device, meshGroup);
     return meshGroup;
   }
 
   AnariBackend::GeomHandle AnariBackend::Slot::create(mini::Mesh::SP miniMesh,
                                                       MaterialLibrary<AnariBackend> *materialLib)
   {
-    auto device = global->device;
+    // auto device = device;
     anari::Material material = materialLib->getOrCreate(miniMesh->material);
     anari::Geometry mesh
       = anari::newObject<anari::Geometry>(device, "triangle");
@@ -89,64 +174,78 @@ namespace hs {
   AnariBackend::Global::Global(HayMaker *base)
     : base(base)
   {
-    bool isActiveWorker = !base->localModel.empty();
-    if (isActiveWorker) {
-      std::vector<int> dataGroupIDs;
-      for (auto dg : base->localModel.dataGroups)
-        dataGroupIDs.push_back(dg.dataGroupID);
-      char *envlib = getenv("ANARI_LIBRARY");
-      std::string libname = envlib ? "environment" : "barney";
-      auto library = anari::loadLibrary(libname.c_str(), statusFunc);
-      device = anari::newDevice(library, "default");
-      anari::commitParameters(device, device);
-    } else {
-      throw std::runtime_error("passive master not yet implemented");
-    }
-
-    model = anari::newObject<anari::World>(device);
-    anari::commitParameters(device, model);
-
-    auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    // anari::setParameter(device, renderer, "ambientRadiance", 0.f);
-    anari::setParameter(device, renderer, "ambientRadiance", .5f);
-    anari::setParameter(device, renderer, "pixelSamples", base->pixelSamples);
-#if 1
-    std::vector<vec4f> bgGradient = {
-      // vec4f(1,1,1,1),vec4f(.4,.4,1,1)
-      // };
-      // vec4f gradient[2] = {
-      vec4f(.9f,.9f,.9f,1.f),
-      vec4f(0.15f, 0.25f, .8f,1.f),
-    };
-    anari::setAndReleaseParameter
-      (device,renderer,"background",
-       anari::newArray2D(device,
-                         (const anari::math::float4*)bgGradient.data(),
-                         1,2));//bgGradient.size()));
+    char *envlib = getenv("ANARI_LIBRARY");
+    std::string libname = envlib ? "environment" :
+#if HS_MPI
+      "barney_mpi"
+#else
+      "barney"
 #endif
-    anari::commitParameters(device, renderer);
+      ;
+    library = anari::loadLibrary(libname.c_str(), statusFunc);
+    int numDataGroups = (int)base->localModel.size();
+    int numGPUs = (int)base->gpuIDs.size();
+    assert(numGPUs >= numDataGroups);
+    assert(numGPUs % numDataGroups == 0);
+    /* create all N devices in one sweep, so they're properly tethered
+       before we create anything else */
 
-    frame = anari::newObject<anari::Frame>(device);
-    // anari::setParameter(device, frame, "size", imgSize);
-    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_RGBA_SRGB);
-    anari::setParameter(device, frame, "world",    model);
-    anari::setParameter(device, frame, "renderer", renderer);
+    bool thisIsBarney = (!envlib || std::string(envlib) == "barney" || std::string(envlib) == "barney_mpi");
+    if (numDataGroups == 1 && !thisIsBarney) {
+      auto device = anari::newDevice(library, "default");
+      anari::commitParameters(device, device);
+      devices.push_back(device);
+    } else {
+      for (int devIdx=0;devIdx<numGPUs;devIdx++) {
+        int gpuID = base->gpuIDs[devIdx];
+        int slot = devIdx % numDataGroups;
 
-    this->camera = anari::newObject<anari::Camera>(device, "perspective");
-
-    anari::setParameter(device, frame, "camera",   camera);
-    anari::commitParameters(device, frame);
+        std::cout << "#hanari: creating tethered device #" << devIdx
+                  << " on slot " << slot << "/" << numDataGroups
+                  << ", and on gpu #" << gpuID
+                  << std::endl;
+        auto device = anari::newDevice(library, "default");
+        anari::setParameter(device, device,
+                            "tetherIndex", (int)devIdx);
+        anari::setParameter(device, device,
+                            "tetherCount", (int)numGPUs);
+        anari::setParameter(device, device,
+                            "cudaDevice", (int)gpuID);
+        
+        auto &dg = base->localModel.dataGroups[slot];
+        anari::setParameter(device, device,
+                            "dataGroupID", (int)dg.dataGroupID);
+        if (devIdx > 0) {
+          anari::setParameter(device, device,
+                              "tetherDevice",
+                              // (uint64_t)
+                              devices[0]);
+        }
+        anari::commitParameters(device, device);
+        devices.push_back(device);
+      }
+    }    
   }
 
   void AnariBackend::Global::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
-    anari::setParameter(device, frame, "size", (const anari::math::uint2&)fbSize);
-    anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
-    anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+    for (auto slot : slots) {
+      anari::setParameter(slot->device, slot->frame, "size",
+                          (const anari::math::uint2&)fbSize);
+      anari::setParameter(slot->device, slot->frame, "channel.color",
+                          ANARI_UFIXED8_RGBA_SRGB);
+    // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
+      static bool have_depth = getenv("HS_HAVE_DEPTH");
+      if (have_depth)
+      anari::setParameter(slot->device, slot->frame, "channel.depth", ANARI_FLOAT32);
+#ifdef TEST_IDCHANNEL
+      anari::setParameter(slot->device, slot->frame, TEST_IDCHANNEL, ANARI_UINT32);
+#endif
 
-    anari::commitParameters(device, frame);
+      anari::commitParameters(slot->device, slot->frame);
+    }
   }
 
 #if 1
@@ -155,8 +254,8 @@ namespace hs {
     if (impl->rootVolumes.empty())
       return;
 
-    auto device = global->device;
-    auto model = global->model;
+    // auto device = device;
+    // auto model = global->model;
     
     for (auto vol : impl->rootVolumes) {
 #if 1
@@ -204,7 +303,7 @@ namespace hs {
     }
 
     anari::commitParameters(device, impl->volumeGroup);
-    anari::commitParameters(device, global->model);
+    anari::commitParameters(device, model);
   }
 #else
   void AnariBackend::Slot::setTransferFunction(const std::vector<anari::Volume> &rootVolumes,
@@ -213,8 +312,8 @@ namespace hs {
     if (rootVolumes.empty())
       return;
 
-    auto device = global->device;
-    auto model = global->model;
+    // auto device = device;
+    // auto model = global->model;
 
     for (auto vol : rootVolumes) {
       std::vector<anari::math::float3> colors;
@@ -242,47 +341,81 @@ namespace hs {
     }
 
     anari::commitParameters(device, impl->volumeGroup);
-    anari::commitParameters(device, global->model);
+    anari::commitParameters(device, model);
   }
 #endif
   
   void AnariBackend::Global::renderFrame()
   {
     // anari::commitParameters(device, frame);
-    anari::render(device, frame);
-    auto fb = anari::map<uint32_t>(device, frame, "channel.color");
+    anari::render(slots[0]->device, slots[0]->frame);
+    // for (auto slot : slots)
+    //   anari::render(slot->device, slot->frame);
+#ifdef TEST_IDCHANNEL
+    auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, TEST_IDCHANNEL);
+#else
+    auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, "channel.color");
+#endif
+
     if (fb.width != fbSize.x || fb.height != fbSize.y)
-      std::cout << "resized frame!?" << std::endl;
+      std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
-      if (hostRGBA)
+      if (hostRGBA) {
+#ifdef TEST_IDCHANNEL
+        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
+        const uint64_t FNV_prime = 0x100000001b3ULL;
+        for (int i=0;i<fb.width*fb.height;i++) {
+          uint32_t ID = fb.data[i];
+          uint64_t s = FNV_basis + FNV_prime * ID;
+          
+          s = s * FNV_prime ^ ID;
+          int r = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int g = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int b = s & 0xff;
+          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
+          hostRGBA[i] = rgba;
+        }
+#else
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+#endif
+      }
     }
+#ifdef TEST_IDCHANNEL
+    anari::unmap(slots[0]->device,slots[0]->frame,TEST_IDCHANNEL);
+#else
+    anari::unmap(slots[0]->device,slots[0]->frame,"channel.color");
+#endif
   }
 
   void AnariBackend::Global::resetAccumulation()
   {
-    anari::commitParameters(device, frame);
+    for (auto slot : slots)
+      anari::commitParameters(slots[0]->device, slots[0]->frame);
   }
 
   void AnariBackend::Global::setCamera(const Camera &camera)
   {
-    anari::setParameter(device, this->camera,
+    for (auto slot : slots) {
+    anari::setParameter(slot->device, slot->camera,
                         "aspect",    fbSize.x / (float)fbSize.y);
-    anari::setParameter(device, this->camera,
+    anari::setParameter(slot->device, slot->camera,
                         "position",  (const anari::math::float3&)camera.vp);
     vec3f camera_dir = normalize(camera.vi - camera.vp);
-    anari::setParameter(device, this->camera,
+    anari::setParameter(slot->device, slot->camera,
                         "direction", (const anari::math::float3&)camera_dir);
-    anari::setParameter(device, this->camera,
+    anari::setParameter(slot->device, slot->camera,
                         "up",        (const anari::math::float3&)camera.vu);
-    anari::commitParameters(device, this->camera);
+    anari::commitParameters(slot->device, slot->camera);
+    }
   }
 
   anari::Sampler AnariBackend::Slot::create(mini::Texture::SP miniTex)
   {
     if (!miniTex) return 0;
 
-    auto device = global->device;
+    // auto device = device;
     std::string filterMode;
     switch (miniTex->filterMode) {
     case mini::Texture::FILTER_BILINEAR:
@@ -341,37 +474,42 @@ namespace hs {
     return sampler;
   }
 
-  anari::Material AnariBackend::Slot::create(mini::Metal::SP metal, bool colorMapped)
+  std::pair<anari::Material,std::string> AnariBackend::Slot::create(mini::Metal::SP metal)
   {
-    auto device = global->device;
+    // auto device = device;
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
-
+    anari::setParameter(device,material,"alphaMode","blend");
+    
     vec3f baseColor = metal->k * float (1.f/ M_PI);
-    if (colorMapped) 
-      anari::setParameter(device,material,"baseColor","color");
-    else
-      anari::setParameter(device,material,"baseColor",
-                          (const anari::math::float3&)baseColor);
+    // if (colorMapped)  {
+    //   anari::setParameter(device,material,"baseColor","color");
+    // } else {
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)baseColor);
+    // }
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->roughness);
     anari::setParameter(device,material,"ior",metal->eta.x);
     anari::commitParameters(device,material);
-    return material;
+    return {material,"baseColor"};
   }
   
-  anari::Material AnariBackend::Slot::create(mini::MetallicPaint::SP metal, bool colorMapped)
+  std::pair<anari::Material,std::string> AnariBackend::Slot::create(mini::MetallicPaint::SP metal)
   {
-    auto device = global->device;
+    // auto device = device;
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
+    anari::setParameter(device,material,"alphaMode","blend");
 
     vec3f baseColor = (const vec3f&)metal->shadeColor;
     anari::setParameter(device,material,"baseColor",
                         (const anari::math::float3&)baseColor);
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"opacity",1.f);
     anari::setParameter(device,material,"roughness",metal->glitterSpread);
@@ -380,40 +518,46 @@ namespace hs {
     anari::setParameter(device,material,"clearcoat",.0f);
     anari::setParameter(device,material,"transmission",.0f);
     anari::commitParameters(device, material);
-    return material;
+    return {material,"baseColor"};
   }
 
   
-  anari::Material AnariBackend::Slot::create(mini::Matte::SP matte,
-                                             bool colorMapped)
+  std::pair<anari::Material,std::string>
+  AnariBackend::Slot::create(mini::Matte::SP matte)
   {
-    auto device = global->device;
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
+    anari::setParameter(device,material,"alphaMode","blend");
 
-    if (colorMapped)
-      anari::setParameter(device,material,"color",
-                          "color");
-    else
-      anari::setParameter(device,material,"color",
-                          (const anari::math::float3&)matte->reflectance);
-    return material;
+    vec3f color = matte->reflectance / 3.14f;
+    anari::setParameter(device,material,"color",
+                        (const anari::math::float3&)color);
+    anari::commitParameters(device, material);
+    return {material,"color"};
   }
   
-  anari::Material AnariBackend::Slot::create(mini::DisneyMaterial::SP disney,
-                                             bool colorMapped)
+  std::pair<anari::Material,std::string>
+  AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
-    auto device = global->device;
-
+#if 0
+    {
+      anari::Material material
+        = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"alphaMode","blend");
+      anari::setParameter(device,material,"color",
+                          (const anari::math::float3&)disney->baseColor);
+      anari::commitParameters(device, material);
+      return {material,"color"};
+    }
+#endif
+    
+    
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
+    anari::setParameter(device,material,"alphaMode","blend");
 
-    if (colorMapped)
-      anari::setParameter(device,material,"baseColor",
-                          "color");
-    else
-      anari::setParameter(device,material,"baseColor",
-                          (const anari::math::float3&)disney->baseColor);
+    anari::setParameter(device,material,"baseColor",
+                        (const anari::math::float3&)disney->baseColor);
 #if 1
     // anari::setParameter(device,material,"metallic",1.f);
     anari::setParameter(device,material,"metallic",disney->metallic);
@@ -438,16 +582,17 @@ namespace hs {
     }
 
     anari::commitParameters(device, material);
-    return material;
+    return {material,"baseColor"};
   }
 
-  anari::Material AnariBackend::Slot::create(mini::Dielectric::SP dielectric, bool colorMapped)
+  std::pair<anari::Material,std::string> AnariBackend::Slot::create(mini::Dielectric::SP dielectric)
   {
-    auto device = global->device;
+    // auto device = device;
 
     anari::Material material
       = anari::newObject<anari::Material>(device, "physicallyBased");
 
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::setParameter(device,material,"ior",dielectric->etaInside);
     anari::setParameter(device,material,"transmission",1.f);
     anari::setParameter(device,material,"metallic",0.f);
@@ -455,11 +600,45 @@ namespace hs {
     anari::setParameter(device,material,"roughness",0.f);
 
     anari::commitParameters(device, material);
-    return material;
+    return {material,"baseColor"};
   }
 
+  std::pair<anari::Material,std::string> AnariBackend::Slot::create(mini::Plastic::SP plastic)
+  {
+    // auto device = device;
+
+#if 0
+    {
+      vec3f base(1,0,0);
+      anari::Material material
+        = anari::newObject<anari::Material>(device, "matte");
+      anari::setParameter(device,material,"alphaMode","blend");
+      anari::setParameter(device,material,"color",(const anari::math::float3&)base);
+      anari::commitParameters(device, material);
+      return material;
+    }
+#endif
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+    anari::setParameter(device,material,"alphaMode","blend");
+    anari::setParameter(device,material,"ior",plastic->eta);
+    /* this is almost certainly wrong, but in the embree imported
+       xml files all the plastic's have Ks==1.f and only non-one
+       value is pigmentcolor... */
+    vec3f base = min(plastic->Ks,plastic->pigmentColor);;
+    anari::setParameter(device,material,"baseColor",(const anari::math::float3&)base);
+    anari::setParameter(device,material,"transmission",0.f);
+    anari::setParameter(device,material,"metallic",0.f);
+    anari::setParameter(device,material,"specular",0.f);
+    anari::setParameter(device,material,"roughness",plastic->roughness);
+
+    anari::commitParameters(device, material);
+    return {material,"baseColor"};
+  }
   
-  anari::Material AnariBackend::Slot::create(mini::Material::SP miniMat, bool colorMapped)
+  
+  std::pair<anari::Material,std::string> AnariBackend::Slot::create(mini::Material::SP miniMat)
   {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
@@ -471,24 +650,24 @@ namespace hs {
       typesCreated.insert(miniMat->toString());
     }
 
-    auto device = global->device;
+    // auto device = device;
 
-    // if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
-    //   return create(plastic);
+    if (mini::Plastic::SP plastic = miniMat->as<mini::Plastic>())
+      return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
-      return create(disney, colorMapped);
+      return create(disney);
     if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
-      return create(dielectric, colorMapped);
+      return create(dielectric);
     // if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
     //   return create(velvet);
     if (mini::MetallicPaint::SP metallicPaint = miniMat->as<mini::MetallicPaint>())
-      return create(metallicPaint, colorMapped);
+      return create(metallicPaint);
     if (mini::Matte::SP matte = miniMat->as<mini::Matte>())
-      return create(matte, colorMapped);
+      return create(matte);
     if (mini::Metal::SP metal = miniMat->as<mini::Metal>())
-      return create(metal, colorMapped);
-    // if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
-    //   return create(dielectric);
+      return create(metal);
+    if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
+      return create(dielectric);
     // if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
     //   return create(thinGlass);
     // throw std::runtime_error("could not create barney material for mini mat "
@@ -501,23 +680,29 @@ namespace hs {
     
     anari::Material material
       = anari::newObject<anari::Material>(device, "matte");
+    anari::setParameter(device,material,"alphaMode","blend");
     anari::math::float3 color(.7f,.7f,.7f);
     anari::setParameter(device,material,"color",color);
     anari::commitParameters(device, material);
-    return material;
+    return {material,"color"};
   }
 
   void AnariBackend::Slot::setInstances(const std::vector<anari::Group> &groups,
                                         const std::vector<affine3f> &xfms)
   {
-    auto device = global->device;
-    auto model  = global->model;
+    // auto device = device;
+    // auto model  = global->model;
     std::vector<anari::Instance> instances;
     for (int i=0;i<groups.size();i++) {
       anari::Instance inst
         = anari::newObject<anari::Instance>(device,"transform");
+      
+      anari::setParameter(device, inst, "id", i);
       anari::setParameter(device, inst, "group", groups[i]);
-      // anari::setAndReleaseParameter(device, inst, "group", groups[i]);
+
+      // vec3f rc = randomColor(i);
+      // anari::math::float4 instColor(rc.x,rc.y,rc.z,1.f);
+      // anari::setParameter(device, inst, "color", instColor);
 
       const affine3f xfm = xfms[i];
 
@@ -550,30 +735,77 @@ namespace hs {
   void AnariBackend::Global::finalizeRender()
   {
     if (dirty) {
-      anari::setParameter(device, frame, "world",    model);
-      anari::commitParameters(device, frame);
+      for (auto slot : slots) {
+        anari::setParameter(slot->device, slot->frame, "world",    slot->model);
+        anari::commitParameters(slot->device, slot->frame);
+      }
       dirty = false;
     }
   }
 
   float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
 
+
+  //#define CHECK_HDRI 1
+  
   anari::Light AnariBackend::Slot::create(const mini::EnvMapLight &ml)
   {
     std::cout << MINI_TERMINAL_YELLOW
               << "#hs: creating env-map light ..."
               << MINI_TERMINAL_DEFAULT << std::endl;
-    auto device = global->device;
+    // auto device = device;
     vec2i size = ml.texture->size;
     anari::Array2D radiance
       = anariNewArray2D(device, nullptr,nullptr,nullptr,
                         ANARI_FLOAT32_VEC3,
                         (size_t)size.x,(size_t)size.y);
     vec3f *as3f = (vec3f*)anariMapArray(device,radiance);
-#if 0
+#if CHECK_HDRI
+    // ==================================================================
+    // base pattern is thin black grid on white background
+    // ==================================================================
     for (int iy=0;iy<size.y;iy++) {
       for (int ix=0;ix<size.x;ix++) {
-        as3f[ix+iy*size.x] = vec3f(0.f,0.,(iy % 100)/100.f);
+        vec3f color 
+          = ((ix%16==0)||(iy%16==0))
+          ? vec3f(0.f)
+          : vec3f(1.f);
+        as3f[ix+iy*size.x] = color;
+      }
+    }
+    // ==================================================================
+    // red square in lower left corner
+    // ==================================================================
+    for (int iy=0;iy<size.y/32;iy++) {
+      for (int ix=0;ix<size.x/32;ix++) {
+        vec3f color = vec3f(1,0,0);
+        as3f[ix+iy*size.x] = color;
+      }
+    }
+    // ==================================================================
+    // blue crosshair through center image, 
+    // ==================================================================
+    for (int iy=0;iy<size.y;iy++) {
+      int ix = size.x/2;
+      as3f[ix+iy*size.x] = vec3f(0,0,1);
+    }
+    for (int ix=0;ix<size.x;ix++) {
+      int iy = size.y/2;
+      as3f[ix+iy*size.x] = vec3f(0,0,1);
+    }
+    // ==================================================================
+    // gradient
+    // ==================================================================
+    int iy0 = size.y/2-16;
+    int ix0 = size.x/2-16;
+    int iy1 = size.y/2+16;
+    int ix1 = size.x/2+16;
+    for (int iy=iy0;iy<=iy1;iy++) {
+      for (int ix=ix0;ix<=ix1;ix++) {
+        float r = float(ix-ix0)/float(ix1-ix0);
+        float g = float(iy-iy0)/float(iy1-iy0);
+        // as3f[ix+iy*size.x] = vec3f(0,1,0);
+        as3f[ix+iy*size.x] = vec3f(r,g,(r+g)/2.f);
       }
     }
 #else
@@ -590,8 +822,7 @@ namespace hs {
     vec3f up = ml.transform.l.vz;
     vec3f dir = - ml.transform.l.vx;
 
-    PRINT(up);
-    PRINT(dir);
+    std::cout << "setting HDRI orientation dir = " << dir << ", up = " << up << std::endl;
     anari::setParameter(device,light,"up",
                         (const anari::math::float3&)up);
     anari::setParameter(device,light,"direction",
@@ -604,12 +835,10 @@ namespace hs {
   
   anari::Light AnariBackend::Slot::create(const mini::DirLight &ml)
   {
-    auto device = global->device;
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
     anari::setParameter(device,light,"irradiance",average(ml.radiance));
-    // anari::setParameter(device,light,"irradiance",(const anari::math::float3&)ml.radiance);
     anari::commitParameters(device,light);
     return light;
   }
@@ -617,18 +846,15 @@ namespace hs {
   void AnariBackend::Slot::setLights(anari::Group rootGroup,
                                      const std::vector<anari::Light> &lights)
   {
-    auto device = global->device;
     if (!lights.empty()) {
       anari::setParameterArray1D
-        (device, global->model, "light", lights.data(),lights.size());
+        (device, model, "light", lights.data(),lights.size());
     }
-    anari::commitParameters(device,global->model);
+    anari::commitParameters(device,model);
   }
 
   anari::Volume AnariBackend::Slot::create(const StructuredVolume::SP &vol)
   {
-    auto device = global->device;
-
     anari::math::int3 volumeDims = (const anari::math::int3&)vol->dims;
       
     auto field = anari::newObject<anari::SpatialField>(device, "structuredRegular");
@@ -637,20 +863,14 @@ namespace hs {
     anari::setParameter(device, field, "spacing",
                         (const anari::math::float3&)vol->gridSpacing);
     if (vol->texelFormat == "float") {
-    // switch(vol->texelFormat) {
-    // case BN_FLOAT:
       anari::setParameterArray3D
         (device, field, "data", (const float *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
-    //   break;
-    // case BN_UFIXED8:
     } else if (vol->texelFormat == "uint8_t") {
       anari::setParameterArray3D
         (device, field, "data", (const uint8_t *)vol->rawData.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
     } else if (vol->texelFormat == "uint16_t") {
-    //   break;
-    // case BN_UFIXED16: {
       std::cout << "volume with uint16s, converting to float" << std::endl;
       static std::vector<float> volumeAsFloats(vol->rawData.size()/2);
       for (size_t i=0;i<volumeAsFloats.size();i++)
@@ -660,8 +880,6 @@ namespace hs {
         (device, field, "data", (const float *)volumeAsFloats.data(),
          volumeDims.x, volumeDims.y, volumeDims.z);
     } else {
-    // } break;
-    // default:
       throw std::runtime_error("un-supported scalar type in hanari structured volume");
     }
         
@@ -674,11 +892,17 @@ namespace hs {
     return volume;
   }
 
-  anari::Volume AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
+  anari::Volume AnariBackend::Slot::create(const TAMRVolume::SP &input)
+  {
+    std::cout << "skipping amr volume ..." << std::endl;
+    return 0;
+  }
+  
+  anari::Volume
+  AnariBackend::Slot::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
     auto mesh = meshAndDomain.first;
     assert(mesh);
-    auto device = global->device;
 
     auto field = anari::newObject<anari::SpatialField>(device, "unstructured");
 
@@ -727,7 +951,7 @@ namespace hs {
        (const uint8_t *)cellTypeData.data(),
        cellTypeData.size());
     anari::setParameterArray1D
-      (device, field, "cell.begin",
+      (device, field, "cell.index",
        (const uint32_t *)cellBeginData.data(),
        cellBeginData.size());
     anari::setParameterArray1D
@@ -748,7 +972,6 @@ namespace hs {
   AnariBackend::Slot::createCapsules(hs::Capsules::SP caps,
                                      MaterialLibrary<AnariBackend> *materialLib)
   {
-    auto device = global->device;
     anari::Material material
       = materialLib->getOrCreate(caps->material,caps->colors.size()>0);
     std::vector<vec3f> position;
@@ -800,15 +1023,9 @@ namespace hs {
   AnariBackend::Slot::createSpheres(SphereSet::SP content,
                                     MaterialLibrary<AnariBackend> *materialLib)
   { 
-    // this is what minicontent looks like:
-    // std::vector<vec3f> origins;
-    // std::vector<vec3f> colors;
-    // std::vector<float> radii;
-    // mini::Material::SP material;
-    // float radius = .1f;
-    
-    auto device = global->device;
-    anari::Material material = materialLib->getOrCreate(content->material);
+    bool hasColor = !content->colors.empty();
+    anari::Material material
+      = materialLib->getOrCreate(content->material,hasColor);
     anari::Geometry geom
       = anari::newObject<anari::Geometry>(device, "sphere");
     anari::setParameterArray1D
@@ -839,10 +1056,115 @@ namespace hs {
 
     return { surface };
   }
-    
+
   std::vector<anari::Surface>
-  AnariBackend::Slot::createCylinders(Cylinders::SP content)
-  { return {}; }
+  AnariBackend::Slot::createTriangleMesh(TriangleMesh::SP content,
+                                         MaterialLibrary<AnariBackend> *materialLib)
+  {
+    bool colorMapped = content->colors.size();
+      
+    anari::Material material
+      = materialLib->getOrCreate(content->material,colorMapped,
+                                 content->scalars.perVertex.size()>0);
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "triangle");
+    anari::setParameterArray1D
+      (device, geom, "vertex.position",
+       (const anari::math::float3*)content->vertices.data(),
+       content->vertices.size());
+    if (!content->normals.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.normal",
+         (const anari::math::float3*)content->normals.data(),
+         content->normals.size());
+    }
+    anari::setParameterArray1D
+      (device, geom, "primitive.index",
+       (const anari::math::uint3*)content->indices.data(),
+       content->indices.size());
+    if (!content->colors.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.color",
+         (const anari::math::float3*)content->colors.data(),
+         content->colors.size());
+    }
+    if (!content->scalars.perVertex.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "vertex.data",
+         (const float*)content->scalars.perVertex.data(),
+         content->scalars.perVertex.size());
+    }
+    
+      
+    anari::commitParameters(device, geom);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+
+    return {surface};
+  }
+  
+  std::vector<anari::Surface>
+  AnariBackend::Slot::createCylinders(Cylinders::SP content,
+                                      MaterialLibrary<AnariBackend> *materialLib)
+  {
+    // auto device = device;
+
+    bool colorMapped = content->colors.size();
+      
+    anari::Material material = materialLib->getOrCreate(content->material,colorMapped);
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "cylinder");
+    anari::setParameterArray1D
+      (device, geom, "vertex.position",
+       (const anari::math::float3*)content->vertices.data(),
+       content->vertices.size());
+    if (content->radii.empty()) {
+      std::vector<float> radii;
+      for (int i=0;i<content->vertices.size();i++)
+        radii.push_back((float)content->radius);
+      anari::setParameterArray1D
+        (device, geom, "primitive.radius",
+         (const float*)radii.data(),
+         radii.size());
+    } else {
+      anari::setParameterArray1D
+        (device, geom, "primitive.radius",
+         (const float*)content->radii.data(),
+         content->radii.size());
+    }
+
+    if (colorMapped) {
+      if (!content->colors.empty()) {
+        std::vector<vec4f> color;
+        for (auto col : content->colors)
+          color.push_back(vec4f(col.x,col.y,col.z,1.f));
+        if (color.size() == content->vertices.size()) {
+          anari::setParameterArray1D
+            (device, geom, "vertex.color",
+             (const anari::math::float4*)color.data(),
+             color.size());
+        } else {
+          anari::setParameterArray1D
+            (device, geom, "primitive.color",
+             // (device, geom, "vertex.color",
+             (const anari::math::float4*)color.data(),
+             color.size());
+        }
+      }
+    }
+    
+    anari::commitParameters(device, geom);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+
+    return { surface };
+  }
   
 
 } // ::hs

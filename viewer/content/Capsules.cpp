@@ -340,7 +340,7 @@ namespace hs {
           if (knownVertices.find(key) == knownVertices.end()) {
             knownVertices[key] = cs->vertices.size();
             cs->vertices.push_back(vertex);
-            cs->colors.push_back(vec4f(color.x,color.y,color.z,0.f));
+            cs->colors.push_back(vec4f(color.x,color.y,color.z,1.f));
           }
           segmentIndices[i] = knownVertices[key];
         }

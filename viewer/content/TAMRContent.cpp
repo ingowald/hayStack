@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2025 Ingo Wald                                            //
+// Copyright 2025++ Ingo Wald                                               //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,44 +14,46 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
-#pragma once
-
-#include <miniScene/Scene.h>
-
-#define HAYSTACK_NYI() throw std::runtime_error(std::string(__PRETTY_FUNCTION__)+" not yet implemented")
+#include "TAMRContent.h"
+#include <fstream>
+#include <tinyAMR/Model.h>
 
 namespace hs {
-  using namespace mini;
-  using range1f = mini::common::interval<float>;
   
-  struct BoundsData {
-    void extend(const BoundsData &other);
+  TAMRContent::TAMRContent(const std::string &fileName,
+                           int thisPartID)
+    : fileName(fileName),
+      thisPartID(thisPartID)
+  {}
 
-    /*! the usual spatial-only bounds, in world space */
-    box3f   spatial;
-    
-    /*! range of all scalar fields */
-    range1f scalars;
-    
-    /*! range of all (color-)mapped scalar fields, if present */
-    range1f mapped;
-  };
-  
-  inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
+  void TAMRContent::create(DataLoader *loader,
+                           const ResourceSpecifier &dataURL)
   {
-    o << "{spatial=" << bd.spatial
-      << ":scalarField(s)=" << bd.scalars
-      << ":mappedScalars=" << bd.mapped << "}";
-    return o;
+    if (dataURL.numParts > 1)
+      throw std::runtime_error("on-demand splitting of TAMR files not yet supported");
+    // std::string type = dataURL.get("type",dataURL.get("format",""));
+    
+    for (int i=0;i<dataURL.numParts;i++) {
+      loader->addContent(new TAMRContent(dataURL.where,i));
+    }
   }
   
-  inline void BoundsData::extend(const BoundsData &other)
+  size_t TAMRContent::projectedSize()
   {
-    spatial.extend(other.spatial);
-    scalars.extend(other.scalars);
-    mapped.extend(other.mapped);
+    return getFileSize(fileName) * 10;
   }
   
-} // ::hs
+  void TAMRContent::executeLoad(DataRank &dataGroup, bool verbose)
+  {
+    tamr::Model::SP model = tamr::Model::load(fileName);
+    dataGroup.amr.push_back(std::make_shared<TAMRVolume>(model));
+  }
+  
+  std::string TAMRContent::toString() 
+  {
+    std::stringstream ss;
+    ss << "TinyAMR{#" << thisPartID << ",fileName="<<fileName<<"}";
+    return ss.str();
+  }
+  
+}

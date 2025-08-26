@@ -19,12 +19,12 @@
 #include "hayStack/DataRank.h"
 #include "hayStack/MPIWrappers.h"
 #include "hayStack/LocalModel.h"
+#include <fstream>
 
 namespace hs {
 
   struct ResourceSpecifier {
-    ResourceSpecifier(std::string s,
-                      bool fileNameOnly=false);
+    ResourceSpecifier(std::string s);
     bool has(const std::string &key) const;
     std::string get(const std::string &key, const std::string &defaultValue="") const;
     
@@ -83,12 +83,13 @@ namespace hs {
     /*! interface for the app to load one particular rank's data
       group(s) */
     virtual void loadDataRank(DataRank &dg,
-                               int dataGroupID,
-                               bool verbose) = 0;
+                              int rank,
+                              int dataGroupID,
+                              bool verbose) = 0;
 
     /*! actually loads one rank's data, based on which content got
-        assigned to which rank. must get called on every worker
-        collaboratively - but only on active workers */
+      assigned to which rank. must get called on every worker
+      collaboratively - but only on active workers */
     void loadData(LocalModel &localModel,
                   int numDataRanks,
                   int dataPerRank,
@@ -139,13 +140,68 @@ namespace hs {
     void assignGroups(int numDataRanks) override;
 
     void loadDataRank(DataRank &dg,
-                       int dataGroupID,
-                       bool verbose) override;
+                      int rank,
+                      int dataGroupID,
+                      bool verbose) override;
   private:
     /*! loadable content per data group, after assigning it */
     std::vector<std::vector<LoadableContent *>> contentOfGroup;
     
   };
 
+  namespace withHeader {
+    template<typename T>
+    std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+    {
+      std::vector<T> vec;
+      size_t count;
+      in.read((char *)&count,sizeof(count));
+      size_t begin = part * count / numParts;
+      size_t end = (part+1) * count / numParts;
+      T t;
+      for (size_t i=0;i<begin;i++)
+        in.read((char *)&t,sizeof(t));
+      for (size_t i=begin;i<end;i++) {
+        in.read((char *)&t,sizeof(t));
+        vec.push_back(t);
+      }
+      for (size_t i=end;i<count;i++)
+        in.read((char *)&t,sizeof(t));
+      return vec;
+    }
+    
+    template<typename T>
+    void writeVector(std::ofstream &out, const std::vector<T> &vec)
+    {
+      size_t count = vec.size();
+      out.write((char *)&count,sizeof(count));
+      out.write((const char *)vec.data(),count*sizeof(T));
+    }
+  }
+
+  namespace noHeader {
+    template<typename T>
+    std::vector<T> loadVectorOf(std::ifstream &in, int part=0, int numParts=1)
+    {
+      if (!in.good()) throw std::runtime_error("invalid input stream");
+      in.seekg(0,std::ios::end);
+      size_t size = in.tellg();
+      in.seekg(0,std::ios::beg);
+      size_t count = size/sizeof(T);
+      std::vector<T> vec;
+      size_t begin = part * count / numParts;
+      size_t end = (part+1) * count / numParts;
+      T t;
+      for (size_t i=0;i<begin;i++)
+        in.read((char *)&t,sizeof(t));
+      for (size_t i=begin;i<end;i++) {
+        in.read((char *)&t,sizeof(t));
+        vec.push_back(t);
+      }
+      for (size_t i=end;i<count;i++)
+        in.read((char *)&t,sizeof(t));
+      return vec;
+    }
+  }
 }
 

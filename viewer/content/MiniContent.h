@@ -44,7 +44,7 @@ namespace hs {
     void   executeLoad(DataRank &dataGroup, bool verbose) override
     {
       mini::Scene::SP ms = mini::Scene::load(fileName);
-#if 0
+#if 1
       // mini has evnmap lights upside down (apparently). fix this.
       if (ms->envMapLight) {
         Texture::SP tex = ms->envMapLight->texture;

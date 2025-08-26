@@ -41,8 +41,12 @@ set(SOURCES
   content/Capsules.cpp
   content/TSTris.h
   content/TSTris.cpp
+  content/TriangleMesh.h
+  content/TriangleMesh.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
+  content/TAMRContent.h
+  content/TAMRContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
   )  
@@ -104,7 +108,7 @@ target_link_libraries(hsOffline
 
 # ------------------------------------------------------------------
 
-if (HT_CUTEE)
+if (HS_CUTEE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
   
