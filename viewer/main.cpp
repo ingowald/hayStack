@@ -456,27 +456,27 @@ namespace hs {
     return hash;
   }
   
-  // std::vector<int> parseCommaSeparatedListOfInts(std::string s)
-  // {
-  //   std::vector<std::string> tokens;
-  //   int last = 0;
-  //   while (true) {
-  //     int pos = s.find(",");
-  //     if (pos == s.npos) {
-  //       tokens.push_back(s);
-  //       break;
-  //     } else {
-  //       tokens.push_back(s.substr(0,pos));
-  //       s = s.substr(pos+1);
-  //     }
-  //   }
+  std::vector<int> parseCommaSeparatedListOfInts(std::string s)
+  {
+    std::vector<std::string> tokens;
+    int last = 0;
+    while (true) {
+      int pos = s.find(",");
+      if (pos == s.npos) {
+        tokens.push_back(s);
+        break;
+      } else {
+        tokens.push_back(s.substr(0,pos));
+        s = s.substr(pos+1);
+      }
+    }
     
-  //   std::vector<int> result;
-  //   for (auto s : tokens)
-  //     if (s != "")
-  //       result.push_back(std::stoi(s));
-  //   return result;
-  // }
+    std::vector<int> result;
+    for (auto s : tokens)
+      if (s != "")
+        result.push_back(std::stoi(s));
+    return result;
+  }
 
   // std::vector<int> getListOfGPUs(int localRank, int localSize,
   //                                mpi::Comm &world)
@@ -618,6 +618,7 @@ namespace hs {
   
   std::vector<int> selectGPUs(mpi::Comm &world, int localRank, int localSize)
   {
+    const char *hcd = getenv("HS_CUDA_DEVICES");
     const char *cvd = getenv("CUDA_VISIBLE_DEVICES");
     int slurm_localID = getIntFromEnv("SLURM_LOCALID",-1);
     int ompi_locad_rank = getIntFromEnv("OMPI_COMM_WORLD_LOCAL_RANK",-1);
@@ -625,7 +626,7 @@ namespace hs {
     cudaGetDeviceCount(&numGPUs);
     std::cout << "#hs(" << world.rank << "): selecting GPUs ... " << std::endl;
     if (fromCL.forceSingleGPU) {
-      // std::cout << "#hs(" << world.rank << "): user requested single GPU per rank ... " << std::endl;
+      std::cout << "#hs(" << world.rank << "): user requested single GPU per rank ... " << std::endl;
       if (slurm_localID >= 0) {
         int gpuID = slurm_localID % numGPUs;
         std::cout << "#hs(" << world.rank << "): "
@@ -636,7 +637,12 @@ namespace hs {
                   << std::endl;
         return { gpuID };
       }
-      else
+      else if (hcd) {
+        std::cout << "#hs(" << world.rank << "): parsing from user-supplied list " << hcd << std::endl;
+        std::vector<int> gpuIDs = parseCommaSeparatedListOfInts(hcd);
+        PRINT(gpuIDs.size());
+        return gpuIDs;
+      } else
         std::cout << "#hs(" << world.rank << "): "
                   << "SLURM_LOCALID=<not set> ... not using slurm(?)" << std::endl;
       

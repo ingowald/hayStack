@@ -237,7 +237,9 @@ namespace hs {
       anari::setParameter(slot->device, slot->frame, "channel.color",
                           ANARI_UFIXED8_RGBA_SRGB);
     // anari::setParameter(device, frame, "channel.color", ANARI_UFIXED8_VEC4);
-    // anari::setParameter(device, frame, "channel.depth", ANARI_FLOAT32);
+      static bool have_depth = getenv("HS_HAVE_DEPTH");
+      if (have_depth)
+      anari::setParameter(slot->device, slot->frame, "channel.depth", ANARI_FLOAT32);
 #ifdef TEST_IDCHANNEL
       anari::setParameter(slot->device, slot->frame, TEST_IDCHANNEL, ANARI_UINT32);
 #endif
@@ -346,8 +348,9 @@ namespace hs {
   void AnariBackend::Global::renderFrame()
   {
     // anari::commitParameters(device, frame);
-    for (auto slot : slots)
-      anari::render(slot->device, slot->frame);
+    anari::render(slots[0]->device, slots[0]->frame);
+    // for (auto slot : slots)
+    //   anari::render(slot->device, slot->frame);
 #ifdef TEST_IDCHANNEL
     auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, TEST_IDCHANNEL);
 #else
