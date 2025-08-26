@@ -428,25 +428,6 @@ namespace hs {
     return mini::common::vec3f(x,y,z);
   }
 
-//   void initGPUs(const std::vector<int> &gpuIDs)
-//   {
-// #if HS_HAVE_CUDA
-//     assert(!gpuIDs.empty());
-//     if (gpuIDs[0] == -1) return;
-
-//     int old;
-//     cudaGetDevice(&old);
-//     for (int i=0;i<gpuIDs.size();i++) {
-//       int gpu = gpuIDs[i];
-//       cudaSetDevice(gpu);
-//       cudaFree(0);
-//     }
-//     cudaSetDevice(old);
-// #else
-//     /* nothing to do */
-// #endif
-//   }
-
   size_t computeHashFromString(const char *s)
   {
     size_t hash = 0;
@@ -557,6 +538,9 @@ namespace hs {
 
   void initAllGPUs()
   {
+#if __APPLE__
+    // no cuda on mac
+#else
     int numGPUs = 0;
     cudaGetDeviceCount(&numGPUs);
     std::cout << "#hs: found " << numGPUs
@@ -567,12 +551,13 @@ namespace hs {
       cudaFree(0);
     }
     cudaSetDevice(0);
+#endif
   }
 
 #if HS_MPI
   void determineLocalProcessID(mpi::Comm &world, int &localRank, int &localSize)
   {
-  world.barrier();
+    world.barrier();
     std::vector<char> hostName(10000);
     gethostname(hostName.data(),hostName.size());
     size_t hash = computeHashFromString(hostName.data());
@@ -606,6 +591,9 @@ namespace hs {
 
   std::string getPhysicalString(int gpuID)
   {
+#ifdef __APPLE__
+    return "<cpu>";
+#else
     cudaDeviceProp props;
     cudaError_t rc = cudaGetDeviceProperties(&props, gpuID);
     if (rc != cudaSuccess)
@@ -614,11 +602,15 @@ namespace hs {
       +std::to_string(props.pciDomainID)+"."
       +std::to_string(props.pciBusID)+"."
       +std::to_string(props.pciDeviceID);
+#endif
   }
   
   std::vector<int> selectGPUs(mpi::Comm &world, int localRank, int localSize)
   {
     const char *hcd = getenv("HS_CUDA_DEVICES");
+#ifdef __APPLE__
+    return { -1 };
+#else
     const char *cvd = getenv("CUDA_VISIBLE_DEVICES");
     int slurm_localID = getIntFromEnv("SLURM_LOCALID",-1);
     int ompi_locad_rank = getIntFromEnv("OMPI_COMM_WORLD_LOCAL_RANK",-1);
@@ -677,6 +669,7 @@ namespace hs {
       PRINT(gpuIDs.size());
       return gpuIDs;
     }
+#endif
   }
     
   // std::shared_ptr<GPUSelector> createGpuSelector(bool forceSingleGPU,
