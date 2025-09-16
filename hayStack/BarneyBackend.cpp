@@ -127,7 +127,6 @@ namespace hs {
         (   /*data*/dataGroupIDs.data(), (int)dataGroupIDs.size(),
             /*gpus*/base->gpuIDs.data(), /*-1 by default*/base->gpuIDs.size());
 #else
-      PING; PRINT(dataGroupIDs.size());
       context = bnMPIContextCreate
         (base->world.comm,
          /*data*/dataGroupIDs.data(),dataGroupIDs.size(),

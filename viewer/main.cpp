@@ -721,7 +721,7 @@ int main(int ac, char **av)
   }
   world.barrier();
 
-  bool hanari = false;
+  bool hanari = true;
   DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -796,6 +796,8 @@ int main(int ac, char **av)
       usage();
     } else if (arg == "-anari" || arg == "--hanari") {
       hanari = true;
+    } else if (arg == "-native" || arg == "--native") {
+      hanari = false;
     } else {
       usage("unknown cmd-line argument '"+arg+"'");
     }    
