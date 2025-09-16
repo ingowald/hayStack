@@ -28,6 +28,8 @@ namespace hs {
     typedef anari::Surface  GeomHandle;
     typedef anari::Volume   VolumeHandle;
 
+    struct Slot;
+    
     struct Global {
       Global(HayMaker *base);
 
@@ -42,20 +44,22 @@ namespace hs {
       
       HayMaker *const base;
 
-      anari::Device device = 0;
-      anari::Frame  frame  = 0;
-      anari::World  model  = 0;
-      anari::Camera camera = 0;
       uint32_t     *hostRGBA   = 0;
       vec2i         fbSize;
       /*! whether we have to re-commit the model next frame */
       bool          dirty = true;
+
+      /*! points to the first slot, which is the only slot in
+          non-data-parallel, and the master slot in data-parallel */
+      std::vector<Slot *> slots;
+      std::vector<anari::Device> devices;
+      // the library used to create the device(s)
+      anari::Library library;
     };
 
     struct Slot {
       Slot(Global *global, int slot,
-           typename HayMakerT<AnariBackend>::Slot *impl)
-        : global(global), slot(slot), impl(impl) {}
+           typename HayMakerT<AnariBackend>::Slot *impl);
     
       void applyTransferFunction(const TransferFunction &xf);
       // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
@@ -68,25 +72,33 @@ namespace hs {
       anari::Group createGroup(const std::vector<anari::Surface> &geoms,
                                const std::vector<anari::Volume> &volumes);
 
-      anari::Material create(mini::Plastic::SP plastic, bool colorMapped);
-      anari::Material create(mini::Velvet::SP velvet, bool colorMapped);
-      anari::Material create(mini::Matte::SP matte, bool colorMapped);
-      anari::Material create(mini::Metal::SP metal, bool colorMapped);
-      anari::Material create(mini::ThinGlass::SP thinGlass, bool colorMapped);
-      anari::Material create(mini::Dielectric::SP dielectric, bool colorMapped);
-      anari::Material create(mini::MetallicPaint::SP metallicPaint, bool colorMapped);
-      anari::Material create(mini::DisneyMaterial::SP disney, bool colorMapped);
-      anari::Material create(mini::Material::SP miniMat, bool colorMapped);
-
+      std::pair<anari::Material,std::string>create(mini::Plastic::SP plastic);
+      std::pair<anari::Material,std::string>create(mini::Velvet::SP velvet);
+      std::pair<anari::Material,std::string>create(mini::Matte::SP matte);
+      std::pair<anari::Material,std::string>create(mini::Metal::SP metal);
+      std::pair<anari::Material,std::string>create(mini::ThinGlass::SP thinGlass);
+      std::pair<anari::Material,std::string>create(mini::Dielectric::SP dielectric);
+      std::pair<anari::Material,std::string>create(mini::MetallicPaint::SP metallicPaint);
+      std::pair<anari::Material,std::string>create(mini::DisneyMaterial::SP disney);
+      std::pair<anari::Material,std::string>create(mini::Material::SP miniMat);
+      
+      anari::Volume create(const TAMRVolume::SP &v);
       anari::Volume create(const StructuredVolume::SP &v);
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
+      void setColorMapping(anari::Material mat, const std::string &colorName);
+      void setScalarMapping(anari::Material mat, const std::string &colorName);
+      
       std::vector<anari::Surface>
       createSpheres(SphereSet::SP content,
                     MaterialLibrary<AnariBackend> *materialLib);
       
       std::vector<anari::Surface>
-      createCylinders(Cylinders::SP content);
+      createCylinders(Cylinders::SP content,
+                      MaterialLibrary<AnariBackend> *materialLib);
+      std::vector<anari::Surface>
+      createTriangleMesh(TriangleMesh::SP content,
+                         MaterialLibrary<AnariBackend> *materialLib);
 
       std::vector<anari::Surface>
       createCapsules(hs::Capsules::SP caps,
@@ -101,23 +113,24 @@ namespace hs {
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<AnariBackend> *materialLib);
 
-      inline void release(anari::Sampler t) { anari::release(global->device, t); }
-      inline void release(anari::Material m) { anari::release(global->device, m); }
+      inline void release(anari::Sampler t) { anari::release(device, t); }
+      inline void release(anari::Material m) { anari::release(device, m); }
       
       void finalizeSlot() { PING; }
+
+      void createColorMapper(const range1f &inputRange,
+                             const std::vector<vec3f> &colors);
       
       typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;
       int     const slot;
-      // std::vector<anari::Volume> rootVolumes;
-      // anari::Group volumeGroup = 0;
-    };
 
-    // void buildDataGroup(int dgID);
-    
-    // struct PerDG {
-    // };
-    // std::vector<PerDG> perDG;
+      anari::Sampler scalarMapper = 0;
+      anari::Frame  frame  = 0;
+      anari::Device device = 0;
+      anari::World  model  = 0;
+      anari::Camera camera = 0;
+    };
   };
   
 } // ::hs

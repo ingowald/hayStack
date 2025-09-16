@@ -26,7 +26,7 @@
 # include <anari/anari_cpp.hpp>
 # include "anari/anari_cpp/ext/linalg.h"
 #else
-# include "barney.h"
+# include "barney/barney.h"
 #endif
 
 namespace hs {
@@ -39,7 +39,9 @@ namespace hs {
     HayMaker(Comm &world,
              Comm &workers,
              int   pixelSamples,
+             bool  useBG,
              LocalModel &localModel,
+             const std::vector<int> &gpuIDs,
              bool verbose);
 
     virtual void buildSlots() = 0;
@@ -49,20 +51,26 @@ namespace hs {
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
                                                int pathsPerPixel,
+                                               bool useBG,
                                                LocalModel &localModel,
+                                               const std::vector<int> &gpuIDs,
                                                bool verbose);
     /*! creates a "native" barney renderer */
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
                                                 int pathsPerPixel,
+                                                bool useBG,
                                                 LocalModel &localModel,
+                                                const std::vector<int> &gpuIDs,
                                                 bool verbose);
 
     Comm        &world;
     Comm         workers;
-    LocalModel localModel;
+    LocalModel   localModel;
     bool         verbose;
+    bool         useBackground = true;
     const int    pixelSamples;
+    const std::vector<int> gpuIDs;
   };
   
   /*! keeps track of which frontend textures have already been
@@ -93,10 +101,12 @@ namespace hs {
     
     MaterialLibrary(typename Backend::Slot *backend);
     ~MaterialLibrary();
-    MaterialHandle getOrCreate(mini::Material::SP miniMat, bool colorMapped = false);
+    MaterialHandle getOrCreate(mini::Material::SP miniMat,
+                               bool colorMapped = false,
+                               bool scalarMapped = false);
 
   private:
-    std::map<std::pair<mini::Material::SP,bool>,MaterialHandle> alreadyCreated;
+    std::map<std::tuple<mini::Material::SP,bool,bool>,MaterialHandle> alreadyCreated;
     typename Backend::Slot *const backend;
   };
   
@@ -114,7 +124,9 @@ namespace hs {
     HayMakerT(Comm &world,
               Comm &workers,
               int pathsPerPixel,
+              bool useBG,
               LocalModel &localModel,
+              const std::vector<int> &gpuIDs,
               bool verbose);
     
     void init();

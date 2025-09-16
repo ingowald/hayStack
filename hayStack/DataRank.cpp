@@ -58,12 +58,19 @@ namespace hs {
     for (auto &sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());
+    for (auto &tm : triangleMeshes)
+      if (tm)
+        bounds.extend(tm->getBounds());
     for (auto &capsuleSet : capsuleSets)
       if (capsuleSet)
         bounds.spatial.extend(capsuleSet->getBounds());
     for (auto &cylinderSet : cylinderSets)
       if (cylinderSet)
         bounds.spatial.extend(cylinderSet->getBounds());
+    for (auto &volume : amr) {
+      bounds.spatial.extend(volume->getBounds());
+      bounds.scalars.extend(volume->getValueRange());
+    }
     for (auto &volume : structuredVolumes) {
       bounds.spatial.extend(volume->getBounds());
       bounds.scalars.extend(volume->getValueRange());

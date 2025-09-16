@@ -16,7 +16,9 @@
 
 #include "viewer/DataLoader.h"
 #include "viewer/content/TSTris.h"
+#include "viewer/content/TriangleMesh.h"
 #include "viewer/content/RAWVolumeContent.h"
+#include "viewer/content/TAMRContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
 #include "viewer/content/MaterialsTest.h"
@@ -32,13 +34,8 @@ namespace hs {
   /*! default radius to use for spheres that do not have a radius specified */
   float DataLoader::defaultRadius = .1f;
 
-  ResourceSpecifier::ResourceSpecifier(std::string resource,
-                                       bool fileNameOnly)
+  ResourceSpecifier::ResourceSpecifier(std::string resource)
   {
-    if (fileNameOnly) {
-      where = resource;
-      return;
-    }
     int pos = resource.find("://");
     if (pos == resource.npos)
       throw std::runtime_error
@@ -233,6 +230,7 @@ namespace hs {
     }
   
     assignGroups(numDataRanks);
+
     localModel.resize(dataPerRank);
 
     for (int i=0;i<dataPerRank;i++) {
@@ -256,8 +254,9 @@ namespace hs {
       //   fflush(0);
       // }
       loadDataRank(localModel.dataGroups[i],
-                    dataGroupID,
-                    verbose);
+                   workers.rank,
+                   dataGroupID,
+                   verbose);
       // if (verbose) 
       //   for (int r=workers.rank;r<workers.size;r++) 
       //     workers.barrier();
@@ -291,7 +290,10 @@ namespace hs {
 
   void DataLoader::addContent(LoadableContent *content) 
   {
-    allContent.push_back({(double)content->projectedSize(),int(allContent.size()),content});
+    allContent.push_back(
+                         {-(double)content->projectedSize(),
+                          int(allContent.size()),content}
+                         );
   }
 
   std::string addIfRequired(std::string prefix, std::string s)
@@ -318,16 +320,30 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdcyls")) {
+      content::VMDCyls::create(this,addIfRequired("vmdcyls://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdspheres")) {
+      content::VMDSpheres::create(this,addIfRequired("vmdspheres://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".vmdmesh")) {
+      content::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".rgbtris")) {
+      content::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".mini")) {
       MiniContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".hsmesh")) {
+      content::HSMesh::create(this,addIfRequired("hsmesh://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".raw")) {
-      RAWVolumeContent::create(this,ResourceSpecifier(contentDescriptor,true));
+      RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
+    } else if (endsWith(contentDescriptor,".tamr")) {
+      TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
     } else {
       ResourceSpecifier url(contentDescriptor);
       if (url.type == "spheres")
-        SpheresFromFile::create(this,url);
+        content::SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
+      else if (url.type == "rgbtris") 
+        content::RGBTris::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 
         MaterialsTest::create(this,contentDescriptor);
       else if (url.type == "capsules") 
@@ -336,10 +352,12 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+      else if (url.type == "tamr") 
+        TAMRContent::create(this,url);
       else if (url.type == "boxes") 
         BoxesFromFile::create(this,url/*contentDescriptor*/);
       else if (url.type == "cylinders") 
-        CylindersFromFile::create(this,url);
+        content::CylindersFromFile::create(this,url);
       else if (url.type == "spumesh")
         // spatially partitioned umeshes
         SpatiallyPartitionedUMeshContent::create(this,url);
@@ -347,12 +365,6 @@ namespace hs {
         throw std::runtime_error
           ("could not recognize content type '"+url.type+"'");
     }    
-    // else if (startsWith(contentDescriptor,"en-dump://")) {
-    //   ENDumpContent::create(this,contentDescriptor);
-    // } else if (startsWith(contentDescriptor,"ts.tri://")) {
-    //   TSTriContent::create(this,contentDescriptor);
-    // } else
-    //   throw std::runtime_error("un-recognized content descriptor '"+contentDescriptor+"'");
   }
     
   void DynamicDataLoader::assignGroups(int numDifferentDataRanks)
@@ -365,7 +377,7 @@ namespace hs {
 
     std::sort(allContent.begin(),allContent.end());
     for (auto addtl : allContent) {
-      double addtlWeight = - std::get<0>(addtl);
+      double addtlWeight = std::get<0>(addtl);
       LoadableContent *addtlContent = std::get<2>(addtl);
       auto currentlyLeastLoaded = loadedGroups.top(); loadedGroups.pop();
       double currentWeight = currentlyLeastLoaded.first;
@@ -373,9 +385,20 @@ namespace hs {
       contentOfGroup[groupID].push_back(addtlContent);
       loadedGroups.push({currentWeight+addtlWeight,groupID});
     }
+    workers.barrier();
+    if (workers.rank == 0) {
+      std::cout << "content assignment: created " << contentOfGroup.size() << " data groups" << std::endl;
+      for (int i=0;i<contentOfGroup.size();i++) {
+        std::cout << "= data group " << i << std::endl;
+        for (auto content : contentOfGroup[i])
+          std::cout << "  - " << content->toString() << std::endl;
+      }
+    }
+    workers.barrier();
   }
     
   void DynamicDataLoader::loadDataRank(DataRank &dataGroup,
+                                       int rank,
                                         int dataGroupID,
                                         bool verbose)
   {
@@ -386,9 +409,11 @@ namespace hs {
                 << MINI_TERMINAL_DEFAULT << std::endl;
     for (auto content : contentOfGroup[dataGroupID]) {
       if (verbose)
-        std::cout << " - loading content " << content->toString() << std::endl << std::flush;
+        std::cout << " - #" << rank << " loading content " << content->toString() << std::endl << std::flush;
       content->executeLoad(dataGroup, verbose);
     }
+    if (verbose)
+      std::cout << " - #" << rank << " done loading." << std::endl;
   }
   
 }

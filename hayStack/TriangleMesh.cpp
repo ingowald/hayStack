@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2025++ Ingo Wald                                               //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,31 +14,43 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+/*! a hay-*stack* is a description of data-parallel data */
 
+#include "hayStack/TriangleMesh.h"
 #include "viewer/DataLoader.h"
+#include <fstream>
 
 namespace hs {
 
-  /*! "Tim Sandstrom" type ".tri" files */
-  struct TSTriContent : public LoadableContent {
-    TSTriContent(const ResourceSpecifier &data,
-                 size_t fileSize,
-                 int thisPartID);
-    static void create(DataLoader *loader,
-                       const ResourceSpecifier &dataURL);
-    size_t projectedSize() override;
-    void   executeLoad(DataRank &dataGroup, bool verbose) override;
+  TriangleMesh::TriangleMesh(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str(),std::ios::binary);
+    
+    vertices = withHeader::loadVectorOf<vec3f>(in);
+    normals = withHeader::loadVectorOf<vec3f>(in);
+    colors = withHeader::loadVectorOf<vec3f>(in);
+    indices = withHeader::loadVectorOf<vec3i>(in);
+    scalars.perVertex = withHeader::loadVectorOf<float>(in);
+  }
+  
+  void TriangleMesh::write(const std::string &fileName)
+  {
+    std::ofstream out(fileName.c_str(),std::ios::binary);
+    
+    withHeader::writeVector(out,vertices);
+    withHeader::writeVector(out,normals);
+    withHeader::writeVector(out,colors);
+    withHeader::writeVector(out,indices);
+    withHeader::writeVector(out,scalars.perVertex);
+  }
 
-    std::string toString() override
-    {
-      return "Tim-Triangles{fileName="+data.where+", part "+std::to_string(thisPartID)+
-        ", proj size "
-        +prettyNumber(projectedSize())+"B}";
-    }
-    const ResourceSpecifier data;
-    const size_t fileSize;
-    const int thisPartID = 0;
-  };
+  BoundsData TriangleMesh::getBounds() const
+  {
+    BoundsData bb;
+    for (auto v : vertices) bb.spatial.extend(v);
+    for (auto v : scalars.perVertex) bb.mapped.extend(v);
+    return bb;
+  }
   
 }
+

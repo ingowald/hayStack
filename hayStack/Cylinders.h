@@ -50,6 +50,8 @@ namespace hs {
     
     /*! fall-back radius for all cylinders if radii array is empty */
     float radius = .1f;
+
+    Material::SP material;
   };
 
 } // ::hs

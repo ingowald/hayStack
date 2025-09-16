@@ -58,7 +58,7 @@ namespace hs {
       
       mini::Mesh::SP miniMesh = mini::Mesh::create();
       mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
-      mat->transmission = .7f;
+      mat->transmission = .95f;
       mat->ior = 1.f;
       miniMesh->material = mat;
       miniMesh->vertices.resize(extracted->vertices.size());

@@ -21,8 +21,10 @@
 #include "hayStack/HayStack.h"
 #include "hayStack/Spheres.h"
 #include "hayStack/Cylinders.h"
+#include "hayStack/TriangleMesh.h"
 #include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
+#include "hayStack/TAMRVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
 
@@ -52,10 +54,12 @@ namespace hs {
     std::vector<mini::Scene::SP>      minis;
     /*! mesh AND domain. domain being empty means 'no clip box' */
     std::vector<std::pair<umesh::UMesh::SP,box3f>> unsts;
+    std::vector<TriangleMesh::SP>     triangleMeshes;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
+    std::vector<TAMRVolume::SP>       amr;
     int                               dataGroupID = -1;
   };
 

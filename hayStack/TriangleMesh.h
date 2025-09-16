@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2025++ Ingo Wald                                               //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,39 +14,34 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a "LocalModel" describes the kind of data -- organized in one or
-    more data ranks -- that a given app / mpi rank has loaded. note
-    that while 'regular' ranks do have at least one data rank, for
-    certain processes (like a head node) it is allowd to not have any
-    data at all */
+/*! a hay-*stack* is a description of data-parallel data */
 
 #pragma once
 
-#include "DataRank.h"
+#include "hayStack/HayStack.h"
 
 namespace hs {
+  
+  struct TriangleMesh {
+    typedef std::shared_ptr<TriangleMesh> SP;
 
-  struct LocalModel {
-    BoundsData getBounds() const;
+    static SP create() { return std::make_shared<TriangleMesh>(); }
 
-    /*! returns whether this rank does *not* have any data; in this
-      case it's a passive (head?-)node */
-    bool empty() const;
+    TriangleMesh() {};
+    TriangleMesh(const std::string &fileName);
+    void write(const std::string &fileName);
     
-    void resize(int numDataRanks);
-
-    /*! returns the number of data groups *on this rank* */
-    int size() const;
-
-    /*! this is an optimization in particular for models (like lander)
-      where one rank might get multiple "smaller" unstructured
-      meshes -- if each of these become their own volumes, with
-      their own acceleration strcutre, etc, then that may have some
-      negative side effects on performance */
-    void mergeUnstructuredMeshes();
-
-    std::vector<DataRank> dataGroups;
-    int colorMapIndex = 0;
+    BoundsData getBounds() const;
+    
+    std::vector<vec3f> vertices;
+    std::vector<vec3f> normals;
+    std::vector<vec3f> colors;
+    std::vector<vec3i> indices;
+    struct {
+      std::vector<float> perVertex;
+    } scalars;
+    
+    mini::Material::SP material;
   };
 
 } // ::hs

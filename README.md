@@ -13,6 +13,7 @@ support. for openmpi 4.1.6, build with
 
     ./configure --enable-cxx-exceptions --with-cuda=/usr/local/cuda --with-cuda-libdir=/usr/lib/x86_64-linux-gnu/ --prefix=/mnt/nfs/opt
 
+To build *haystack* with MPI support, make sure to use `-DHS_MPI=ON` when configuring the project.
 
 # Example Data Sets and How to Run Them
 

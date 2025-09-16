@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
+// Copyright 2025++ Ingo Wald                                               //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,31 +14,31 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+/*! a hay-*stack* is a description of data-parallel data */
 
-#include "viewer/DataLoader.h"
+#include "TAMRVolume.h"
 
 namespace hs {
 
-  /*! "Tim Sandstrom" type ".tri" files */
-  struct TSTriContent : public LoadableContent {
-    TSTriContent(const ResourceSpecifier &data,
-                 size_t fileSize,
-                 int thisPartID);
-    static void create(DataLoader *loader,
-                       const ResourceSpecifier &dataURL);
-    size_t projectedSize() override;
-    void   executeLoad(DataRank &dataGroup, bool verbose) override;
-
-    std::string toString() override
-    {
-      return "Tim-Triangles{fileName="+data.where+", part "+std::to_string(thisPartID)+
-        ", proj size "
-        +prettyNumber(projectedSize())+"B}";
+  box3f TAMRVolume::getBounds() const
+  {
+    box3f bb;
+    for (auto grid : model->grids) {
+      float cs = 1.f/model->refinementOfLevel[grid.level];
+      vec3i org = (const vec3i&)grid.origin;
+      vec3i dim = (const vec3i&)grid.dims;
+      bb.extend(cs*(vec3f(org)-.5f));
+      bb.extend(cs*(vec3f(org+dim)+.5f));
     }
-    const ResourceSpecifier data;
-    const size_t fileSize;
-    const int thisPartID = 0;
-  };
+    return bb;
+  }
   
+  range1f TAMRVolume::getValueRange() const
+  {
+    range1f r;
+    for (int i=0;i<model->numCellsAcrossAllGrids;i++)
+      r.extend(model->scalars[i]);
+    return r;
+  }
+
 }

@@ -19,7 +19,7 @@
 #include "HayMaker.h"
 #if HS_FAKE_MPI
 # include <barney/barney.h>
-#else
+#else 
 # include <barney/barney.h>
 # include <barney/barney_mpi.h>
 #endif
@@ -88,24 +88,31 @@ namespace hs {
       BNLight create(const mini::DirLight &ml);
       BNLight create(const mini::EnvMapLight &ml);
 
+      void setColorMapping(BNMaterial mat, const std::string &colorName);
+      void setScalarMapping(BNMaterial mat, const std::string &colorName);
+      
       BNGroup    createGroup(const std::vector<BNGeom> &geoms,
                              const std::vector<BNVolume> &volumes);
-      BNMaterial create(mini::Plastic::SP plastic, bool colorMapped);
-      BNMaterial create(mini::Velvet::SP velvet, bool colorMapped);
-      BNMaterial create(mini::Matte::SP matte, bool colorMapped);
-      BNMaterial create(mini::Metal::SP metal, bool colorMapped);
-      BNMaterial create(mini::BlenderMaterial::SP blender, bool colorMapped);
-      BNMaterial create(mini::ThinGlass::SP thinGlass, bool colorMapped);
-      BNMaterial create(mini::Dielectric::SP dielectric, bool colorMapped);
-      BNMaterial create(mini::MetallicPaint::SP metallicPaint, bool colorMapped);
-      BNMaterial create(mini::DisneyMaterial::SP disney, bool colorMapped);
-      BNMaterial create(mini::Material::SP miniMat, bool colorMapped);
+      std::pair<BNMaterial,std::string> create(mini::Plastic::SP plastic);
+      std::pair<BNMaterial,std::string> create(mini::Velvet::SP velvet);
+      std::pair<BNMaterial,std::string> create(mini::Matte::SP matte);
+      std::pair<BNMaterial,std::string> create(mini::Metal::SP metal);
+      std::pair<BNMaterial,std::string> create(mini::BlenderMaterial::SP blender);
+      std::pair<BNMaterial,std::string> create(mini::ThinGlass::SP thinGlass);
+      std::pair<BNMaterial,std::string> create(mini::Dielectric::SP dielectric);
+      std::pair<BNMaterial,std::string> create(mini::MetallicPaint::SP metallicPaint);
+      std::pair<BNMaterial,std::string> create(mini::DisneyMaterial::SP disney);
+      std::pair<BNMaterial,std::string> create(mini::Material::SP miniMat);
 
       std::vector<BNGeom>
       createSpheres(SphereSet::SP content,
                     MaterialLibrary<BarneyBackend> *materialLib);
       std::vector<BNGeom>
-      createCylinders(Cylinders::SP content);
+      createCylinders(Cylinders::SP content,
+                      MaterialLibrary<BarneyBackend> *materialLib);
+      std::vector<BNGeom>
+      createTriangleMesh(TriangleMesh::SP content,
+                         MaterialLibrary<BarneyBackend> *materialLib);
 
       std::vector<BNGeom>
       createCapsules(hs::Capsules::SP caps,
@@ -115,6 +122,7 @@ namespace hs {
       GeomHandle create(mini::Mesh::SP miniMesh,
                         MaterialLibrary<BarneyBackend> *materialLib);
 
+      BNVolume create(const TAMRVolume::SP &v);
       BNVolume create(const StructuredVolume::SP &v);
       BNVolume create(const std::pair<umesh::UMesh::SP,box3f> &v);
       // BNVolume create(const UMeshVolume::SP &v);
@@ -126,8 +134,11 @@ namespace hs {
       inline void release(BNSampler t)  { bnRelease(t); }
       inline void release(BNMaterial m) { bnRelease(m); }
 
+      BNSampler scalarMapper = 0;
       void finalizeSlot();
       
+      void createColorMapper(const range1f &inputRange,
+                             const std::vector<vec3f> &colorMap);
       bool needRebuild = true;
       typename HayMakerT<BarneyBackend>::Slot *const impl;
       Global *const global;

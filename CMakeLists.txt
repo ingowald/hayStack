@@ -27,43 +27,51 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.18)
   cmake_policy(SET CMP0104 NEW)
 endif()
 
-if (WIN32)
-  option(HT_CUTEE "Use QT Viewer and XFEditor" OFF)
+option(HS_MPI    "Enable MPI support in haystack" OFF)
+option(HS_ANARI  "Enable ANARI Backend" ON)
+option(HS_BARNEY "Enable Barney Native Backend" ON)
+  
+if (APPLE)
+  set(HS_HAVE_CUDA OFF)
 else()
-  option(HT_CUTEE "Use QT Viewer and XFEditor" ON)
+  option(HS_HAVE_CUDA "Have CUDA?" ON)
+endif()
+
+if (WIN32)
+  option(HS_CUTEE "Use QT Viewer and XFEditor" OFF)
+else()
+  option(HS_CUTEE "Use QT Viewer and XFEditor" ON)
 endif()
 option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
-
+if (HS_HAVE_CUDA)
 set(CMAKE_CUDA_ARCHITECTURES native)
 find_package(CUDAToolkit)
 enable_language(CUDA)
+endif()
 
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
-option(NO_BARNEY "do not build barney?" OFF)
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
 endif()
 
-add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
-
-
-if (NOT NO_BARNEY)
-  find_package(barney)
-  #find_package(barney COMPONENTS barney )#barney_mpi)
+if (NOT (TARGET tinyAMR))
+  add_subdirectory(submodules/tinyAMR      EXCLUDE_FROM_ALL)
 endif()
 
- 
+if (HS_HAVE_CUDA)
+  add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
+endif()
+
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 endif()
-if (HT_CUTEE)
+if (HS_CUTEE)
   add_subdirectory(submodules/cuteeOWL     EXCLUDE_FROM_ALL)
 endif()
-
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

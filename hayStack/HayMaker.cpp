@@ -19,37 +19,54 @@
 # include "BarneyBackend.h"
 #endif
 #if HANARI
-#include "AnariBackend.h"
-
+# include "AnariBackend.h"
 #endif
-// #include "hayStack/TransferFunction.h"
-// #include <map>
+#include "hayStack/ColorMap.h"
 
 namespace hs {
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
                      int   pixelSamples,
+                     bool useBG,
                      LocalModel &_localModel,
+                     const std::vector<int> &gpuIDs,
                      bool verbose)
     : world(world),
       workers(workers),
       pixelSamples(pixelSamples),
+      useBackground(useBG),
       localModel(std::move(_localModel)),
+      gpuIDs(gpuIDs),
       verbose(verbose)
-  {}
+  {
+    assert(!gpuIDs.empty());
+  }
 
   template<typename Backend>
   HayMakerT<Backend>::HayMakerT(Comm &world,
                                 Comm &workers,
                                 int pathsPerPixel,
+                                bool useBG,
                                 LocalModel &localModel,
+                                const std::vector<int> &gpuIDs,
                                 bool verbose)
-    : HayMaker(world,workers,pathsPerPixel,localModel,verbose),
+    : HayMaker(world,workers,pathsPerPixel,useBG,localModel,gpuIDs,verbose),
       global(this)
   {
-    for (int i=0;i<this->localModel.size();i++)
+    for (int i=0;i<this->localModel.size();i++) {
       perSlot.push_back(new Slot(&global,i));
+    }
+    BoundsData bb = getWorldBounds();
+    if (!bb.mapped.empty()) {
+      hs::ColorMap::init();
+      int cmID = localModel.colorMapIndex % hs::ColorMap::maps.size();
+      std::cout << "#hs: using scalar-mapping color map #" << cmID
+                << " : " << hs::ColorMap::maps[cmID].first << std::endl;
+      for (auto slot : perSlot)
+        slot->createColorMapper(bb.mapped,
+                                hs::ColorMap::maps[cmID].second);
+    }
   }
 
   BoundsData HayMaker::getWorldBounds() const
@@ -59,11 +76,13 @@ namespace hs {
     bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
     bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
+    bb.mapped.lower = world.allReduceMin(bb.mapped.lower);
+    bb.mapped.upper = world.allReduceMax(bb.mapped.upper);
     
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
-    }
-      
+    }  
+    
     return bb;
   }
 
@@ -99,13 +118,23 @@ namespace hs {
   template<typename Backend>
   typename Backend::MaterialHandle
   MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat,
-                                        bool colorMapped)
+                                        bool colorMapped,
+                                        bool scalarMapped)
   {
-    auto key = std::pair<mini::Material::SP,bool>(miniMat,colorMapped);
+    auto key = std::tuple<mini::Material::SP,bool,bool>(miniMat,colorMapped,scalarMapped);
     if (alreadyCreated.find(key) != alreadyCreated.end())
       return alreadyCreated[key];
 
-    auto mat = backend->create(miniMat,colorMapped);
+    auto matAndColorName = backend->create(miniMat);
+    auto mat = matAndColorName.first;
+    const std::string colorName = matAndColorName.second;
+    if (colorMapped)
+      backend->setColorMapping(mat,colorName);
+      // bnSetString(mat,colorName.c_str(),"color");
+    if (scalarMapped)
+      backend->setScalarMapping(mat,colorName);
+      // bnSetObject(mat,colorName.c_str(),backend->colorMapper);
+      
     alreadyCreated[key] = mat;
     return mat;
   }
@@ -148,11 +177,27 @@ namespace hs {
           rootGeoms.push_back(created);
       
       // ------------------------------------------------------------------
-      // render all cyliders
+      // render all cylinders
       // -----------------------------------------------------------------
       for (auto content : myData.cylinderSets)
-        for (auto created : impl->createCylinders(content))
+        for (auto created : impl->createCylinders(content,&this->materialLibrary))
           rootGeoms.push_back(created);
+    
+      // ------------------------------------------------------------------
+      // render all individual meshes
+      // -----------------------------------------------------------------
+      for (auto content : myData.triangleMeshes) {
+#if 1
+        auto created = impl->createTriangleMesh(content,&this->materialLibrary);
+        auto meshGroup = impl->createGroup(created,{});
+        rootInstances.groups.push_back(meshGroup);
+        affine3f xfm;
+        rootInstances.xfms.push_back((const affine3f&)xfm);
+#else
+        for (auto created : impl->createTriangleMesh(content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+#endif
+      }
     
       // ------------------------------------------------------------------
       // render all structured volumes
@@ -162,12 +207,22 @@ namespace hs {
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
       }
+      // ------------------------------------------------------------------
+      // render all *UN*-structured volumes
+      // -----------------------------------------------------------------
       for (auto vol : myData.unsts) {
         VolumeHandle createdVolume = impl->create(vol);
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
       }
-
+      // ------------------------------------------------------------------
+      // render all *AMR* volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.amr) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
       // ==================================================================
       // now that all light and instances have been _created_ and
       // appended to the respective arrays, add these to the model
@@ -273,14 +328,19 @@ namespace hs {
   ::createAnariImplementation(Comm &world,
                               Comm &workers,
                               int pathsPerPixel,
+                              bool useBG,
                               LocalModel &localModel,
+                              const std::vector<int> &gpuIDs,
                               bool verbose)
   {
 #if HANARI
+    assert(!gpuIDs.empty());
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
                                        pathsPerPixel,
+                                       useBG,
                                        localModel,
+                                       gpuIDs,
                                        verbose);
 #else
     throw std::runtime_error("ANARI support not compiled in");
@@ -292,7 +352,9 @@ namespace hs {
   ::createBarneyImplementation(Comm &world,
                                Comm &workers,
                                int pathsPerPixel,
+                               bool useBG,
                                LocalModel &localModel,
+                               const std::vector<int> &gpuIDs,
                                bool verbose)
   { throw std::runtime_error("barney support not compiled in"); }
 #else 
@@ -300,13 +362,17 @@ namespace hs {
   ::createBarneyImplementation(Comm &world,
                                Comm &workers,
                                int pathsPerPixel,
+                               bool useBG,
                                LocalModel &localModel,
+                               const std::vector<int> &gpuIDs,
                                bool verbose)
   {
     return new HayMakerT<BarneyBackend>(world,
                                         /* the workers */workers,
                                         pathsPerPixel,
+                                        useBG,
                                         localModel,
+                                        gpuIDs,
                                         verbose);
   }
   
