@@ -43,7 +43,9 @@
 # include "stb/stb_image.h"
 # include "stb/stb_image_write.h"
 #endif
-// #include <cuda_runtime.h>
+#if HS_MPI
+#include <unistd.h>
+#endif
 
 
 #if HS_VIEWER
