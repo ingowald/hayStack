@@ -28,11 +28,13 @@ namespace hs {
     int width = as4f.size();
     int height = 1;
 
-    BNTextureData td = bnTextureData2DCreate(global->context, this->slot,
-                                             BN_FLOAT4, width, height,
-                                             as4f.data());
+    BNTextureData td
+      = bnTextureData2DCreate(global->context,
+                              this->localDataSlotWeWorkOn,
+                              BN_FLOAT4, width, height,
+                              as4f.data());
     
-    BNSampler sampler = bnSamplerCreate(global->context, this->slot,
+    BNSampler sampler = bnSamplerCreate(global->context, this->localDataSlotWeWorkOn,
                                         "texture2D");
     bnSetObject(sampler, "textureData", td);
     
@@ -66,7 +68,7 @@ namespace hs {
                                               const std::vector<BNVolume> &volumes)
   {
     BNGroup group
-      = bnGroupCreate(global->context,this->slot,
+      = bnGroupCreate(global->context,this->localDataSlotWeWorkOn,
                       (BNGeom *)geoms.data(),(int)geoms.size(),
                       (BNVolume *)volumes.data(),volumes.size());
     bnGroupBuild(group);
@@ -80,7 +82,7 @@ namespace hs {
     auto model = global->model;
     auto context = global->context;
     BNMaterial mat = materialLib->getOrCreate(miniMesh->material);
-    BNGeom geom = bnGeometryCreate(context,slot,"triangles");
+    BNGeom geom = bnGeometryCreate(context,localDataSlotWeWorkOn,"triangles");
 
     int numVertices = miniMesh->vertices.size();
     int numIndices = miniMesh->indices.size();
@@ -88,22 +90,22 @@ namespace hs {
     const bn_float3 *vertices = (const bn_float3*)miniMesh->vertices.data();
     const bn_float3 *normals = (const bn_float3*)miniMesh->normals.data();
     const bn_int3 *indices = (const bn_int3*)miniMesh->indices.data();
-    BNData _vertices = bnDataCreate(context,slot,BN_FLOAT3,
+    BNData _vertices = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT3,
                                     numVertices,vertices);
     bnSetAndRelease(geom,"vertices",_vertices);
 
-    BNData _indices  = bnDataCreate(context,slot,BN_INT3,
+    BNData _indices  = bnDataCreate(context,localDataSlotWeWorkOn,BN_INT3,
                                     numIndices,indices);
     bnSetAndRelease(geom,"indices",_indices);
 
     if (normals) {
-      BNData _normals  = bnDataCreate(context,slot,BN_FLOAT3,
+      BNData _normals  = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT3,
                                       normals?numVertices:0,normals);
       bnSetAndRelease(geom,"normals",_normals);
     }
 
     if (texcoords) {
-      BNData _texcoords  = bnDataCreate(context,slot,BN_FLOAT2,
+      BNData _texcoords  = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT2,
                                         texcoords?numVertices:0,texcoords);
       bnSetData(geom,"vertex.attribute0",_texcoords);
       // bnSetAndRelease(geom,"texcoords",_texcoords);
@@ -254,11 +256,11 @@ namespace hs {
 
     BNTextureAddressMode wrapMode   = BN_TEXTURE_MIRROR;//WRAP;
     BNTextureColorSpace  colorSpace = BN_COLOR_SPACE_LINEAR;
-    BNTextureData texData = bnTextureData2DCreate(global->context,this->slot,
+    BNTextureData texData = bnTextureData2DCreate(global->context,this->localDataSlotWeWorkOn,
                                                   texelFormat,
                                                   miniTex->size.x,miniTex->size.y,
                                                   miniTex->data.data());
-    BNSampler sampler = bnSamplerCreate(global->context,this->slot,"texture2D");
+    BNSampler sampler = bnSamplerCreate(global->context,this->localDataSlotWeWorkOn,"texture2D");
     assert(sampler);
     bnSetString(sampler,"inAttribute","attribute0");
     bnSet1i(sampler,"wrapMode0",(int)wrapMode);
@@ -274,13 +276,13 @@ namespace hs {
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::Plastic::SP plastic)
   {
 #if 1
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"physicallyBased");
     bnSet(mat,"baseColor",(const bn_float3&)plastic->pigmentColor);
     bnSet1f(mat,"specular",.1f*plastic->Ks.x);
     bnSet1f(mat,"roughness",plastic->roughness);
     bnSet1f(mat,"ior",plastic->eta);
 #else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"plastic");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"plastic");
     bnSet(mat,"pigmentColor",(const bn_float3&)plastic->pigmentColor);
     bnSet(mat,"Ks",(const bn_float3&)plastic->Ks);
     bnSet1f(mat,"roughness",plastic->roughness);
@@ -292,7 +294,7 @@ namespace hs {
   
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::Velvet::SP velvet)
   {
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"velvet");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"velvet");
     bnSet(mat,"reflectance",(const bn_float3&)velvet->reflectance);
     bnSet(mat,"horizonScatteringColor",(const bn_float3&)velvet->horizonScatteringColor);
     bnSet1f(mat,"horizonScatteringFallOff",velvet->horizonScatteringFallOff);
@@ -304,7 +306,7 @@ namespace hs {
   std::pair<BNMaterial,std::string>
   BarneyBackend::Slot::create(mini::Matte::SP matte)
   {
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"AnariMatte");
     vec3f color = matte->reflectance / 3.14f;
     bnSet(mat,"color",(const bn_float3&)color);
     bnCommit(mat);
@@ -316,10 +318,10 @@ namespace hs {
   BarneyBackend::Slot::create(mini::Metal::SP metal)
   {
 #if 0
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"AnariMatte");
     bnSet(mat,"color",1.f,0.f,0.f);
 #else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"metal");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"metal");
     bnSet(mat,"eta",(const bn_float3&)metal->eta);
     bnSet(mat,"k",(const bn_float3&)metal->k);
     bnSet1f (mat,"roughness",metal->roughness);
@@ -331,7 +333,7 @@ namespace hs {
   std::pair<BNMaterial,std::string>
   BarneyBackend::Slot::create(mini::BlenderMaterial::SP blender)
   {
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"AnariPBR");
     bnSet1f(mat,"metallic",blender->metallic);
     bnSet1f(mat,"ior",blender->ior);
     bnSet1f(mat,"roughness",blender->roughness);
@@ -344,14 +346,14 @@ namespace hs {
   BarneyBackend::Slot::create(mini::ThinGlass::SP thinGlass)
   {
 #if 0
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"physicallyBased");
     bnSet1f (mat,"ior",1.45f);
     bnSet1f (mat,"transmission",1.f);
     bnSet1f (mat,"metallic",0.f);
     bnSet1f (mat,"specular",0.f);
     bnSet1f (mat,"roughness",0.f);
 #else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"matte");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"matte");
     vec3f gray(.5f);
     bnSet(mat,"reflectance",(const bn_float3&)gray);
 #endif
@@ -362,18 +364,18 @@ namespace hs {
   BarneyBackend::Slot::create(mini::Dielectric::SP dielectric)
   {
 #if 1
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"physicallyBased");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"physicallyBased");
     bnSet1f (mat,"ior",dielectric->etaInside);
     bnSet1f (mat,"transmission",1.f);
     bnSet1f (mat,"metallic",0.f);
     bnSet1f (mat,"specular",0.f);
     bnSet1f (mat,"roughness",0.f);
 #else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"glass");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"glass");
     bnSet(mat,"attenuationColorInside",(const bn_float3&)dielectric->transmission);
     bnSet1f (mat,"etaInside",dielectric->etaInside);
     bnSet1f (mat,"etaOutside",dielectric->etaOutside);
-    // BNMaterial mat = bnMaterialCreate(global->context,slot,"dielectric");
+    // BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"dielectric");
     // bnSet(mat,"transmission",(const bn_float3&)dielectric->transmission);
     // bnSet1f (mat,"etaInside",dielectric->etaInside);
     // bnSet1f (mat,"etaOutside",dielectric->etaOutside);
@@ -383,7 +385,7 @@ namespace hs {
   }
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::MetallicPaint::SP metallicPaint)
   {
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"blender");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"blender");
     bnSet(mat,"baseColor",(const bn_float3&)metallicPaint->shadeColor);
     bnSet1f (mat,"roughness",.15f);
     bnSet1f (mat,"metallic",.8f);
@@ -395,7 +397,7 @@ namespace hs {
     //     // vec3f glitterColor { 0.055f, 0.16f, 0.25f };
     //     // float glitterSpread = 0.025f;
     //     // vec3f shadeColor { 0.f, 0.03f, 0.07f };
-    //     BNMaterial mat = bnMaterialCreate(global->context,slot,"metallic_paint");
+    //     BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"metallic_paint");
     //     bnSet(mat,"shadeColor",(const bn_float3&)metallicPaint->shadeColor);
     //     bnSet(mat,"glitterColor",(const bn_float3&)metallicPaint->glitterColor);
     //     bnSet1f(mat,"glitterSpread",metallicPaint->glitterSpread);
@@ -407,13 +409,13 @@ namespace hs {
   std::pair<BNMaterial,std::string> BarneyBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
 #if 0
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariMatte");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"AnariMatte");
     bnSet(mat,"color",(const bn_float3&)disney->baseColor);
     bnCommit(mat);
     
     return {mat,"color"};
 #else
-    BNMaterial mat = bnMaterialCreate(global->context,slot,"AnariPBR");
+    BNMaterial mat = bnMaterialCreate(global->context,localDataSlotWeWorkOn,"AnariPBR");
     bnSet(mat,"baseColor",(const bn_float3&)disney->baseColor);
     bnSet1f(mat,"roughness",   disney->roughness);
     bnSet1f(mat,"metallic",    disney->metallic);
@@ -475,10 +477,10 @@ namespace hs {
   void BarneyBackend::Slot::setInstances(const std::vector<BNGroup> &groups,
                                          const std::vector<affine3f> &xfms)
   {
-    bnSetInstances(global->model,this->slot,
+    bnSetInstances(global->model,this->localDataSlotWeWorkOn,
                    (BNGroup*)groups.data(),(BNTransform *)xfms.data(),
                    (int)groups.size());
-    bnBuild(global->model,slot);
+    bnBuild(global->model,localDataSlotWeWorkOn);
   }
 
 
@@ -489,14 +491,14 @@ namespace hs {
   void BarneyBackend::Slot::finalizeSlot()
   {
     if (needRebuild) {
-      bnBuild(global->model,slot);
+      bnBuild(global->model,localDataSlotWeWorkOn);
       needRebuild = false;
     }
   }
 
   BNLight BarneyBackend::Slot::create(const mini::QuadLight &ml)
   {
-    BNLight light = bnLightCreate(global->context,this->slot,"quad");
+    BNLight light = bnLightCreate(global->context,this->localDataSlotWeWorkOn,"quad");
     assert(light);
     bnSet(light,"corner",(const bn_float3&)ml.corner);
     bnSet(light,"edge0",(const bn_float3&)ml.edge0);
@@ -508,7 +510,7 @@ namespace hs {
 
   BNLight BarneyBackend::Slot::create(const mini::DirLight &ml)
   {
-    BNLight light = bnLightCreate(global->context,this->slot,"directional");
+    BNLight light = bnLightCreate(global->context,this->localDataSlotWeWorkOn,"directional");
     assert(light);
     bnSet(light,"direction",(const bn_float3&)ml.direction);
     bnSet(light,"radiance",(const bn_float3&)ml.radiance);
@@ -527,12 +529,12 @@ namespace hs {
     const vec4f *texels
       = (const vec4f *)ml.texture->data.data();
     BNTexture2D texture
-      = bnTexture2DCreate(global->context,this->slot,
+      = bnTexture2DCreate(global->context,this->localDataSlotWeWorkOn,
                           BN_FLOAT4,
                           size.x,size.y,
                           texels);
     
-    BNLight light = bnLightCreate(global->context,this->slot,"envmap");
+    BNLight light = bnLightCreate(global->context,this->localDataSlotWeWorkOn,"envmap");
 
     bnSetObject(light,"texture", texture);
     bnRelease(texture);
@@ -550,8 +552,8 @@ namespace hs {
                                       const std::vector<BNLight> &lights)
   {
     if (!lights.empty()) {
-      std::cout << "setting lights slot " << this->slot << std::endl;
-      BNData lightsData = bnDataCreate(global->context,this->slot,
+      std::cout << "setting lights slot " << this->localDataSlotWeWorkOn << std::endl;
+      BNData lightsData = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                                        BN_OBJECT,lights.size(),lights.data());
       bnSetData(rootGroup,"lights",lightsData);
       bnRelease(lightsData);
@@ -573,11 +575,11 @@ namespace hs {
       throw std::runtime_error("unsupported voluem format '"+vol->texelFormat+"'");
     
     BNTextureData td
-      = bnTextureData3DCreate(global->context,this->slot,
+      = bnTextureData3DCreate(global->context,this->localDataSlotWeWorkOn,
                               texelFormat,vol->dims.x,vol->dims.y,vol->dims.z,
                               vol->rawData.data());
     BNScalarField sf
-      = bnScalarFieldCreate(global->context,this->slot,"structured");
+      = bnScalarFieldCreate(global->context,this->localDataSlotWeWorkOn,"structured");
     assert(sf);
     bnSetObject(sf,"textureData",td);
     bnRelease(td);
@@ -585,7 +587,7 @@ namespace hs {
     bnSet(sf,"gridOrigin",(const bn_float3&)vol->gridOrigin);
     bnSet(sf,"gridSpacing",(const bn_float3&)vol->gridSpacing);
     bnCommit(sf);
-    BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
+    BNVolume volume = bnVolumeCreate(global->context,this->localDataSlotWeWorkOn,sf);
     bnRelease(sf);
     return volume;
   }
@@ -608,36 +610,36 @@ namespace hs {
     }
     PRINT(dims.size());
     BNScalarField sf
-      = bnScalarFieldCreate(global->context,this->slot,"BlockStructuredAMR");
+      = bnScalarFieldCreate(global->context,this->localDataSlotWeWorkOn,"BlockStructuredAMR");
     BNData originsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT3,origins.size(),origins.data());
     bnSetData(sf,"grid.origins",originsData);
     BNData dimsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT3,dims.size(),dims.data());
     bnSetData(sf,"grid.dims",dimsData);
     BNData levelsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT,levels.size(),levels.data());
     bnSetData(sf,"grid.levels",levelsData);
     BNData offsetsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_LONG,offsets.size(),offsets.data());
     bnSetData(sf,"grid.offsets",offsetsData);
 
     BNData scalarsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_FLOAT,input->numCellsAcrossAllGrids,
                      input->scalars.data());
     bnSetData(sf,"scalars",scalarsData);
     BNData refinementsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT,refinements.size(),refinements.data());
     bnSetData(sf,"level.refinements",refinementsData);
     bnCommit(sf);
     
-    BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
+    BNVolume volume = bnVolumeCreate(global->context,this->localDataSlotWeWorkOn,sf);
     bnRelease(sf);
     return volume;
   }
@@ -683,28 +685,28 @@ namespace hs {
     assert(mesh->perVertex->values.size() == mesh->vertices.size());
     
     BNScalarField sf
-      = bnScalarFieldCreate(global->context,this->slot,
+      = bnScalarFieldCreate(global->context,this->localDataSlotWeWorkOn,
                             "unstructured");
     BNData vertexData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_FLOAT3,
                      mesh->vertices.size(),
                      mesh->vertices.data());
     BNData cellTypeData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_UINT8,
                      cellTypes.size(),
                      cellTypes.data());
     BNData scalarData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_FLOAT,
                      mesh->perVertex->values.size(),
                      mesh->perVertex->values.data());
     BNData indicesData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT,indices.size(),indices.data());
     BNData offsetsData
-      = bnDataCreate(global->context,this->slot,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,
                      BN_INT,elementOffsets.size(),elementOffsets.data());
     bnSetAndRelease(sf,"vertex.position",vertexData);
     bnSetAndRelease(sf,"vertex.data",scalarData);
@@ -713,7 +715,7 @@ namespace hs {
     bnSetAndRelease(sf,"cell.type",cellTypeData);
     bnCommit(sf);
 
-    BNVolume volume = bnVolumeCreate(global->context,this->slot,sf);
+    BNVolume volume = bnVolumeCreate(global->context,this->localDataSlotWeWorkOn,sf);
     bnRelease(sf);
     return volume;
   }
@@ -724,19 +726,19 @@ namespace hs {
                    MaterialLibrary<BarneyBackend> *materialLib)
   {
     BNGeom geom
-      = bnGeometryCreate(global->context,this->slot,"capsules");
+      = bnGeometryCreate(global->context,this->localDataSlotWeWorkOn,"capsules");
     BNData vertices
-      = bnDataCreate(global->context,this->slot,BN_FLOAT4,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT4,
                      content->vertices.size(),
                      content->vertices.data());
     bnSetAndRelease(geom,"vertices",vertices);
     BNData colors
-      = bnDataCreate(global->context,this->slot,BN_FLOAT4,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT4,
                      content->colors.size(),
                      content->colors.data());
     bnSetAndRelease(geom,"vertex.color",colors);
     BNData indices
-      = bnDataCreate(global->context,this->slot,BN_INT2,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_INT2,
                      content->indices.size(),
                      content->indices.data());
     bnSetAndRelease(geom,"indices",indices);
@@ -767,9 +769,9 @@ namespace hs {
     // float radius = .1f;
     
     BNGeom geom
-      = bnGeometryCreate(global->context,this->slot,"spheres");
+      = bnGeometryCreate(global->context,this->localDataSlotWeWorkOn,"spheres");
     BNData origins
-      = bnDataCreate(global->context,this->slot,BN_FLOAT3,
+      = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT3,
                      content->origins.size(),
                      content->origins.data());
     bnSetAndRelease(geom,"origins",origins);
@@ -778,7 +780,7 @@ namespace hs {
       bnSet1f(geom,"radius",content->radius);
     } else {
       BNData radii
-        = bnDataCreate(global->context,this->slot,BN_FLOAT,
+        = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT,
                        content->radii.size(),
                        content->radii.data());
       bnSetAndRelease(geom,"radii",radii);
@@ -787,7 +789,7 @@ namespace hs {
     if (content->colors.empty()) {
     } else {
       BNData colors
-        = bnDataCreate(global->context,this->slot,BN_FLOAT3,
+        = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT3,
                        content->colors.size(),
                        content->colors.data());
       // bnSetAndRelease(geom,"colors",colors);
@@ -812,7 +814,7 @@ namespace hs {
 
     BNMaterial mat = materialLib->getOrCreate(content->material,colorMapped,
                                               content->scalars.perVertex.size()>0);
-    BNGeom geom = bnGeometryCreate(context,slot,"triangles");
+    BNGeom geom = bnGeometryCreate(context,localDataSlotWeWorkOn,"triangles");
 
     int numVertices = content->vertices.size();
     int numIndices = content->indices.size();
@@ -821,28 +823,28 @@ namespace hs {
     const bn_float3 *colors = (const bn_float3*)content->colors.data();
     const bn_int3 *indices = (const bn_int3*)content->indices.data();
     const float *scalars = (const float*)content->scalars.perVertex.data();
-    BNData _vertices = bnDataCreate(context,slot,BN_FLOAT3,
+    BNData _vertices = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT3,
                                     numVertices,vertices);
     bnSetAndRelease(geom,"vertices",_vertices);
 
     if (!content->colors.empty()) {
-      BNData _colors = bnDataCreate(context,slot,BN_FLOAT3,
+      BNData _colors = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT3,
                                     numVertices,colors);
       bnSetAndRelease(geom,"vertex.color",_colors);
     }
 
     if (!content->scalars.perVertex.empty()) {
-      BNData _scalars = bnDataCreate(context,slot,BN_FLOAT,
+      BNData _scalars = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT,
                                      numVertices,scalars);
       bnSetAndRelease(geom,"vertex.attribute0",_scalars);
     }
 
-    BNData _indices  = bnDataCreate(context,slot,BN_INT3,
+    BNData _indices  = bnDataCreate(context,localDataSlotWeWorkOn,BN_INT3,
                                     numIndices,indices);
     bnSetAndRelease(geom,"indices",_indices);
 
     if (normals) {
-      BNData _normals  = bnDataCreate(context,slot,BN_FLOAT3,
+      BNData _normals  = bnDataCreate(context,localDataSlotWeWorkOn,BN_FLOAT3,
                                       normals?numVertices:0,normals);
       bnSetAndRelease(geom,"normals",_normals);
     }
@@ -856,9 +858,9 @@ namespace hs {
   BarneyBackend::Slot::createCylinders(Cylinders::SP content,
                                        MaterialLibrary<BarneyBackend> *materialLib)
   {
-    BNGeom geom = bnGeometryCreate(global->context,this->slot,"cylinders");
+    BNGeom geom = bnGeometryCreate(global->context,this->localDataSlotWeWorkOn,"cylinders");
     if (!geom) return {};
-    BNData vertices = bnDataCreate(global->context,this->slot,BN_FLOAT3,
+    BNData vertices = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT3,
                                    content->vertices.size(),
                                    content->vertices.data());
     bnSetAndRelease(geom,"vertices",vertices);
@@ -870,12 +872,12 @@ namespace hs {
       for (int i=0;i<content->vertices.size();i+=2)
         content->indices.push_back(vec2i(i,i+1));
     }
-    BNData indices = bnDataCreate(global->context,this->slot,BN_INT2,
+    BNData indices = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_INT2,
                                   content->indices.size(),
                                   content->indices.data());
     bnSetAndRelease(geom,"indices",indices);
 
-    BNData radii = bnDataCreate(global->context,this->slot,BN_FLOAT,
+    BNData radii = bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT,
                                 content->radii.size(),
                                 content->radii.data());
     bnSetAndRelease(geom,"radii",radii);
@@ -883,7 +885,7 @@ namespace hs {
     BNData colors
       = content->colors.empty()
       ? nullptr
-      : bnDataCreate(global->context,this->slot,BN_FLOAT3,
+      : bnDataCreate(global->context,this->localDataSlotWeWorkOn,BN_FLOAT3,
                      content->colors.size(),
                      content->colors.data());
     if (colors) {

@@ -165,8 +165,8 @@ namespace hs {
       using VolumeHandle = typename Backend::VolumeHandle;
       using GeomHandle = typename Backend::GeomHandle;
       
-      Slot(Global *global, int slot)
-        : Backend::Slot(global,slot,this),
+      Slot(Global *global, int mySlotIndex, int localDataRankThisSlotUses)
+        : Backend::Slot(global,mySlotIndex,localDataRankThisSlotUses,this),
           textureLibrary(this),
           materialLibrary(this)
       {}
