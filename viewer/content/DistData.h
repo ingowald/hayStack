@@ -20,7 +20,7 @@
 #include <fstream>
 
 namespace hs {
-
+  
   /*! Erik Nielsen Fun3D data dump format */
   struct ENDumpContent : public LoadableContent {
     ENDumpContent(const std::string &fileName,
