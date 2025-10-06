@@ -29,7 +29,10 @@ namespace hs {
     typedef anari::Volume   VolumeHandle;
 
     struct Slot;
-    
+
+    static const int slotPerDevice = true; 
+    static const int slotPerDataRank = false;
+
     struct Global {
       Global(HayMaker *base);
 
@@ -52,13 +55,16 @@ namespace hs {
       /*! points to the first slot, which is the only slot in
           non-data-parallel, and the master slot in data-parallel */
       std::vector<Slot *> slots;
+      inline int numDevices() const { return devices.size(); }
       std::vector<anari::Device> devices;
       // the library used to create the device(s)
       anari::Library library;
     };
 
     struct Slot {
-      Slot(Global *global, int slot,
+      Slot(Global *global,
+           int mySlotIndex,
+           int localDataSlotWeWorkOn,
            typename HayMakerT<AnariBackend>::Slot *impl);
     
       void applyTransferFunction(const TransferFunction &xf);
@@ -123,7 +129,9 @@ namespace hs {
       
       typename HayMakerT<AnariBackend>::Slot *const impl;
       Global *const global;
-      int     const slot;
+      // int     const slot;
+      int const mySlotIndex;
+      int const localDataSlotWeWorkOn;
 
       anari::Sampler scalarMapper = 0;
       anari::Frame  frame  = 0;
@@ -131,6 +139,8 @@ namespace hs {
       anari::World  model  = 0;
       anari::Camera camera = 0;
     };
+
+    
   };
   
 } // ::hs

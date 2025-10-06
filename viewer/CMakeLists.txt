@@ -27,6 +27,8 @@ set(SOURCES
   DataLoader.h
   DataLoader.cpp
   content/MiniContent.h
+  content/IsoDump.h
+  content/IsoDump.cpp
   content/OBJContent.h
   content/OBJContent.cpp
   content/SpheresFromFile.h

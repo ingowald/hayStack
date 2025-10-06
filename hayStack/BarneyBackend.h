@@ -44,6 +44,10 @@ namespace hs {
     typedef BNLight    LightHandle;
     typedef BNVolume   VolumeHandle;
     typedef BNGeom     GeomHandle;
+
+    static const int slotPerDevice = false;
+    static const int slotPerDataRank = true;
+
     
     struct Global {
       Global(HayMaker *base);
@@ -56,6 +60,10 @@ namespace hs {
       void finalizeRender();
       /*! clean up and shut down */
       void terminate();
+
+      /*! for barney native, we might have multipel GPUs in each
+          context, but only one context */
+      inline int numDevices() const { return 1; };
       
       HayMaker *const base;
       BNContext     context  = 0;
@@ -76,9 +84,15 @@ namespace hs {
     // void buildDataGroup(int dgID);
     
     struct Slot {
-      Slot(Global *global, int slot,
+      Slot(Global *global,
+           int mySlotIndex,
+           int localDataSlotWeWorkOn,
            typename HayMakerT<BarneyBackend>::Slot *impl)
-        : global(global), slot(slot), impl(impl) {}
+        : global(global),
+          mySlotIndex(mySlotIndex),
+          localDataSlotWeWorkOn(localDataSlotWeWorkOn),
+          impl(impl)
+      {}
     
       void applyTransferFunction(const TransferFunction &xf);
       // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
@@ -142,7 +156,8 @@ namespace hs {
       bool needRebuild = true;
       typename HayMakerT<BarneyBackend>::Slot *const impl;
       Global *const global;
-      int     const slot;
+      int     const mySlotIndex;
+      int     const localDataSlotWeWorkOn;
     };
   };
   
