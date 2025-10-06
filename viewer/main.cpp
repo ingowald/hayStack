@@ -199,7 +199,11 @@ namespace hs {
         if (key == '9' || key == '0')
           ratio = (ratio - 1.f) * 0.1f + 1.f; 
         float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
+#ifdef _WIN32
+        _putenv_s("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str());
+#else        
         setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
+#endif        
         std::cout << "Focal length is set to: " << fl << '\n';
         renderer->resetAccumulation();
         break;
@@ -211,7 +215,11 @@ namespace hs {
         if (key == '[' || key == ']')
           ratio = (ratio - 1.f) * 0.1f + 1.f; 
         float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
+#ifdef _WIN32
+        _putenv_s("BARNEY_LENS_RADIUS", std::to_string(lr).c_str());
+#else        
         setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
+#endif        
         std::cout << "Lens radius is set to: " << lr << '\n';
         renderer->resetAccumulation();
         break;
