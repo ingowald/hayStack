@@ -567,6 +567,10 @@ namespace hs {
 #if HS_MPI
   void determineLocalProcessID(mpi::Comm &world, int &localRank, int &localSize)
   {
+# if HS_FAKE_MPI
+    localRank = 0;
+    localSize = 1;
+# else
     world.barrier();
     std::vector<char> hostName(10000);
     gethostname(hostName.data(),hostName.size());
@@ -589,6 +593,7 @@ namespace hs {
       std::cout << "#hs(" << world.rank << "): determined local rank/size as "
                 << localRank << "/" << localSize << std::endl;
     }
+#endif
   }
 #endif
 
