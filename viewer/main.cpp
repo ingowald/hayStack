@@ -86,7 +86,7 @@ namespace hs {
     
     bool mergeUnstructuredMeshes = false;
     bool useBackground = true;
-    
+    float ambientRadiance = .6f;
     std::string xfFileName = "";
     std::string outFileName = "hayStack.png";
     vec2i fbSize = { 800,600 };
@@ -762,6 +762,8 @@ int main(int ac, char **av)
       loader.sharedLights.envMap = fromCL.envMapFileName;
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
+    } else if (arg == "--ambient") {
+      fromCL.ambientRadiance = std::stof(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
       fromCL.spp = std::stoi(av[++i]);
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
@@ -867,6 +869,7 @@ int main(int ac, char **av)
     ? HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
                                           fromCL.spp,
+                                           fromCL.ambientRadiance,
                                           fromCL.useBackground,
                                           thisRankData,
                                           gpuIDs,
@@ -874,6 +877,7 @@ int main(int ac, char **av)
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            fromCL.spp,
+                                           fromCL.ambientRadiance,
                                            fromCL.useBackground,
                                            thisRankData,
                                            gpuIDs,

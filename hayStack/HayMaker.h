@@ -39,6 +39,7 @@ namespace hs {
     HayMaker(Comm &world,
              Comm &workers,
              int   pixelSamples,
+             float ambientRadiance,
              bool  useBG,
              LocalModel &localModel,
              const std::vector<int> &gpuIDs,
@@ -51,6 +52,7 @@ namespace hs {
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
                                                int pathsPerPixel,
+                                               float ambientRadiance,
                                                bool useBG,
                                                LocalModel &localModel,
                                                const std::vector<int> &gpuIDs,
@@ -59,6 +61,7 @@ namespace hs {
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
                                                 int pathsPerPixel,
+                                                float ambientRadiance,
                                                 bool useBG,
                                                 LocalModel &localModel,
                                                 const std::vector<int> &gpuIDs,
@@ -69,6 +72,7 @@ namespace hs {
     LocalModel   localModel;
     bool         verbose;
     bool         useBackground = true;
+    const float  ambientRadiance;
     const int    pixelSamples;
     const std::vector<int> gpuIDs;
   };
@@ -124,6 +128,7 @@ namespace hs {
     HayMakerT(Comm &world,
               Comm &workers,
               int pathsPerPixel,
+              float ambientRadiance,
               bool useBG,
               LocalModel &localModel,
               const std::vector<int> &gpuIDs,

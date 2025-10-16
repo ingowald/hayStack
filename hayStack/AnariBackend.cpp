@@ -77,7 +77,10 @@ namespace hs {
     anari::commitParameters(device, model);
   
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", .6f);
+    
+    anari::setParameter(device, renderer, "ambientRadiance",
+                        global->base->ambientRadiance
+                        );
     anari::setParameter(device, renderer, "pixelSamples", global->base->pixelSamples);
 #if 1
     std::vector<vec4f> bgGradient = {
