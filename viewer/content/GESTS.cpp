@@ -65,9 +65,9 @@ namespace hs {
       throw std::runtime_error("read partial data...");
     
     vec3f gridOrigin;
-    gridOrigin.x = 1024 * ((thisPartID) % 8);
-    gridOrigin.y = 1024 * ((thisPartID / 8) % 8);
-    gridOrigin.z = 1024 * ((thisPartID / 8 / 8) % 8);
+    gridOrigin.x = 1024 * ((thisPartID) % 4);
+    gridOrigin.y = 1024 * ((thisPartID / 4) % 4);
+    gridOrigin.z = 1024 * ((thisPartID / 4 / 4) % 4);
     vec3f gridSpacing(1.f);
 
     std::vector<uint8_t> rawDataRGB;

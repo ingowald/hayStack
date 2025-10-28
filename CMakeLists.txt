@@ -62,9 +62,9 @@ if (NOT (TARGET tinyAMR))
   add_subdirectory(submodules/tinyAMR      EXCLUDE_FROM_ALL)
 endif()
 
-if (HS_HAVE_CUDA)
-  add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
-endif()
+#if (HS_HAVE_CUDA)
+#  add_subdirectory(../barney/submodules/owl builddir_owl   EXCLUDE_FROM_ALL)
+#endif()
 
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
