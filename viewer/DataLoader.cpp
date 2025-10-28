@@ -18,6 +18,7 @@
 #include "viewer/content/TSTris.h"
 #include "viewer/content/TriangleMesh.h"
 #include "viewer/content/RAWVolumeContent.h"
+#include "viewer/content/GESTS.h"
 #include "viewer/content/TAMRContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
@@ -355,6 +356,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+      else if (url.type == "gests") 
+        GESTSVolumeContent::create(this,url);
       else if (url.type == "tamr") 
         TAMRContent::create(this,url);
       else if (url.type == "boxes") 

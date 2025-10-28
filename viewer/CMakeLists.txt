@@ -45,6 +45,8 @@ set(SOURCES
   content/TSTris.cpp
   content/TriangleMesh.h
   content/TriangleMesh.cpp
+  content/GESTS.h
+  content/GESTS.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
   content/TAMRContent.h
