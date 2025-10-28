@@ -39,6 +39,7 @@ namespace hs {
     HayMaker(Comm &world,
              Comm &workers,
              int   pixelSamples,
+             float ambientRadiance,
              bool  useBG,
              LocalModel &localModel,
              const std::vector<int> &gpuIDs,
@@ -51,6 +52,7 @@ namespace hs {
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
                                                int pathsPerPixel,
+                                               float ambientRadiance,
                                                bool useBG,
                                                LocalModel &localModel,
                                                const std::vector<int> &gpuIDs,
@@ -59,6 +61,7 @@ namespace hs {
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
                                                 int pathsPerPixel,
+                                                float ambientRadiance,
                                                 bool useBG,
                                                 LocalModel &localModel,
                                                 const std::vector<int> &gpuIDs,
@@ -69,6 +72,7 @@ namespace hs {
     LocalModel   localModel;
     bool         verbose;
     bool         useBackground = true;
+    const float  ambientRadiance;
     const int    pixelSamples;
     const std::vector<int> gpuIDs;
   };
@@ -86,7 +90,7 @@ namespace hs {
     TextureHandle getOrCreate(mini::Texture::SP miniTex);
     
   private:
-    TextureHandle create(mini::Texture::SP miniTex);
+    //TextureHandle create(mini::Texture::SP miniTex);
     typename Backend::Slot *const backend;
     std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
   };
@@ -124,12 +128,13 @@ namespace hs {
     HayMakerT(Comm &world,
               Comm &workers,
               int pathsPerPixel,
+              float ambientRadiance,
               bool useBG,
               LocalModel &localModel,
               const std::vector<int> &gpuIDs,
               bool verbose);
     
-    void init();
+    //void init();
     void terminate() override { global.terminate(); }
     
 

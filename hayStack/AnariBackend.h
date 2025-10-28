@@ -132,7 +132,7 @@ namespace hs {
       // int     const slot;
       int const mySlotIndex;
       int const localDataSlotWeWorkOn;
-
+      
       anari::Sampler scalarMapper = 0;
       anari::Frame  frame  = 0;
       anari::Device device = 0;
