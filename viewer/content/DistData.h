@@ -66,7 +66,7 @@ namespace hs {
   inline void ENDumpContent::executeLoad(DataRank &dg, bool verbose)
   {
     std::ifstream in(fileName.c_str(),std::ios::binary);
-    size_t numVertices, numIndices, numPoints;
+    size_t numVertices, numIndices;
     double d;
     in.read((char *)&numVertices,sizeof(size_t));
     in.read((char *)&numIndices,sizeof(size_t));
@@ -100,14 +100,6 @@ namespace hs {
     scene->instances.push_back(std::make_shared<Instance>(model));
     
     dg.minis.push_back(scene);
-
-    // in.read((char *)&d,sizeof(d));
-    // in.read((char *)&numPoints,sizeof(size_t));
-    PING;
-    PRINT(numVertices);
-    PRINT(numIndices);
-    PRINT(d);
-    PRINT(numPoints);
   }
   
   
