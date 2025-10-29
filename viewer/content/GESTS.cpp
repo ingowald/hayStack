@@ -23,16 +23,24 @@
 namespace hs {
   
   GESTSVolumeContent::GESTSVolumeContent(const std::string &filePrefix,
-                                         int thisPartID)
+                                         int thisPartID,
+                                         int cubeDims,
+                                         int cubesPerFile)
     : filePrefix(filePrefix),
-      thisPartID(thisPartID)
+      thisPartID(thisPartID),
+      cubeDims(cubeDims),
+      cubesPerFile(cubesPerFile)
   {}
 
   void GESTSVolumeContent::create(DataLoader *loader,
                                 const ResourceSpecifier &dataURL)
   {
+    int cubesPerFile = dataURL.get_int("perFile",8);
+    int cubeDims = dataURL.get_int("dims",8);
+    
     for (int i=0;i<dataURL.numParts;i++) {
-      loader->addContent(new GESTSVolumeContent(dataURL.where,i));
+      loader->addContent(new GESTSVolumeContent
+                         (dataURL.where,i,cubeDims,cubesPerFile));
     }
   }
   
@@ -47,9 +55,9 @@ namespace hs {
     vec3i numVoxels = vec3i(1024);
     size_t numScalars = 
       size_t(numVoxels.x)*size_t(numVoxels.y)*size_t(numVoxels.z);
-    int fileID = thisPartID / 8;
+    int fileID = thisPartID / cubesPerFile;
     std::string fileName = filePrefix + std::to_string(fileID);
-    int cubeID = thisPartID % 8;
+    int cubeID = thisPartID % cubesPerFile;
     size_t cubeOffset = cubeID*sizeof(float)*numScalars;
     
     std::vector<uint8_t> rawData(numScalars*sizeof(float));
@@ -65,9 +73,9 @@ namespace hs {
       throw std::runtime_error("read partial data...");
     
     vec3f gridOrigin;
-    gridOrigin.x = 1024 * ((thisPartID) % 8);
-    gridOrigin.y = 1024 * ((thisPartID / 8) % 8);
-    gridOrigin.z = 1024 * ((thisPartID / 8 / 8) % 8);
+    gridOrigin.x = 1024 * ((thisPartID) % cubeDims);
+    gridOrigin.y = 1024 * ((thisPartID / cubeDims) % cubeDims);
+    gridOrigin.z = 1024 * ((thisPartID / cubeDims / cubeDims) % cubeDims);
     vec3f gridSpacing(1.f);
 
     std::vector<uint8_t> rawDataRGB;

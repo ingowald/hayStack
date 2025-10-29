@@ -26,7 +26,9 @@ namespace hs {
     // using ScalarType = StructuredVolume::ScalarType;
     
     GESTSVolumeContent(const std::string &filePrefix,
-                       int thisPartID);
+                       int thisPartID,
+                       int cubeDims,
+                       int cubesPerFile);
     
     static void create(DataLoader *loader,
                        const ResourceSpecifier &dataURL);
@@ -37,6 +39,8 @@ namespace hs {
 
     const std::string   filePrefix;
     const int           thisPartID;
+    const int           cubeDims;
+    const int           cubesPerFile;
   };
   
 }
