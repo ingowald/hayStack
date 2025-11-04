@@ -40,7 +40,7 @@ namespace hs {
              Comm &workers,
              int   pixelSamples,
              float ambientRadiance,
-             bool  useBG,
+             vec4f bgColor,
              LocalModel &localModel,
              const std::vector<int> &gpuIDs,
              bool verbose);
@@ -53,7 +53,7 @@ namespace hs {
                                                Comm &workers,
                                                int pathsPerPixel,
                                                float ambientRadiance,
-                                               bool useBG,
+                                               vec4f bgColor,
                                                LocalModel &localModel,
                                                const std::vector<int> &gpuIDs,
                                                bool verbose);
@@ -62,7 +62,7 @@ namespace hs {
                                                 Comm &workers,
                                                 int pathsPerPixel,
                                                 float ambientRadiance,
-                                                bool useBG,
+                                                vec4f bgColor,
                                                 LocalModel &localModel,
                                                 const std::vector<int> &gpuIDs,
                                                 bool verbose);
@@ -71,7 +71,7 @@ namespace hs {
     Comm         workers;
     LocalModel   localModel;
     bool         verbose;
-    bool         useBackground = true;
+    vec4f        bgColor { NAN, NAN, NAN, NAN };
     const float  ambientRadiance;
     const int    pixelSamples;
     const std::vector<int> gpuIDs;
@@ -129,7 +129,7 @@ namespace hs {
               Comm &workers,
               int pathsPerPixel,
               float ambientRadiance,
-              bool useBG,
+              vec4f bgColor,
               LocalModel &localModel,
               const std::vector<int> &gpuIDs,
               bool verbose);

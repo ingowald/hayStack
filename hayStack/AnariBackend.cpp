@@ -77,22 +77,26 @@ namespace hs {
     anari::commitParameters(device, model);
   
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    
+
     anari::setParameter(device, renderer, "ambientRadiance",
                         global->base->ambientRadiance
                         );
     anari::setParameter(device, renderer, "pixelSamples", global->base->pixelSamples);
-#if 1
-    std::vector<vec4f> bgGradient = {
-      vec4f(.9f,.9f,.9f,1.f),
-      vec4f(0.15f, 0.25f, .8f,1.f),
-    };
-    anari::setAndReleaseParameter
-      (device,renderer,"background",
-       anari::newArray2D(device,
-                         (const anari::math::float4*)bgGradient.data(),
-                         1,2));
-#endif
+    if (isnan(global->base->bgColor.x) || global->base->bgColor.x < 0.f) { 
+      std::vector<vec4f> bgGradient = {
+        vec4f(.9f,.9f,.9f,1.f),
+        vec4f(0.15f, 0.25f, .8f,1.f),
+      };
+      anari::setAndReleaseParameter
+        (device,renderer,"background",
+         anari::newArray2D(device,
+                           (const anari::math::float4*)bgGradient.data(),
+                           1,2));
+    } else {
+      anari::setParameter
+        (device,renderer,"background",
+         (const anari::math::float4 &)global->base->bgColor);
+    }
     anari::commitParameters(device, renderer);
 
     frame = anari::newObject<anari::Frame>(device);
@@ -847,7 +851,7 @@ namespace hs {
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
-    anari::setParameter(device,light,"irradiance",average(ml.radiance));
+    anari::setParameter(device,light,"irradiance",2.f*average(ml.radiance));
     anari::commitParameters(device,light);
     return light;
   }

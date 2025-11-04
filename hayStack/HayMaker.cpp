@@ -29,7 +29,7 @@ namespace hs {
                      Comm &workers,
                      int   pixelSamples,
                      float ambientRadiance,
-                     bool useBG,
+                     vec4f bgColor,
                      LocalModel &_localModel,
                      const std::vector<int> &gpuIDs,
                      bool verbose)
@@ -37,7 +37,7 @@ namespace hs {
       workers(workers),
       pixelSamples(pixelSamples),
       ambientRadiance(ambientRadiance),
-      useBackground(useBG),
+      bgColor(bgColor),
       localModel(std::move(_localModel)),
       gpuIDs(gpuIDs),
       verbose(verbose)
@@ -50,11 +50,11 @@ namespace hs {
                                 Comm &workers,
                                 int pathsPerPixel,
                                 float ambientRadiance,
-                                bool useBG,
+                                vec4f bgColor,
                                 LocalModel &localModel,
                                 const std::vector<int> &gpuIDs,
                                 bool verbose)
-    : HayMaker(world,workers,pathsPerPixel,ambientRadiance,useBG,localModel,gpuIDs,verbose),
+    : HayMaker(world,workers,pathsPerPixel,ambientRadiance,bgColor,localModel,gpuIDs,verbose),
       global(this)
   {
     int numLocalDataRanks = this->localModel.size();
@@ -338,7 +338,7 @@ namespace hs {
                               Comm &workers,
                               int pathsPerPixel,
                               float ambientRadiance,
-                              bool useBG,
+                              vec4f bgColor,
                               LocalModel &localModel,
                               const std::vector<int> &gpuIDs,
                               bool verbose)
@@ -349,7 +349,7 @@ namespace hs {
                                        /* the workers */workers,
                                        pathsPerPixel,
                                        ambientRadiance,
-                                       useBG,
+                                       bgColor,
                                        localModel,
                                        gpuIDs,
                                        verbose);
@@ -364,7 +364,7 @@ namespace hs {
                                Comm &workers,
                                int pathsPerPixel,
                                float ambientRadiance,
-                               bool useBG,
+                               vec4f bgColor,
                                LocalModel &localModel,
                                const std::vector<int> &gpuIDs,
                                bool verbose)
@@ -375,7 +375,7 @@ namespace hs {
                                Comm &workers,
                                int pathsPerPixel,
                                float ambientRadiance,
-                               bool useBG,
+                               vec4f bgColor,
                                LocalModel &localModel,
                                const std::vector<int> &gpuIDs,
                                bool verbose)
@@ -384,7 +384,7 @@ namespace hs {
                                         /* the workers */workers,
                                         pathsPerPixel,
                                         ambientRadiance,
-                                        useBG,
+                                        bgColor,
                                         localModel,
                                         gpuIDs,
                                         verbose);
