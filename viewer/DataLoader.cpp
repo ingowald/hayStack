@@ -28,6 +28,7 @@
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
+#include "viewer/content/IsoDump.h"
 
 namespace hs {
 
@@ -342,6 +343,8 @@ namespace hs {
         content::SpheresFromFile::create(this,url);
       else if (url.type == "ts.tri") 
         TSTriContent::create(this,contentDescriptor);
+      else if (url.type == "iso-dump") 
+        IsoDumpContent::create(this,contentDescriptor);
       else if (url.type == "rgbtris") 
         content::RGBTris::create(this,contentDescriptor);
       else if (url.type == "materialsTest") 

@@ -54,8 +54,14 @@ namespace hs {
     : HayMaker(world,workers,pathsPerPixel,useBG,localModel,gpuIDs,verbose),
       global(this)
   {
-    for (int i=0;i<this->localModel.size();i++) {
-      perSlot.push_back(new Slot(&global,i));
+    int numLocalDataRanks = this->localModel.size();
+    int numSlotsRequired
+      = Backend::slotPerDevice
+      ? global.numDevices()
+      : numLocalDataRanks;
+    perSlot.resize(numSlotsRequired);
+    for (int i=0;i<numSlotsRequired;i++) {
+      perSlot[i] = new Slot(&global,i,i%numLocalDataRanks);
     }
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
@@ -159,7 +165,7 @@ namespace hs {
       // may be; this also includes lights because those are currently
       // stored in mini::Scene'
       // -----------------------------------------------------------------
-      auto &myData = this->global->base->localModel.dataGroups[this->slot];
+      auto &myData = this->global->base->localModel.dataGroups[this->localDataSlotWeWorkOn];
       for (auto miniScene : myData.minis)
         renderMiniScene(miniScene);
 

@@ -86,7 +86,7 @@ namespace hs {
     TextureHandle getOrCreate(mini::Texture::SP miniTex);
     
   private:
-    TextureHandle create(mini::Texture::SP miniTex);
+    //TextureHandle create(mini::Texture::SP miniTex);
     typename Backend::Slot *const backend;
     std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
   };
@@ -129,7 +129,7 @@ namespace hs {
               const std::vector<int> &gpuIDs,
               bool verbose);
     
-    void init();
+    //void init();
     void terminate() override { global.terminate(); }
     
 
@@ -165,8 +165,8 @@ namespace hs {
       using VolumeHandle = typename Backend::VolumeHandle;
       using GeomHandle = typename Backend::GeomHandle;
       
-      Slot(Global *global, int slot)
-        : Backend::Slot(global,slot,this),
+      Slot(Global *global, int mySlotIndex, int localDataRankThisSlotUses)
+        : Backend::Slot(global,mySlotIndex,localDataRankThisSlotUses,this),
           textureLibrary(this),
           materialLibrary(this)
       {}

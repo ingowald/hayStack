@@ -202,6 +202,13 @@ namespace hs {
         in.read((char *)&t,sizeof(t));
       return vec;
     }
+
+    template<typename T>
+    std::vector<T> loadVectorOf(const std::string &fn, int part=0, int numParts=1)
+    {
+      std::ifstream in(fn,std::ios::binary);
+      return noHeader::loadVectorOf<T>(in,part,numParts);
+    }
   }
 }
 

@@ -58,15 +58,20 @@ namespace hs {
   }
   
   AnariBackend::Slot::Slot(Global *global,
-                           int slot,
+                           int mySlotIndex,
+                           int localDataSlotWeWorkOn,
                            typename HayMakerT<AnariBackend>::Slot *impl)
-    : global(global), slot(slot), impl(impl)
+    : global(global),
+      mySlotIndex(mySlotIndex),
+      localDataSlotWeWorkOn(localDataSlotWeWorkOn),
+      impl(impl)
   {
     int numDataGroups = (int)global->base->localModel.size();
-    global->slots.resize(numDataGroups);
-    global->slots[slot] = this;
+    global->slots.resize(global->devices.size());
+    assert(global->slots.size() > mySlotIndex);
+    global->slots[mySlotIndex] = this;
 
-    device = global->devices[slot];
+    device = global->devices[mySlotIndex];
     
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
@@ -348,9 +353,9 @@ namespace hs {
   void AnariBackend::Global::renderFrame()
   {
     // anari::commitParameters(device, frame);
-    anari::render(slots[0]->device, slots[0]->frame);
-    // for (auto slot : slots)
-    //   anari::render(slot->device, slot->frame);
+    // anari::render(slots[0]->device, slots[0]->frame);
+    for (auto slot : slots)
+      anari::render(slot->device, slot->frame);
 #ifdef TEST_IDCHANNEL
     auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, TEST_IDCHANNEL);
 #else
@@ -736,6 +741,7 @@ namespace hs {
   {
     if (dirty) {
       for (auto slot : slots) {
+        assert(slot);
         anari::setParameter(slot->device, slot->frame, "world",    slot->model);
         anari::commitParameters(slot->device, slot->frame);
       }

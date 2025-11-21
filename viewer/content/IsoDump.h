@@ -16,21 +16,28 @@
 
 #pragma once
 
-#include "hayStack/common.h"
-#include <vector>
+#include "viewer/DataLoader.h"
 
-/* parallel renderer abstraction */
 namespace hs {
-  // using namespace owl::common;
-  //
-  using range1f = mini::common::interval<float> ;
-  
-  struct TransferFunction {
-    void load(const std::string &fileName);
-    
-    std::vector<mini::common::vec4f> colorMap = { mini::common::vec4f(1.f), mini::common::vec4f(1.f) };
-    range1f domain = { 0.f, 0.f };
-    float   baseDensity = 1.f;
+
+  /*! IsoDump: surfaces generated from a separate iso-surace
+      generation-and-dump-to-disk tool */
+  struct IsoDumpContent : public LoadableContent {
+    IsoDumpContent(const ResourceSpecifier &data,
+                   int thisPartID);
+    static void create(DataLoader *loader,
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataRank &dataGroup, bool verbose) override;
+
+    std::string toString() override
+    {
+      return "IsoDumpContent{fileName="+data.where+", part "+std::to_string(thisPartID)+
+        ", proj size "
+        +prettyNumber(projectedSize())+"B}";
+    }
+    const ResourceSpecifier data;
+    const int thisPartID = 0;
   };
   
 }
