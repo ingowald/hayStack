@@ -33,11 +33,12 @@
 #include <unistd.h>
 #endif
 
-#if HS_CUTEE
-namespace viewer {
-  using namespace cutee::common;
-}
-#endif
+// #if HS_CUTEE
+// namespace viewer {
+//   using cutee::common::vec3
+//   // using namespace cutee::common;
+// }
+// #endif
 
 namespace hs {
 
@@ -46,6 +47,13 @@ namespace hs {
   typedef enum { DPMODE_NOT_SPECIFIED,
                  DPMODE_DATA_PARALLEL,
                  DPMODE_DATA_REPLICATED } DPMode;
+
+  struct CmdLineCamera {
+    vec3f vp   = vec3f(0.f);
+    vec3f vi   = vec3f(0.f);
+    vec3f vu   = vec3f(0.f,1.f,0.f);
+    float fovy = 60.f;
+  };
   
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
@@ -75,17 +83,13 @@ namespace hs {
     int  numFramesAccum = 1;
     int  spp            = 1;
     bool verbose = true;
-    struct {
-      vec3f vp   = vec3f(0.f);
-      vec3f vi   = vec3f(0.f);
-      vec3f vu   = vec3f(0.f,1.f,0.f);
-      float fovy = 60.f;
-    } camera;
-    struct {
-      vec3f vp0, vp1;
-      vec3f vi0, vi1;
-      int numSteps = 0;
-    } cameraPath;
+    CmdLineCamera camera;
+    std::vector<CmdLineCamera> cameraPath;
+    // struct {
+    //   vec3f vp0, vp1;
+    //   vec3f vi0, vi1;
+    //   int numSteps = 0;
+    // } cameraPath;
     bool measure = 0;
     std::string envMapFileName;
   };
@@ -136,7 +140,7 @@ namespace hs {
     }
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const viewer::vec2i &where) override
+    void key(char key, const cutee::common::vec2i &where) override
     {
       switch(key) {
       case '!':
@@ -145,9 +149,9 @@ namespace hs {
       case '*': {
         hs::Camera camera;
         OWLViewer::getCameraOrientation
-          ((viewer::vec3f&)camera.vp,
-           (viewer::vec3f&)camera.vi,
-           (viewer::vec3f&)camera.vu,
+          ((cutee::common::vec3f&)camera.vp,
+           (cutee::common::vec3f&)camera.vi,
+           (cutee::common::vec3f&)camera.vu,
            camera.fovy);
         PRINT(normalize(camera.vi - camera.vp));
       } break;
@@ -206,7 +210,7 @@ namespace hs {
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const viewer::vec2i &newSize) override
+    void resize(const cutee::common::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
       renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
@@ -215,7 +219,7 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
-      double _t0 = viewer::getCurrentTime();
+      double _t0 = mini::common::getCurrentTime();
 
       if (xfDirty) {
         renderer->setTransferFunction(xf);
@@ -235,12 +239,12 @@ namespace hs {
       
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
-        measure_t0 = viewer::getCurrentTime();
+        measure_t0 = mini::common::getCurrentTime();
 
-      static double t0 = viewer::getCurrentTime();
+      static double t0 = mini::common::getCurrentTime();
       renderer->renderFrame();
       ++numFramesRendered;
-      double t1 = viewer::getCurrentTime();
+      double t1 = mini::common::getCurrentTime();
 
       if (fromCL.measure) {
         int numFramesMeasured = numFramesRendered - measure_warmup_frames;
@@ -268,10 +272,10 @@ namespace hs {
       sum_w = 0.8f*sum_w + 1.f;
       float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+viewer::prettyDouble(fps)+"fps)";
+      std::string title = "HayThere ("+mini::common::prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
       t0 = t1;
-      double _t1 = viewer::getCurrentTime();
+      double _t1 = mini::common::getCurrentTime();
       t_last_render = _t1-_t0;
     }
     
@@ -279,9 +283,9 @@ namespace hs {
     {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation
-        ((viewer::vec3f&)camera.vp,
-         (viewer::vec3f&)camera.vi,
-         (viewer::vec3f&)camera.vu,
+        ((cutee::common::vec3f&)camera.vp,
+         (cutee::common::vec3f&)camera.vi,
+         (cutee::common::vec3f&)camera.vu,
          camera.fovy);
       renderer->setCamera(camera);
       accumDirty = true;
@@ -599,6 +603,52 @@ namespace hs {
   //   }
   // world.barrier();
   // if (fromCL.dpMode == DPMODE_DATA_PARALLEL && slurmIsBeingUsed
+
+  inline float lerp_l(float f, float a, float b)
+  { return (1.f-f)*a + f*b; }
+  inline mini::common::vec3f lerp_l(float f,
+                                    mini::common::vec3f a,
+                                    mini::common::vec3f b)
+  { return (1.f-f)*a + f*b; }
+  
+  void addCameraPath(int numSteps,
+                     CmdLineCamera c0,
+                     CmdLineCamera c1)
+  {
+    for (int i=0;i<numSteps;i++) {
+      float f = i/(numSteps-1.f);
+      CmdLineCamera c;
+      c.vp = lerp_l(f,c0.vp,c1.vp);
+      c.vi = lerp_l(f,c0.vi,c1.vi);
+      c.vu = lerp_l(f,c0.vu,c1.vu);
+      c.fovy = lerp_l(f,c0.fovy,c1.fovy);
+      fromCL.cameraPath.push_back(c);
+    }
+  }
+
+  void addCamerasFromFile(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str());
+    std::string line;
+    while (in.good()) {
+      std::getline(in,line);
+      CmdLineCamera c;
+      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
+                      &c.vp.x,
+                      &c.vp.y,
+                      &c.vp.z,
+                      &c.vi.x,
+                      &c.vi.y,
+                      &c.vi.z,
+                      &c.vu.x,
+                      &c.vu.y,
+                      &c.vu.z,
+                      &c.fovy);
+      if (rc != 10)
+        break;
+      fromCL.cameraPath.push_back(c);
+    }
+  }
   
 }
 
@@ -679,18 +729,25 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
+    } else if (arg == "--cameras-from-file") {
+      hs::addCamerasFromFile(av[++i]);
     } else if (arg == "--camera-path") {
-      fromCL.cameraPath.numSteps = std::stoi(av[++i]);
+      CmdLineCamera c0, c1;
+      int numSteps = std::stoi(av[++i]);
+      // --camera
       ++i;
-      fromCL.cameraPath.vp0 = get3f(av,i);
-      fromCL.cameraPath.vi0 = get3f(av,i);
-      fromCL.camera.vu = get3f(av,i);
+      c0.vp = get3f(av,i);
+      c0.vp = get3f(av,i);
+      c0.vu = get3f(av,i);
       ++i;// -fovy
-      ++i;// actual vovy value
+      c0.fovy = std::stof(av[++i]);
       ++i;// --camera
-      fromCL.cameraPath.vp1 = get3f(av,i);
-      fromCL.cameraPath.vi1 = get3f(av,i);
-      fromCL.camera.vu = get3f(av,i);
+      c1.vp = get3f(av,i);
+      c1.vp = get3f(av,i);
+      c1.vu = get3f(av,i);
+      ++i;// -fovy
+      c1.fovy = std::stof(av[++i]);
+      hs::addCameraPath(numSteps,c0,c1);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
@@ -842,14 +899,15 @@ int main(int ac, char **av)
   viewer.enableInspectMode();
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
+    (/*origin   */(const cutee::common::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const cutee::common::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const cutee::common::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
   QMainWindow secondWindow;
   if (modelHasVolumeData) {
-    XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
+    XFEditor    *xfEditor = new XFEditor
+      ((cutee::common::interval<float>&)worldBounds.scalars);
     viewer.xfEditor       = xfEditor;
     QFormLayout *layout   = new QFormLayout;
     layout->addWidget(xfEditor);
@@ -892,15 +950,21 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
-  if (fromCL.cameraPath.numSteps) {
+  if (!fromCL.cameraPath.empty()) {
     std::cout << "rendering camera path sequence" << std::endl;
-    for (int frameID=0;frameID<fromCL.cameraPath.numSteps;frameID++) {
-      float f = frameID / (fromCL.cameraPath.numSteps-1.f);
-      camera.vu = fromCL.camera.vu;
-      camera.vp
-        = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
-      camera.vi
-        = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
+    for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
+      hs::Camera camera;
+      auto c = fromCL.cameraPath[frameID];
+      camera.vi = c.vi;
+      camera.vp = c.vp;
+      camera.vu = c.vu;
+      camera.fovy = c.fovy;
+      // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
+      // camera.vu = fromCL.camera.vu;
+      // camera.vp
+      //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
+      // camera.vi
+      //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
       renderer->setCamera(camera);
       renderer->renderFrame();
       stbi_flip_vertically_on_write(true);
