@@ -39,6 +39,7 @@ namespace hs {
     const size_t      fileSize;
     const int         partID;
     std::string       requestedVar;  // Optional: specific variable to load
+    float             scale;         // Optional: uniform scale factor for volume
     
   private:
     // Helper methods to read different mesh types

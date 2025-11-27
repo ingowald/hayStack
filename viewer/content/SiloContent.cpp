@@ -364,7 +364,8 @@ namespace hs {
   SiloContent::SiloContent(const std::string &fileName)
     : fileName(fileName),
       fileSize(getFileSize(fileName)),
-      partID(-1)
+      partID(-1),
+      scale(1.0f)
   {
   }
 
@@ -372,7 +373,8 @@ namespace hs {
     : fileName(resource.where),
       fileSize(getFileSize(resource.where)),
       partID(partID),
-      requestedVar(resource.get("var", ""))
+      requestedVar(resource.get("var", "")),
+      scale(std::stof(resource.get("scale", "1.0")))
   {
   }
 
@@ -713,6 +715,16 @@ namespace hs {
           }
           std::cout << "#hs.silo:   Rectilinear grid - origin: " << gridOrigin
                     << ", spacing: " << gridSpacing << std::endl;
+        }
+        
+        // Apply scale factor if specified
+        if (scale != 1.0f) {
+          gridOrigin = gridOrigin * scale;
+          gridSpacing = gridSpacing * scale;
+          if (verbose)
+            std::cout << "#hs.silo:   Applied scale factor " << scale 
+                      << " - new origin: " << gridOrigin 
+                      << ", new spacing: " << gridSpacing << std::endl;
         }
       } else {
         // Curvilinear - would need more complex handling
@@ -1117,9 +1129,9 @@ namespace hs {
       float *z = um->ndims >= 3 ? (float*)um->coords[2] : nullptr;
       
       for (int i = 0; i < nnodes; i++) {
-        mesh->vertices[i].x = x[i];
-        mesh->vertices[i].y = y[i];
-        mesh->vertices[i].z = z ? z[i] : 0.f;
+        mesh->vertices[i].x = x[i] * scale;
+        mesh->vertices[i].y = y[i] * scale;
+        mesh->vertices[i].z = z ? z[i] * scale : 0.f;
       }
     } else if (um->datatype == DB_DOUBLE) {
       double *x = (double*)um->coords[0];
@@ -1127,10 +1139,15 @@ namespace hs {
       double *z = um->ndims >= 3 ? (double*)um->coords[2] : nullptr;
       
       for (int i = 0; i < nnodes; i++) {
-        mesh->vertices[i].x = (float)x[i];
-        mesh->vertices[i].y = (float)y[i];
-        mesh->vertices[i].z = z ? (float)z[i] : 0.f;
+        mesh->vertices[i].x = (float)x[i] * scale;
+        mesh->vertices[i].y = (float)y[i] * scale;
+        mesh->vertices[i].z = z ? (float)z[i] * scale : 0.f;
       }
+    }
+    
+    if (scale != 1.0f && verbose) {
+      std::cout << "#hs.silo:   Applied scale factor " << scale 
+                << " to unstructured mesh vertices" << std::endl;
     }
 
     // Read connectivity (zonelist)
@@ -1274,10 +1291,10 @@ namespace hs {
       float *z = pm->ndims >= 3 ? (float*)pm->coords[2] : nullptr;
       
       for (int i = 0; i < npts; i++) {
-        spheres->origins[i].x = x[i];
-        spheres->origins[i].y = y[i];
-        spheres->origins[i].z = z ? z[i] : 0.f;
-        spheres->radii[i] = 0.01f; // Default radius
+        spheres->origins[i].x = x[i] * scale;
+        spheres->origins[i].y = y[i] * scale;
+        spheres->origins[i].z = z ? z[i] * scale : 0.f;
+        spheres->radii[i] = 0.01f * scale; // Scale radius too
       }
     } else if (pm->datatype == DB_DOUBLE) {
       double *x = (double*)pm->coords[0];
@@ -1285,11 +1302,16 @@ namespace hs {
       double *z = pm->ndims >= 3 ? (double*)pm->coords[2] : nullptr;
       
       for (int i = 0; i < npts; i++) {
-        spheres->origins[i].x = (float)x[i];
-        spheres->origins[i].y = (float)y[i];
-        spheres->origins[i].z = z ? (float)z[i] : 0.f;
-        spheres->radii[i] = 0.01f; // Default radius
+        spheres->origins[i].x = (float)x[i] * scale;
+        spheres->origins[i].y = (float)y[i] * scale;
+        spheres->origins[i].z = z ? (float)z[i] * scale : 0.f;
+        spheres->radii[i] = 0.01f * scale; // Scale radius too
       }
+    }
+    
+    if (scale != 1.0f && verbose) {
+      std::cout << "#hs.silo:   Applied scale factor " << scale 
+                << " to point mesh positions" << std::endl;
     }
 
     // Look for associated scalar variables (could be used for coloring)
