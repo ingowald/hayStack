@@ -27,6 +27,9 @@
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
+#if HS_USD
+#include "viewer/content/USD.h"
+#endif
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
 #include "viewer/content/IsoDump.h"
@@ -320,6 +323,10 @@ namespace hs {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
       OBJContent::create(this,contentDescriptor);
+#if HS_USD
+    } else if (endsWith(contentDescriptor,".usda")) {
+      USDContent::create(this,contentDescriptor);
+#endif
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".vmdcyls")) {

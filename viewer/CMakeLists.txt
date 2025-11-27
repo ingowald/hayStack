@@ -22,6 +22,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+add_library(viewer-config INTERFACE)
+
 set(SOURCES
   main.cpp
   DataLoader.h
@@ -53,7 +55,19 @@ set(SOURCES
   content/TAMRContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
-  )  
+)
+
+option(HS_USD "build usd loader" OFF)
+if (HS_USD)
+  list(APPEND SOURCES content/USD.cpp)
+  
+  find_package(OpenGL)
+  find_package(X11)
+  find_package(pxr REQUIRED usd usdGeom tf gf usdShade usdLux)
+  target_compile_definitions(viewer-config INTERFACE -DHS_USD=1)
+  target_link_libraries(viewer-config INTERFACE ${PXR_LIBRARIES})
+
+endif()
 
 set(TFE_SOURCES
   external/imgui/imgui.cpp
@@ -85,6 +99,7 @@ add_executable(hsOffline
 target_link_libraries(hsOffline
   PUBLIC
   hayStack
+  viewer-config
   )
 
 # ------------------------------------------------------------------
@@ -101,6 +116,7 @@ if (HS_CUTEE)
     PUBLIC
     hayStack
     qtOWL
+    viewer-config
     )
   target_compile_definitions(hsViewerQT PUBLIC -DHS_CUTEE=1)
   set_target_properties(hsViewerQT
