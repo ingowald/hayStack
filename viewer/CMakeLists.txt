@@ -66,6 +66,7 @@ if (HS_USD)
   find_package(pxr REQUIRED usd usdGeom tf gf usdShade usdLux)
   target_compile_definitions(viewer-config INTERFACE -DHS_USD=1)
   target_link_libraries(viewer-config INTERFACE ${PXR_LIBRARIES})
+  target_link_libraries(viewer-config INTERFACE ext_tinyexr_impl)
 
 endif()
 

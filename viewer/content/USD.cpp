@@ -48,10 +48,93 @@
 
 #include "viewer/content/USD.h"
 #include "stb/stb_image.h"
-
+#ifndef _WIN32
+#include "tinyexr.h"
+#endif
 
 namespace hs {
-  using namespace pxr;
+
+  struct HDRImage
+  {
+    bool import(std::string fileName);
+
+    unsigned width;
+    unsigned height;
+    unsigned numComponents;
+    std::vector<float> pixel;
+  };
+
+  bool HDRImage::import(std::string fileName)
+  {
+    if (fileName.size() < 4)
+      return false;
+
+    // check the extension
+    std::string extension = std::string(strrchr(fileName.c_str(), '.'));
+    std::transform(extension.data(),
+                   extension.data() + extension.size(),
+                   std::addressof(extension[0]),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    if (extension != ".hdr" && extension != ".exr")
+      return false;
+
+    if (extension == ".hdr") {
+      int w, h, n;
+      stbi_set_flip_vertically_on_load(1);
+      const float *imgData = stbi_loadf(fileName.c_str(), &w, &h, &n, STBI_rgb);
+      stbi_set_flip_vertically_on_load(0); // Restore default top-down orientation
+      width = w;
+      height = h;
+      numComponents = 3; // because of STBI_rgb
+      if (width <= 0 || height <= 0 || n < 3) {
+        stbi_image_free(const_cast<float*>(imgData));
+        printf("import_HDRI] error importing HDR image: %s", fileName.c_str());
+        return false;
+      }
+
+      pixel.resize(w * h * 3);
+      std::memcpy(pixel.data(), imgData, w * h * 3 * sizeof(float));
+      stbi_image_free(const_cast<float*>(imgData));
+      return true;
+    } else {
+#ifdef _WIN32
+#else
+      int w, h;
+      float *imgData;
+      const char *err;
+      int ret = LoadEXR(&imgData, &w, &h, fileName.c_str(), &err);
+      if (ret != 0) {
+        printf("import_HDRI] error importing EXR: %s", err);
+        return false;
+      }
+
+      width = w;
+      height = h;
+      numComponents = 3;
+
+      pixel.resize(w * h * 3);
+      // LoadEXR returns a RGBA image, we want RGB.
+      // Vertical flip the image.
+      for (auto j = 0; j < h; ++j) {
+        for (auto i = 0; i < w; ++i) {
+          auto srcidx = 4 * (j * w + i);
+          auto dstidx = 3 * ((h - j - 1) * w + i);
+          pixel[dstidx + 0] = imgData[srcidx + 0];
+          pixel[dstidx + 1] = imgData[srcidx + 1];
+          pixel[dstidx + 2] = imgData[srcidx + 2];
+        }
+      }
+      free(imgData);
+
+      return true;
+#endif
+    }
+  
+    return false;
+  }
+  
+using namespace pxr;
   
   std::string pathOf(const std::string &filepath);
   
@@ -97,7 +180,6 @@ namespace hs {
     return filepath.substr(pos);
   }
 
-
   Texture::SP doLoadTexture(const std::string &fileName)
   {
     Texture::SP texture;
@@ -137,9 +219,11 @@ namespace hs {
   struct USDScene {
     USDScene(const std::string &fileName)
       : fileName(fileName),
-        basePath(pathOf(fileName))
+        basePath(pathOf(fileName)),
+        miniScene(mini::Scene::create())
     {}
-    
+
+    mini::Scene::SP miniScene;
     const std::string fileName;
     const std::string basePath;
     
@@ -215,9 +299,166 @@ namespace hs {
                              const pxr::UsdPrim &prim,
                              const pxr::GfMatrix4d &usdXform)
   {
-    std::cout << __PRETTY_FUNCTION__ << " not implemented" << std::endl;
-  }
+    pxr::UsdLuxDomeLight usdLight(prim);
+    // auto light = scene.createObject<Light>(tokens::light::hdri);
+    // light->setName(prim.GetName().GetText());
+    float intensity = 1.0f;
+    usdLight.GetIntensityAttr().Get(&intensity);
+    pxr::GfVec3f color(1.0f);
+    usdLight.GetColorAttr().Get(&color);
 
+    // (iw) TODO:
+    // light->setParameter("color", float3(color[0], color[1], color[2]));
+    // light->setParameter("scale", intensity);
+    
+    // Extract direction and up vectors from transformation matrix
+    // ANARI defaults: direction=(1,0,0), up=(0,0,1)
+    // USD dome lights use Z-up by default, matching ANARI
+    auto xfm = pxr::GfMatrix4d(// clang-format off
+                               0.0, 1.0, 0.0, 0.0,
+                               0.0, 0.0, 1.0, 0.0,
+                               1.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 1.0
+                               // clang-format on
+                               );
+    xfm *= usdXform;
+    pxr::GfVec3d dirVec = xfm.TransformDir(pxr::GfVec3d(0, 0, -1));
+    pxr::GfVec3d upVec = xfm.TransformDir(pxr::GfVec3d(0, 1, 0));
+
+    vec3f direction(dirVec[0], dirVec[1], dirVec[2]);
+    vec3f up(upVec[0], upVec[1], upVec[2]);
+
+    mini::EnvMapLight::SP light = mini::EnvMapLight::create();
+    // light->setParameter("direction", direction);
+    // light->setParameter("up", up);
+    light->transform.l.vx = direction;
+    light->transform.l.vy = cross(direction,up);
+    light->transform.l.vz = up;
+    // Load and set environment texture from usdLight.GetTextureFileAttr()
+    pxr::SdfAssetPath textureAsset;
+    std::string texFileName;
+    if (!usdLight.GetTextureFileAttr().Get(&textureAsset)) {
+      std::cout << "no texture asset on hdri light" << std::endl;
+      return;
+    }
+    texFileName = textureAsset.GetResolvedPath();
+    if (texFileName.empty()) {
+      std::cout << "#hs.usd: hdr light texture asset has no path... reverting to getassetpath" << std::endl;
+      texFileName = textureAsset.GetAssetPath();
+    }
+    
+    if (texFileName.empty()) {
+      std::cout << "could not find any hdri texture on hdri light" << std::endl;
+      return;
+    }
+    
+    HDRImage img;
+    std::cout << "#hs.usd: hdri light " << texFileName << std::endl;
+    if (!img.import(texFileName)) {
+      std::cout << "had hdri texture path ('" << texFileName
+                << "') but could not load" << std::endl;
+      return;
+    }
+    std::vector<vec3f> rgb(img.width * img.height);
+    if (img.numComponents == 3) {
+      memcpy(rgb.data(), img.pixel.data(), sizeof(rgb[0]) * rgb.size());
+    } else if (img.numComponents == 4) {
+      for (size_t i = 0; i < img.pixel.size(); i += 4) {
+        rgb[i / 4] =
+          vec3f(img.pixel[i], img.pixel[i + 1], img.pixel[i + 2]);
+      }
+    }
+    
+    // Handle color temperature if present
+    float colorTemp = 0.0f;
+    if (usdLight.GetColorTemperatureAttr().Get(&colorTemp)
+        && colorTemp > 0.0f) {
+      // Convert color temperature to RGB multiplier
+      // Using approximation from Planckian locus
+      auto kelvinToRGB = [](float kelvin) -> vec3f {
+        // https://tannerhelland.com/2012/09/18/convert-temperature-rgb-algorithm-code.html
+        float temp = kelvin / 100.0f;
+        float red, green, blue;
+        
+        // Calculate red
+        if (temp <= 66.0f) {
+          red = 1.0f;
+        } else {
+          red = temp - 60.0f;
+          red = 329.698727446f * std::pow(red, -0.1332047592f);
+          red = std::clamp(red / 255.0f, 0.0f, 1.0f);
+        }
+        
+        // Calculate green
+        if (temp <= 66.0f) {
+          green = temp;
+          green = 99.4708025861f * std::log(green) - 161.1195681661f;
+          green = std::clamp(green / 255.0f, 0.0f, 1.0f);
+        } else {
+          green = temp - 60.0f;
+          green = 288.1221695283f * std::pow(green, -0.0755148492f);
+          green = std::clamp(green / 255.0f, 0.0f, 1.0f);
+        }
+        
+        // Calculate blue
+        if (temp >= 66.0f) {
+          blue = 1.0f;
+        } else if (temp <= 19.0f) {
+          blue = 0.0f;
+        } else {
+          blue = temp - 10.0f;
+          blue = 138.5177312231f * std::log(blue) - 305.0447927307f;
+          blue = std::clamp(blue / 255.0f, 0.0f, 1.0f);
+        }
+        
+        return vec3f(red, green, blue);
+      };
+      
+      vec3f tempColor = kelvinToRGB(colorTemp);
+      for (auto &color : rgb) {
+        color *= vec3f(tempColor.x, tempColor.y, tempColor.z);
+      }
+      printf("[import_USD] Applied dome light color temperature: %f K (%f %f %f)\n",
+             colorTemp,
+             tempColor.x,
+             tempColor.y,
+             tempColor.z);
+    }
+    
+    // Apply exposure adjustment if present
+    float exposure = 0.0f;
+    if (usdLight.GetExposureAttr().Get(&exposure)) {
+      // Convert exposure to linear scale: multiplier = 2^exposure
+      float exposureScale = std::pow(2.0f, exposure);
+      for (auto &color : rgb) {
+        color *= exposureScale;
+      }
+      printf("[import_USD] Applied dome light exposure: %f (scale: %f)\n",
+             exposure,
+             exposureScale);
+    }
+    
+    mini::Texture::SP tex = mini::Texture::create();
+    tex->format = mini::Texture::FLOAT4;
+    tex->size = { (int)img.width, (int)img.height };
+    tex->data.resize(img.width*img.height*sizeof(vec4f));
+    float *in = (float*)rgb.data();
+    float *out = (float*)tex->data.data();
+    for (int i=0;i<img.width*img.height;i++) {
+      *out++ = *in++;
+      *out++ = *in++;
+      *out++ = *in++;
+      *out++ = 0.f;
+    }
+    // radiance =
+    //     scene.createArray(ANARI_FLOAT32_VEC3, img.width, img.height);
+    //   radiance->setData(rgb.data());
+    // }
+    light->texture = tex;
+    scene.miniScene->envMapLight = light;
+    std::cout << "#hs.usd: done loading HDR light" << std::endl;
+  }
+  
   void import_usd_volume(USDScene &scene,
                          const pxr::UsdPrim &prim,
                          const pxr::GfMatrix4d &usdXform)
@@ -983,14 +1224,16 @@ namespace hs {
     }
   }
 
-  void   USDContent::executeLoad(DataRank &dataGroup, bool verbose)
+
+
+  mini::Scene::SP loadUSD(const std::string &fileName)
   {
     USDScene scene(fileName);
     pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(scene.fileName.c_str());
     createMaterials(scene,fileName);
     if (!stage) {
       printf("[import_USD] failed to open stage '%s'", fileName.c_str());
-      return;
+      return {};
     }
     printf("[import_USD] Opened USD stage: %s\n", fileName.c_str());
     auto defaultPrim = stage->GetDefaultPrim();
@@ -1019,10 +1262,15 @@ namespace hs {
     }
 
     mini::Object::SP miniObj = mini::Object::create(scene.meshes);
-    mini::Scene::SP miniScene = mini::Scene::create({mini::Instance::create(miniObj)});
-
-
-    dataGroup.minis.push_back(miniScene);
+    scene.miniScene->instances = {mini::Instance::create(miniObj)};
+    return scene.miniScene;
+  }
+  
+  void   USDContent::executeLoad(DataRank &dataGroup, bool verbose)
+  {
+    mini::Scene::SP scene = loadUSD(fileName);
+    if (scene)
+      dataGroup.minis.push_back(scene);
   }
 
 } // namespace tsd::io

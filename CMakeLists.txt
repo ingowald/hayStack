@@ -78,6 +78,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 add_subdirectory(hayStack)
+add_subdirectory(3rdParty/tsd_tinyexr      EXCLUDE_FROM_ALL)
 add_subdirectory(viewer)
 add_subdirectory(tools)
 
