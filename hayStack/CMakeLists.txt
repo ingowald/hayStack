@@ -66,7 +66,7 @@ target_include_directories(hayStack PUBLIC
 if (HS_MPI)
   find_package(MPI REQUIRED)
   target_compile_definitions(hayStack PUBLIC -DHS_MPI=1)
-  target_link_libraries(hayStack PUBLIC MPI::MPI_C)
+  target_link_libraries(hayStack PUBLIC MPI::MPI_C MPI::MPI_CXX)
 else()
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
