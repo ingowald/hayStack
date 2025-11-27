@@ -55,6 +55,8 @@ set(SOURCES
   content/TAMRContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
+  content/SiloContent.h
+  content/SiloContent.cpp
 )
 
 option(HS_USD "build usd loader" OFF)
@@ -101,6 +103,7 @@ target_link_libraries(hsOffline
   PUBLIC
   hayStack
   viewer-config
+  ${SILO_LIBRARY}
   )
 
 # ------------------------------------------------------------------
@@ -118,6 +121,7 @@ if (HS_CUTEE)
     hayStack
     qtOWL
     viewer-config
+    ${SILO_LIBRARY}
     )
   target_compile_definitions(hsViewerQT PUBLIC -DHS_CUTEE=1)
   set_target_properties(hsViewerQT

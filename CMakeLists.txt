@@ -52,6 +52,21 @@ enable_language(CUDA)
 endif()
 
 # ------------------------------------------------------------------
+# Silo library for reading Silo files
+# ------------------------------------------------------------------
+find_library(SILO_LIBRARY NAMES siloh5 silo PATHS /usr/lib /usr/local/lib)
+find_path(SILO_INCLUDE_DIR NAMES silo.h PATHS /usr/include /usr/local/include)
+
+if(SILO_LIBRARY AND SILO_INCLUDE_DIR)
+  message(STATUS "Found Silo: ${SILO_LIBRARY}")
+  set(SILO_FOUND TRUE)
+  include_directories(${SILO_INCLUDE_DIR})
+else()
+  message(WARNING "Silo library not found. SiloContent will not be available.")
+  set(SILO_FOUND FALSE)
+endif()
+
+# ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
 if (NOT (TARGET miniScene))
