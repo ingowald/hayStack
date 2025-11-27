@@ -87,6 +87,7 @@ namespace hs {
       std::pair<anari::Material,std::string>create(mini::MetallicPaint::SP metallicPaint);
       std::pair<anari::Material,std::string>create(mini::DisneyMaterial::SP disney);
       std::pair<anari::Material,std::string>create(mini::Material::SP miniMat);
+      std::pair<anari::Material,std::string>create(mini::ANARIMaterial::SP disney);
       
       anari::Volume create(const TAMRVolume::SP &v);
       anari::Volume create(const StructuredVolume::SP &v);

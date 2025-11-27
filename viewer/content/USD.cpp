@@ -100,7 +100,6 @@ namespace hs {
 
   Texture::SP doLoadTexture(const std::string &fileName)
   {
-    std::cout << "LOADING TEXTURE " << fileName << std::endl;
     Texture::SP texture;
     vec2i res;
     int   comp;
@@ -126,6 +125,9 @@ namespace hs {
          mirrored along the y axis - mirror them here */
       free(image);
       // STBI_FREE(image);
+      std::cout << "#hs.USD: successfully loaded texture " << fileName << std::endl;
+    } else {
+      std::cout << "#hs.USD(!!!): could not load texture " << fileName << std::endl;
     }
 
     return texture;
@@ -150,6 +152,13 @@ namespace hs {
         return textures[name];
 
       std::string fileName = name;//basePath + name;
+      if (!fileName.empty() && fileName[0] != '/')
+        fileName = basePath+name;
+      // std::string resolvedPath = metallicTexPath;
+      // if (!resolvedPath.empty() && resolvedPath[0] != '/') {
+      //   resolvedPath = basePath + metallicTexPath;
+      // }
+      
       Texture::SP tex = doLoadTexture(fileName);
       textures[name] = tex;
       return tex;
@@ -186,104 +195,104 @@ namespace hs {
 
 
 
-  // Template helpers for setting material parameters from USD shader inputs
-  static void setShaderInputIfPresent(mini::DisneyMaterial::SP mat,
-                                      pxr::UsdShadeShader &shader,
-                                      const char *inputName,
-                                      const char *paramName)
-  {
-    pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
-    pxr::GfVec3f colorVal;
-    if (input && input.Get(&colorVal)) {
-      printf("[import_USD] Setting %s: %f %f %f\n",
-                paramName,
-                colorVal[0],
-                colorVal[1],
-                colorVal[2]);
-      // mat->setParameter(tsd::core::Token(paramName),
-      //                   tsd::math::float3(colorVal[0], colorVal[1], colorVal[2]));
-    }
-  }
+  // // Template helpers for setting material parameters from USD shader inputs
+  // static void setShaderInputIfPresent(mini::DisneyMaterial::SP mat,
+  //                                     pxr::UsdShadeShader &shader,
+  //                                     const char *inputName,
+  //                                     const char *paramName)
+  // {
+  //   pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
+  //   pxr::GfVec3f colorVal;
+  //   if (input && input.Get(&colorVal)) {
+  //     printf("[import_USD] Setting %s: %f %f %f\n",
+  //            paramName,
+  //            colorVal[0],
+  //            colorVal[1],
+  //            colorVal[2]);
+  //     // mat->setParameter(tsd::core::Token(paramName),
+  //     //                   tsd::math::float3(colorVal[0], colorVal[1], colorVal[2]));
+  //   }
+  // }
 
-  static void setShaderInputIfPresent(mini::DisneyMaterial::SP mat,
-                                      pxr::UsdShadeShader &shader,
-                                      const char *inputName,
-                                      const char *paramName,
-                                      float)
-  {
-    pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
-    float floatVal;
-    if (input && input.Get(&floatVal)) {
-      printf("[import_USD] Setting %s: %f\n", paramName, floatVal);
-      // mat->setParameter(tsd::core::Token(paramName), floatVal);
-    }
-  }
+  // static void setShaderInputIfPresent(mini::DisneyMaterial::SP mat,
+  //                                     pxr::UsdShadeShader &shader,
+  //                                     const char *inputName,
+  //                                     const char *paramName,
+  //                                     float)
+  // {
+  //   pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
+  //   float floatVal;
+  //   if (input && input.Get(&floatVal)) {
+  //     printf("[import_USD] Setting %s: %f\n", paramName, floatVal);
+  //     // mat->setParameter(tsd::core::Token(paramName), floatVal);
+  //   }
+  // }
 
   
 
 
 
-  mini::Material::SP
-  import_usd_preview_surface_material(USDScene &scene,
-                                      const pxr::UsdShadeMaterial &usdMat)
-  {
-    // Find the UsdPreviewSurface shader
-    pxr::UsdShadeShader surfaceShader;
-    pxr::TfToken outputName("surface");
-    pxr::UsdShadeOutput surfaceOutput = usdMat.GetOutput(outputName);
+  //   mini::Material::SP
+  //   import_usd_preview_surface_material(USDScene &scene,
+  //                                       const pxr::UsdShadeMaterial &usdMat)
+  //   {
+  //     // Find the UsdPreviewSurface shader
+  //     pxr::UsdShadeShader surfaceShader;
+  //     pxr::TfToken outputName("surface");
+  //     pxr::UsdShadeOutput surfaceOutput = usdMat.GetOutput(outputName);
 
-    PING;
-    if (surfaceOutput && surfaceOutput.HasConnectedSource()) {
-      printf("[import_USD] Surface output has connected source\n");
-      pxr::UsdShadeConnectableAPI source;
-      pxr::TfToken sourceName;
-      pxr::UsdShadeAttributeType sourceType;
-      surfaceOutput.GetConnectedSource(&source, &sourceName, &sourceType);
-#if 1
-      surfaceShader = pxr::UsdShadeShader(source);
-      pxr::TfToken subIdentifier;
-      surfaceShader.GetSourceAssetSubIdentifier(&subIdentifier, pxr::TfToken("mdl"));
-      if (subIdentifier == pxr::TfToken("OmniPBR")) {
-        // mat = materials::importOmniPBRMaterial(
-        //                                        scene, usdMaterial, shader, basePath, textureCache);
-        PING;
-        // break;
-      } else {
-        printf("Don't know how to process %s\n", subIdentifier.GetText());
-      }
-#else
-      surfaceShader = pxr::UsdShadeShader(source.GetPrim());
-#endif
-    }
+  //     PING;
+  //     if (surfaceOutput && surfaceOutput.HasConnectedSource()) {
+  //       printf("[import_USD] Surface output has connected source\n");
+  //       pxr::UsdShadeConnectableAPI source;
+  //       pxr::TfToken sourceName;
+  //       pxr::UsdShadeAttributeType sourceType;
+  //       surfaceOutput.GetConnectedSource(&source, &sourceName, &sourceType);
+  // #if 1
+  //       surfaceShader = pxr::UsdShadeShader(source);
+  //       pxr::TfToken subIdentifier;
+  //       surfaceShader.GetSourceAssetSubIdentifier(&subIdentifier, pxr::TfToken("mdl"));
+  //       if (subIdentifier == pxr::TfToken("OmniPBR")) {
+  //         // mat = materials::importOmniPBRMaterial(
+  //         //                                        scene, usdMaterial, shader, basePath, textureCache);
+  //         PING;
+  //         // break;
+  //       } else {
+  //         printf("Don't know how to process %s\n", subIdentifier.GetText());
+  //       }
+  // #else
+  //       surfaceShader = pxr::UsdShadeShader(source.GetPrim());
+  // #endif
+  //     }
  
-    PING;
-    if (!surfaceShader)
-      return mini::DisneyMaterial::create();//scene.defaultMaterial();
+  //     PING;
+  //     if (!surfaceShader)
+  //       return mini::DisneyMaterial::create();//scene.defaultMaterial();
 
-    PING;
-    auto mat = mini::DisneyMaterial::create();
-    // auto mat = scene.createObject<Material>(tokens::material::physicallyBased);
+  //     PING;
+  //     auto mat = mini::DisneyMaterial::create();
+  //     // auto mat = scene.createObject<Material>(tokens::material::physicallyBased);
 
-    PING;
-    setShaderInputIfPresent(mat, surfaceShader, "diffuseColor", "baseColor");
-    setShaderInputIfPresent(mat, surfaceShader, "emissiveColor", "emissive");
-    setShaderInputIfPresent(mat, surfaceShader, "metallic", "metallic", 0.0f);
-    setShaderInputIfPresent(mat, surfaceShader, "roughness", "roughness", 0.0f);
-    setShaderInputIfPresent(mat, surfaceShader, "clearcoat", "clearcoat", 0.0f);
-    setShaderInputIfPresent(mat, surfaceShader, "clearcoatRoughness", "clearcoatRoughness", 0.0f);
-    setShaderInputIfPresent(mat, surfaceShader, "opacity", "opacity", 0.0f);
-    setShaderInputIfPresent(mat, surfaceShader, "ior", "ior", 0.0f);
+  //     PING;
+  //     setShaderInputIfPresent(mat, surfaceShader, "diffuseColor", "baseColor");
+  //     setShaderInputIfPresent(mat, surfaceShader, "emissiveColor", "emissive");
+  //     setShaderInputIfPresent(mat, surfaceShader, "metallic", "metallic", 0.0f);
+  //     setShaderInputIfPresent(mat, surfaceShader, "roughness", "roughness", 0.0f);
+  //     setShaderInputIfPresent(mat, surfaceShader, "clearcoat", "clearcoat", 0.0f);
+  //     setShaderInputIfPresent(mat, surfaceShader, "clearcoatRoughness", "clearcoatRoughness", 0.0f);
+  //     setShaderInputIfPresent(mat, surfaceShader, "opacity", "opacity", 0.0f);
+  //     setShaderInputIfPresent(mat, surfaceShader, "ior", "ior", 0.0f);
 
-    PING;
-    // Set name
-    std::string matName = usdMat.GetPrim().GetPath().GetString();
-    if (matName.empty())
-      matName = "USDPreviewSurface";
-    // mat->setName(matName.c_str());
-    printf("[import_USD] Created material: %s\n", matName.c_str());
+  //     PING;
+  //     // Set name
+  //     std::string matName = usdMat.GetPrim().GetPath().GetString();
+  //     if (matName.empty())
+  //       matName = "USDPreviewSurface";
+  //     // mat->setName(matName.c_str());
+  //     printf("[import_USD] Created material: %s\n", matName.c_str());
 
-    return mat;
-  }
+  //     return mat;
+  //   }
   
 
 
@@ -320,16 +329,16 @@ namespace hs {
     return m == IDENTITY;
   }
 
- void import_usd_dome_light(USDScene &scene,
-                                    const pxr::UsdPrim &prim,
-                                    const pxr::GfMatrix4d &usdXform)
+  void import_usd_dome_light(USDScene &scene,
+                             const pxr::UsdPrim &prim,
+                             const pxr::GfMatrix4d &usdXform)
   {
     std::cout << __PRETTY_FUNCTION__ << " not implemented" << std::endl;
   }
 
   void import_usd_volume(USDScene &scene,
-                                const pxr::UsdPrim &prim,
-                                const pxr::GfMatrix4d &usdXform)
+                         const pxr::UsdPrim &prim,
+                         const pxr::GfMatrix4d &usdXform)
   {
     std::cout << __PRETTY_FUNCTION__ << " not implemented" << std::endl;
   }
@@ -378,10 +387,305 @@ namespace hs {
     std::cout << __PRETTY_FUNCTION__ << " not implemented" << std::endl;
   }
 
+
+  static std::vector<uint32_t> generate_triangle_indices(
+                                                         const pxr::VtArray<int> &faceVertexIndices,
+                                                         const pxr::VtArray<int> &faceVertexCounts)
+  {
+    std::vector<uint32_t> triangleIndices;
+    size_t faceVertexOffset = 0;
+
+    for (size_t face = 0; face < faceVertexCounts.size(); ++face) {
+      int vertsInFace = faceVertexCounts[face];
+
+      // Tessellate polygon as triangle fan: (0,1,2), (0,2,3), (0,3,4), ...
+      for (int v = 2; v < vertsInFace; ++v) {
+        triangleIndices.push_back(faceVertexIndices[faceVertexOffset + 0]);
+        triangleIndices.push_back(faceVertexIndices[faceVertexOffset + v - 1]);
+        triangleIndices.push_back(faceVertexIndices[faceVertexOffset + v]);
+      }
+
+      faceVertexOffset += vertsInFace;
+    }
+
+    return triangleIndices;
+  }
+
+// Helper: Tessellate faceVarying data from polygons to triangles
+// FaceVarying data has one value per face-vertex (corner)
+// Returns tessellated data matching the triangle fan pattern
+template <typename T>
+static std::vector<T> tessellate_facevarying_data(
+    const pxr::VtArray<T> &faceVaryingData,
+    const pxr::VtArray<int> &faceVertexCounts)
+{
+  std::vector<T> triangleData;
+  size_t faceVertexOffset = 0;
+
+  for (size_t face = 0; face < faceVertexCounts.size(); ++face) {
+    int vertsInFace = faceVertexCounts[face];
+
+    // Tessellate as triangle fan: (0,1,2), (0,2,3), (0,3,4), ...
+    for (int v = 2; v < vertsInFace; ++v) {
+      triangleData.push_back(faceVaryingData[faceVertexOffset + 0]);
+      triangleData.push_back(faceVaryingData[faceVertexOffset + v - 1]);
+      triangleData.push_back(faceVaryingData[faceVertexOffset + v]);
+    }
+
+    faceVertexOffset += vertsInFace;
+  }
+
+  return triangleData;
+}
+
+// Helper: Tessellate uniform (per-face) data to per-triangle
+// Uniform data has one value per face
+// Returns replicated data with one value per generated triangle
+template <typename T>
+static std::vector<T> tessellate_uniform_data(
+    const pxr::VtArray<T> &uniformData,
+    const pxr::VtArray<int> &faceVertexCounts)
+{
+  std::vector<T> triangleData;
+
+  for (size_t face = 0; face < faceVertexCounts.size(); ++face) {
+    int vertsInFace = faceVertexCounts[face];
+    int numTriangles = vertsInFace - 2;
+
+    // Each triangle from this face gets the same uniform value
+    for (int t = 0; t < numTriangles; ++t) {
+      triangleData.push_back(uniformData[face]);
+    }
+  }
+
+  return triangleData;
+}
+  
   void import_usd_mesh(USDScene &scene,
                        const pxr::UsdPrim &prim,
                        const pxr::GfMatrix4d &usdXform)
   {
+#if 1
+    pxr::UsdGeomMesh mesh(prim);
+    
+    // Get vertex positions
+    pxr::VtArray<pxr::GfVec3f> points;
+    mesh.GetPointsAttr().Get(&points);
+    
+    // Get face topology
+    pxr::VtArray<int> faceVertexIndices;
+    mesh.GetFaceVertexIndicesAttr().Get(&faceVertexIndices);
+    pxr::VtArray<int> faceVertexCounts;
+    mesh.GetFaceVertexCountsAttr().Get(&faceVertexCounts);
+    
+    // Get normals and their interpolation
+    pxr::VtArray<pxr::GfVec3f> normals;
+    pxr::TfToken normalsInterpolation = pxr::UsdGeomTokens->vertex; // Default
+    mesh.GetNormalsAttr().Get(&normals);
+    if (!normals.empty()) {
+      normalsInterpolation = mesh.GetNormalsInterpolation();
+    }
+
+    // Get UVs and their interpolation
+    pxr::VtArray<pxr::GfVec2f> uvs;
+    pxr::TfToken uvsInterpolation = pxr::UsdGeomTokens->vertex; // Default
+    // USD stores UVs as primvars, typically "st" or "UVMap"
+    pxr::UsdGeomPrimvarsAPI primvarsAPI(mesh);
+    pxr::UsdGeomPrimvar stPrimvar = primvarsAPI.GetPrimvar(pxr::TfToken("st"));
+    if (!stPrimvar) {
+      stPrimvar = primvarsAPI.GetPrimvar(pxr::TfToken("UVMap"));
+    }
+    if (stPrimvar) {
+      // USD primvars can be indexed - need to use ComputeFlattened to expand
+      // indices
+      stPrimvar.ComputeFlattened(&uvs);
+      if (!uvs.empty()) {
+        uvsInterpolation = stPrimvar.GetInterpolation();
+      }
+    }
+
+    std::string primName = prim.GetPath().GetString();
+    if (primName.empty())
+      primName = "<unnamed_mesh>";
+
+    printf("[import_USD] Mesh '%s': %zu points, %zu faces, %zu normals (interpolation: %s), %zu UVs (interpolation: %s)\n",
+              prim.GetName().GetString().c_str(),
+              points.size(),
+              faceVertexCounts.size(),
+              normals.size(),
+              normalsInterpolation.GetText(),
+              uvs.size(),
+              uvsInterpolation.GetText());
+
+    // Convert vertex positions to float3
+    std::vector<vec3f> positions;
+    positions.reserve(points.size());
+    for (const auto &p : points) {
+      positions.push_back(vec3f(p[0], p[1], p[2]));
+    }
+    
+    // Generate triangle indices from polygon faces
+    std::vector<uint32_t> indices =
+      generate_triangle_indices(faceVertexIndices, faceVertexCounts);
+
+    printf("[import_USD] Mesh '%s': Generated %zu triangle indices (%zu triangles)\n",
+           prim.GetName().GetString().c_str(),
+           indices.size(),
+           indices.size() / 3);
+    
+    // Create ANARI indexed triangle geometry
+    // auto meshObj = scene.createObject<Geometry>(tokens::geometry::triangle);
+    mini::Mesh::SP meshObj = mini::Mesh::create();
+    
+    // Set vertex positions
+    // auto vertexPositionArray =
+    //   scene.createArray(ANARI_FLOAT32_VEC3, positions.size());
+    // vertexPositionArray->setData(positions.data(), positions.size());
+    // meshObj->setParameterObject("vertex.position", *vertexPositionArray);
+    meshObj->vertices = positions;
+    
+    // Set triangle indices
+    // auto indexArray = scene.createArray(ANARI_UINT32_VEC3, indices.size() / 3);
+    // indexArray->setData((uint3 *)indices.data(), indices.size() / 3);
+    // meshObj->setParameterObject("primitive.index", *indexArray);
+    meshObj->indices = std::vector<vec3i>(indices.size()/3);
+    std::copy(indices.begin(),indices.end(),(int*)meshObj->indices.data());
+
+    // Handle normals based on USD interpolation
+    if (!normals.empty()) {
+      if (normalsInterpolation == pxr::UsdGeomTokens->vertex) {
+        // Vertex interpolation: normals are per-vertex, shared by all triangles
+        // No tessellation needed - just convert to float3
+        std::vector<vec3f> normalData;
+        normalData.reserve(normals.size());
+        for (const auto &n : normals) {
+          normalData.push_back(vec3f(n[0], n[1], n[2]));
+        }
+
+        // auto normalsArray =
+        //   scene.createArray(ANARI_FLOAT32_VEC3, normalData.size());
+        // normalsArray->setData(normalData.data(), normalData.size());
+        // meshObj->setParameterObject("vertex.normal", *normalsArray);
+        meshObj->normals = normalData;
+
+        printf("[import_USD] Mesh '%s': Set %zu normals on vertex.normal\n",
+               prim.GetName().GetString().c_str(),
+               normalData.size());
+      
+      } else if (normalsInterpolation == pxr::UsdGeomTokens->faceVarying) {
+        // FaceVarying interpolation: normals are per face-vertex (corner)
+        // Need to tessellate from polygon corners to triangle corners
+        auto tessellatedNormals =
+          tessellate_facevarying_data(normals, faceVertexCounts);
+
+        std::vector<vec3f> normalData;
+        normalData.reserve(tessellatedNormals.size());
+        for (const auto &n : tessellatedNormals) {
+          normalData.push_back(vec3f(n[0], n[1], n[2]));
+        }
+
+        // auto normalsArray =
+        //   scene.createArray(ANARI_VEC3F2_VEC3, normalData.size());
+        // normalsArray->setData(normalData.data(), normalData.size());
+        // meshObj->setParameterObject("faceVarying.normal", *normalsArray);
+        meshObj->normals = normalData;
+        printf("[import_USD] Mesh '%s': Set %zu normals on faceVarying.normal\n",
+               prim.GetName().GetString().c_str(),
+               normalData.size());
+        
+      } else if (normalsInterpolation == pxr::UsdGeomTokens->uniform) {
+        // Uniform interpolation: one normal per face
+        // Need to replicate for each triangle generated from that face
+        auto tessellatedNormals =
+          tessellate_uniform_data(normals, faceVertexCounts);
+        
+        std::vector<vec3f> normalData;
+        normalData.reserve(tessellatedNormals.size());
+        for (const auto &n : tessellatedNormals) {
+          normalData.push_back(vec3f(n[0], n[1], n[2]));
+        }
+        
+        // auto normalsArray =
+        //   scene.createArray(ANARI_FLOAT32_VEC3, normalData.size());
+        // normalsArray->setData(normalData.data(), normalData.size());
+        // meshObj->setParameterObject("primitive.normal", *normalsArray);
+        meshObj->normals = normalData;
+        
+        printf("[import_USD] Mesh '%s': Set %zu normals on primitive.normal\n",
+               prim.GetName().GetString().c_str(),
+               normalData.size());
+      }
+    }
+    
+    // Handle UVs based on USD interpolation
+    if (!uvs.empty()) {
+      if (uvsInterpolation == pxr::UsdGeomTokens->vertex) {
+        // Vertex interpolation: UVs are per-vertex, shared by all triangles
+        // No tessellation needed - just convert to float2
+        std::vector<vec2f> uvData;
+        uvData.reserve(uvs.size());
+        for (const auto &uv : uvs) {
+          // USD is bottom-up, ANARI is top-down
+          uvData.push_back(vec2f(uv[0], //1.0f -
+                                 uv[1]));
+        }
+        
+        // auto uvsArray = scene.createArray(ANARI_FLOAT32_VEC2, uvData.size());
+        // uvsArray->setData(uvData.data(), uvData.size());
+        // meshObj->setParameterObject("vertex.attribute0", *uvsArray);
+        meshObj->texcoords = uvData;
+        
+        printf("[import_USD] Mesh '%s': Set %zu UVs on vertex.attribute0\n",
+               prim.GetName().GetString().c_str(),
+               uvData.size());
+      
+      } else if (uvsInterpolation == pxr::UsdGeomTokens->faceVarying) {
+        // FaceVarying interpolation: UVs are per face-vertex (corner)
+        // Need to tessellate from polygon corners to triangle corners
+        auto tessellatedUVs = tessellate_facevarying_data(uvs, faceVertexCounts);
+        
+        std::vector<vec2f> uvData;
+        uvData.reserve(tessellatedUVs.size());
+        for (const auto &uv : tessellatedUVs) {
+          // USD is bottom-up, ANARI is top-down
+          uvData.push_back(vec2f(uv[0], //1.0f -
+                                 uv[1]));
+        }
+
+        // auto uvsArray = scene.createArray(ANARI_FLOAT32_VEC2, uvData.size());
+        // uvsArray->setData(uvData.data(), uvData.size());
+        // meshObj->setParameterObject("faceVarying.attribute0", *uvsArray);
+        meshObj->texcoords = uvData;
+
+        printf("[import_USD] Mesh '%s': Set %zu UVs on faceVarying.attribute0\n",
+               prim.GetName().GetString().c_str(),
+               uvData.size());
+
+      } else if (uvsInterpolation == pxr::UsdGeomTokens->uniform) {
+        // Uniform interpolation: one UV per face
+        // Need to replicate for each triangle generated from that face
+        auto tessellatedUVs = tessellate_uniform_data(uvs, faceVertexCounts);
+
+        std::vector<vec2f> uvData;
+        uvData.reserve(tessellatedUVs.size());
+        for (const auto &uv : tessellatedUVs) {
+          // USD is bottom-up, ANARI is top-down
+          uvData.push_back(vec2f(uv[0], //1.0f -
+                                 uv[1]));
+        }
+
+        // auto uvsArray = scene.createArray(ANARI_FLOAT32_VEC2, uvData.size());
+        // uvsArray->setData(uvData.data(), uvData.size());
+        // meshObj->setParameterObject("primitive.attribute0", *uvsArray);
+        meshObj->texcoords = uvData;
+
+        printf("[import_USD] Mesh '%s': Set %zu UVs on primitive.attribute0\n",
+               prim.GetName().GetString().c_str(),
+               uvData.size());
+      }
+    }
+
+#else    
     pxr::UsdGeomMesh mesh(prim);
     pxr::VtArray<pxr::GfVec3f> points;
     mesh.GetPointsAttr().Get(&points);
@@ -465,12 +769,13 @@ namespace hs {
         outVertices.push_back(vec3f(points[idx1][0], points[idx1][1], points[idx1][2]));
         outVertices.push_back(vec3f(points[idx2][0], points[idx2][1], points[idx2][2]));
 
-        // Normals
-        if (normals.size() == points.size()) {
-          outNormals.push_back(vec3f(normals[idx0][0], normals[idx0][1], normals[idx0][2]));
-          outNormals.push_back(vec3f(normals[idx1][0], normals[idx1][1], normals[idx1][2]));
-          outNormals.push_back(vec3f(normals[idx2][0], normals[idx2][1], normals[idx2][2]));
-        }
+        // // Normals
+        // if (normals.size() == points.size()) {
+        //   outNormals.push_back(vec3f(normals[idx0][0], normals[idx0][1], normals[idx0][2]));
+        //   outNormals.push_back(vec3f(normals[idx1][0], normals[idx1][1], normals[idx1][2]));
+        //   outNormals.push_back(vec3f(normals[idx2][0], normals[idx2][1], normals[idx2][2]));
+        // }
+        //   } else if (uvInterpolation == pxr::UsdGeomTokens->faceVarying) {
 
         // UVs - handle different interpolation modes
         if (hasUVs && !uvs.empty()) {
@@ -568,10 +873,10 @@ namespace hs {
     if (primName.empty())
       primName = "<unnamed_mesh>";
     // meshObj->setName(primName.c_str());
-
+#endif
     // Material binding
     meshObj->material = get_bound_material(scene,prim);
-      // MaterialRef mat = get_bound_material(scene, prim, basePath);
+    // MaterialRef mat = get_bound_material(scene, prim, basePath);
     // auto surface = scene.createSurface(primName.c_str(), meshObj, mat);
     // printf("[import_USD] Assigned material to mesh '%s': %s\n",
     //        primName.c_str(),
@@ -753,141 +1058,125 @@ namespace hs {
   }
 
 
-bool getShaderBoolInput(const pxr::UsdShadeShader &shader,
-    const char *inputName,
-    bool &outValue)
-{
-  pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
-  if (!input) {
+  bool getShaderBoolInput(const pxr::UsdShadeShader &shader,
+                          const char *inputName,
+                          bool &outValue)
+  {
+    pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
+    if (!input) {
+      return false;
+    }
+
+    // Check if there's a connected source
+    if (input.HasConnectedSource()) {
+      pxr::UsdShadeConnectableAPI source;
+      pxr::TfToken sourceName;
+      pxr::UsdShadeAttributeType sourceType;
+      if (input.GetConnectedSource(&source, &sourceName, &sourceType)) {
+        // Check if this is a connection to a material interface input
+        pxr::UsdPrim sourcePrim = source.GetPrim();
+        if (sourcePrim.IsA<pxr::UsdShadeMaterial>()) {
+          // This is a material interface connection - get the value from the material's input
+          pxr::UsdShadeMaterial mat(sourcePrim);
+          pxr::UsdShadeInput matInput = mat.GetInput(sourceName);
+          if (matInput && matInput.Get(&outValue)) {
+            return true;
+          }
+        } else {
+          // This is a connection to another shader's output
+          pxr::UsdShadeShader sourceShader(sourcePrim);
+          if (sourceShader) {
+            pxr::UsdShadeOutput output = sourceShader.GetOutput(sourceName);
+            if (output) {
+              pxr::UsdAttribute attr = output.GetAttr();
+              if (attr && attr.Get(&outValue)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Fall back to direct value
+    if (input.Get(&outValue)) {
+      return true;
+    }
     return false;
   }
 
-  // Check if there's a connected source
-  if (input.HasConnectedSource()) {
-    pxr::UsdShadeConnectableAPI source;
-    pxr::TfToken sourceName;
-    pxr::UsdShadeAttributeType sourceType;
-    if (input.GetConnectedSource(&source, &sourceName, &sourceType)) {
+  bool getShaderColorInput(const pxr::UsdShadeShader &shader,
+                           const char *inputName,
+                           pxr::GfVec3f &outValue)
+  {
+    pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
+    if (!input) {
+      return false;
+    }
+
+    // Check if there's a connected source
+    if (input.HasConnectedSource()) {
+      pxr::UsdShadeConnectableAPI source;
+      pxr::TfToken sourceName;
+      pxr::UsdShadeAttributeType sourceType;
+      if (input.GetConnectedSource(&source, &sourceName, &sourceType)) {
+        // Check if this is a connection to a material interface input
+        pxr::UsdPrim sourcePrim = source.GetPrim();
+        if (sourcePrim.IsA<pxr::UsdShadeMaterial>()) {
+          // This is a material interface connection - get the value from the material's input
+          pxr::UsdShadeMaterial mat(sourcePrim);
+          pxr::UsdShadeInput matInput = mat.GetInput(sourceName);
+          if (matInput && matInput.Get(&outValue)) {
+            return true;
+          }
+        } else {
+          // This is a connection to another shader's output
+          pxr::UsdShadeShader sourceShader(sourcePrim);
+          if (sourceShader) {
+            pxr::UsdShadeOutput output = sourceShader.GetOutput(sourceName);
+            if (output) {
+              pxr::UsdAttribute attr = output.GetAttr();
+              if (attr && attr.Get(&outValue)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Fall back to direct value
+    if (input.Get(&outValue)) {
+      return true;
+    }
+    return false;
+  }
+
+  bool getShaderTextureInput(const pxr::UsdShadeShader &shader,
+                             const char *inputName,
+                             std::string &outFilePath)
+  {
+    pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
+    if (!input) {
+      return false;
+    }
+
+    // Check if there's a connected texture reader
+    if (input.HasConnectedSource()) {
+      pxr::UsdShadeConnectableAPI source;
+      pxr::TfToken sourceName;
+      pxr::UsdShadeAttributeType sourceType;
+      input.GetConnectedSource(&source, &sourceName, &sourceType);
+
       // Check if this is a connection to a material interface input
       pxr::UsdPrim sourcePrim = source.GetPrim();
       if (sourcePrim.IsA<pxr::UsdShadeMaterial>()) {
         // This is a material interface connection - get the value from the material's input
         pxr::UsdShadeMaterial mat(sourcePrim);
         pxr::UsdShadeInput matInput = mat.GetInput(sourceName);
-        if (matInput && matInput.Get(&outValue)) {
-          return true;
-        }
-      } else {
-        // This is a connection to another shader's output
-        pxr::UsdShadeShader sourceShader(sourcePrim);
-        if (sourceShader) {
-          pxr::UsdShadeOutput output = sourceShader.GetOutput(sourceName);
-          if (output) {
-            pxr::UsdAttribute attr = output.GetAttr();
-            if (attr && attr.Get(&outValue)) {
-              return true;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Fall back to direct value
-  if (input.Get(&outValue)) {
-    return true;
-  }
-  return false;
-}
-
-bool getShaderColorInput(const pxr::UsdShadeShader &shader,
-    const char *inputName,
-    pxr::GfVec3f &outValue)
-{
-  pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
-  if (!input) {
-    return false;
-  }
-
-  // Check if there's a connected source
-  if (input.HasConnectedSource()) {
-    pxr::UsdShadeConnectableAPI source;
-    pxr::TfToken sourceName;
-    pxr::UsdShadeAttributeType sourceType;
-    if (input.GetConnectedSource(&source, &sourceName, &sourceType)) {
-      // Check if this is a connection to a material interface input
-      pxr::UsdPrim sourcePrim = source.GetPrim();
-      if (sourcePrim.IsA<pxr::UsdShadeMaterial>()) {
-        // This is a material interface connection - get the value from the material's input
-        pxr::UsdShadeMaterial mat(sourcePrim);
-        pxr::UsdShadeInput matInput = mat.GetInput(sourceName);
-        if (matInput && matInput.Get(&outValue)) {
-          return true;
-        }
-      } else {
-        // This is a connection to another shader's output
-        pxr::UsdShadeShader sourceShader(sourcePrim);
-        if (sourceShader) {
-          pxr::UsdShadeOutput output = sourceShader.GetOutput(sourceName);
-          if (output) {
-            pxr::UsdAttribute attr = output.GetAttr();
-            if (attr && attr.Get(&outValue)) {
-              return true;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Fall back to direct value
-  if (input.Get(&outValue)) {
-    return true;
-  }
-  return false;
-}
-
-bool getShaderTextureInput(const pxr::UsdShadeShader &shader,
-    const char *inputName,
-    std::string &outFilePath)
-{
-  pxr::UsdShadeInput input = shader.GetInput(pxr::TfToken(inputName));
-  if (!input) {
-    return false;
-  }
-
-  // Check if there's a connected texture reader
-  if (input.HasConnectedSource()) {
-    pxr::UsdShadeConnectableAPI source;
-    pxr::TfToken sourceName;
-    pxr::UsdShadeAttributeType sourceType;
-    input.GetConnectedSource(&source, &sourceName, &sourceType);
-
-    // Check if this is a connection to a material interface input
-    pxr::UsdPrim sourcePrim = source.GetPrim();
-    if (sourcePrim.IsA<pxr::UsdShadeMaterial>()) {
-      // This is a material interface connection - get the value from the material's input
-      pxr::UsdShadeMaterial mat(sourcePrim);
-      pxr::UsdShadeInput matInput = mat.GetInput(sourceName);
-      if (matInput) {
-        pxr::SdfAssetPath assetPath;
-        if (matInput.Get(&assetPath)) {
-          outFilePath = assetPath.GetResolvedPath();
-          if (outFilePath.empty()) {
-            outFilePath = assetPath.GetAssetPath();
-          }
-          return !outFilePath.empty();
-        }
-      }
-    } else {
-      // Check if this is a texture reader shader
-      pxr::UsdShadeShader textureShader(sourcePrim);
-      if (textureShader) {
-        // Look for file input on the texture reader
-        pxr::UsdShadeInput fileInput = textureShader.GetInput(pxr::TfToken("file"));
-        if (fileInput) {
+        if (matInput) {
           pxr::SdfAssetPath assetPath;
-          if (fileInput.Get(&assetPath)) {
+          if (matInput.Get(&assetPath)) {
             outFilePath = assetPath.GetResolvedPath();
             if (outFilePath.empty()) {
               outFilePath = assetPath.GetAssetPath();
@@ -895,22 +1184,38 @@ bool getShaderTextureInput(const pxr::UsdShadeShader &shader,
             return !outFilePath.empty();
           }
         }
+      } else {
+        // Check if this is a texture reader shader
+        pxr::UsdShadeShader textureShader(sourcePrim);
+        if (textureShader) {
+          // Look for file input on the texture reader
+          pxr::UsdShadeInput fileInput = textureShader.GetInput(pxr::TfToken("file"));
+          if (fileInput) {
+            pxr::SdfAssetPath assetPath;
+            if (fileInput.Get(&assetPath)) {
+              outFilePath = assetPath.GetResolvedPath();
+              if (outFilePath.empty()) {
+                outFilePath = assetPath.GetAssetPath();
+              }
+              return !outFilePath.empty();
+            }
+          }
+        }
       }
     }
-  }
 
-  // Try direct asset path input
-  pxr::SdfAssetPath assetPath;
-  if (input.Get(&assetPath)) {
-    outFilePath = assetPath.GetResolvedPath();
-    if (outFilePath.empty()) {
-      outFilePath = assetPath.GetAssetPath();
+    // Try direct asset path input
+    pxr::SdfAssetPath assetPath;
+    if (input.Get(&assetPath)) {
+      outFilePath = assetPath.GetResolvedPath();
+      if (outFilePath.empty()) {
+        outFilePath = assetPath.GetAssetPath();
+      }
+      return !outFilePath.empty();
     }
-    return !outFilePath.empty();
-  }
 
-  return false;
-}
+    return false;
+  }
   
   
   mini::Material::SP
@@ -920,16 +1225,120 @@ bool getShaderTextureInput(const pxr::UsdShadeShader &shader,
   {
     std::cout << "======================================================= " << std::endl;
     std::cout << "creating new USD material" << std::endl;                                                                                    
-    mini::DisneyMaterial::SP mat = mini::DisneyMaterial::create();
+    mini::ANARIMaterial::SP mat = mini::ANARIMaterial::create();
     mat->baseColor = mini::common::randomColor(scene.materials.size());
     
     std::string diffuseTexPath;
     if (getShaderTextureInput(usdShader, "diffuse_texture", diffuseTexPath)) {
       mat->baseColor = vec3f(1.f);
-      mat->colorTexture = scene.getTexture(diffuseTexPath);
-      
+      mat->baseColor_texture = scene.getTexture(diffuseTexPath);
     }
 
+    // Handle emissive with intensity
+    pxr::GfVec3f emissiveColor(0, 0, 0);
+    float emissiveIntensity = 1.0f;
+    bool enableEmission = false;
+
+    getShaderColorInput(usdShader, "emissive_color", emissiveColor);
+    getShaderFloatInput(usdShader, "emissive_intensity", emissiveIntensity);
+    getShaderBoolInput(usdShader, "enable_emission", enableEmission);
+
+    if (enableEmission) {
+      // Scale emissive color by intensity
+      vec3f finalEmissive(emissiveColor[0] * emissiveIntensity,
+                          emissiveColor[1] * emissiveIntensity,
+                          emissiveColor[2] * emissiveIntensity
+                          );
+      mat->emissive = finalEmissive;
+    }
+
+    // Metallic - try texture first, then constant
+    std::string metallicTexPath;
+    if (getShaderTextureInput(usdShader, "metallic_texture", metallicTexPath)) {
+      mini::Texture::SP sampler = scene.getTexture(metallicTexPath);
+      mat->metallic_texture = sampler;
+    } else {
+      float metallic = 0.0f;
+      if (getShaderFloatInput(usdShader, "metallic_constant", metallic)) {
+        mat->metallic = metallic;
+      } else {
+        mat->metallic = 0.f;
+      }
+    }
+
+    // Roughness - try texture first, then constant
+    std::string roughnessTexPath;
+    if (getShaderTextureInput(usdShader, "reflectionroughness_texture",
+                              roughnessTexPath)) {
+      mini::Texture::SP sampler = scene.getTexture(roughnessTexPath);
+      mat->roughness_texture = sampler;
+    } else {
+      float roughness = 0.5f;  // Default to mid-range roughness
+      if (getShaderFloatInput(usdShader, "reflection_roughness_constant",
+                              roughness)) {
+        mat->roughness = roughness;
+      } else {
+        mat->roughness = 0.5f;
+      }
+    }
+
+    // Normal map
+    std::string normalTexPath;
+    if (getShaderTextureInput(usdShader, "normalmap_texture", normalTexPath)) {
+      mini::Texture::SP sampler = scene.getTexture(normalTexPath);
+      mat->normal_texture = sampler;
+    }
+
+    // Ambient Occlusion map
+    std::string aoTexPath;
+    if (getShaderTextureInput(usdShader, "ao_texture", aoTexPath)) {
+      mini::Texture::SP sampler = scene.getTexture(aoTexPath);
+      mat->occlusion_texture = sampler;
+    }
+
+    // Opacity - try texture first, then constant
+    std::string opacityTexPath;
+    bool enableOpacity = false;
+    getShaderBoolInput(usdShader, "enable_opacity", enableOpacity);
+
+    // if (enableOpacity) {
+    if (getShaderTextureInput(usdShader, "opacity_texture", opacityTexPath)) {
+      mini::Texture::SP sampler = scene.getTexture(opacityTexPath);
+      mat->opacity_texture = sampler;
+    } else {
+      float opacityConstant = 1.0f;
+      if (getShaderFloatInput(usdShader, "opacity_constant", opacityConstant)) {
+        mat->opacity = opacityConstant;
+      }
+    }
+
+#if 0
+    // Set alpha mode based on opacity threshold
+    float opacityThreshold = 0.0f;
+    if (getShaderFloatInput(usdShader, "opacity_threshold", opacityThreshold)) {
+      if (opacityThreshold > 0.0f) {
+        mat->setParameter("alphaMode", "mask");
+        mat->setParameter("alphaCutoff", opacityThreshold);
+      } else {
+        mat->setParameter("alphaMode", "blend");
+      }
+    } else {
+      // Default to blend mode when opacity is enabled
+      mat->setParameter("alphaMode", "blend");
+    }
+#endif
+
+    // IOR (index of refraction)
+    float ior = 1.5f;
+    if (getShaderFloatInput(usdShader, "ior_constant", ior)) {
+      mat->ior = ior;
+    }
+
+    // Specular level
+    float specularLevel = 0.5f;
+    if (getShaderFloatInput(usdShader, "specular_level", specularLevel)) {
+      mat->specular = specularLevel;
+    }
     return mat;
   }
 
