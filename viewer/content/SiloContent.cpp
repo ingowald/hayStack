@@ -798,15 +798,14 @@ namespace hs {
                                      vel3_f[i]*vel3_f[i]);
             }
             
-            if (verbose) {
-              float min_val = scalars[0], max_val = scalars[0];
-              for (float v : scalars) {
-                if (v < min_val) min_val = v;
-                if (v > max_val) max_val = v;
-              }
-              std::cout << "#hs.silo: Velocity magnitude computed (range: [" 
-                        << min_val << ":" << max_val << "])" << std::endl;
+            // Always print range for derived fields
+            float min_val = scalars[0], max_val = scalars[0];
+            for (float v : scalars) {
+              if (v < min_val) min_val = v;
+              if (v > max_val) max_val = v;
             }
+            std::cout << "#hs.silo: Domain " << partID << " vel_mag range: [" 
+                      << min_val << ", " << max_val << "]" << std::endl;
           } 
           else if (requestedVar == "lambda2") {
             // Extract coordinate arrays for gradient computation
@@ -886,15 +885,14 @@ namespace hs {
               maskBoundaryFaces(scalars, nx_actual, ny_actual, nz_actual, mask_faces);
             }
             
-            if (verbose) {
-              float min_val = scalars[0], max_val = scalars[0];
-              for (float v : scalars) {
-                if (v < min_val) min_val = v;
-                if (v > max_val) max_val = v;
-              }
-              std::cout << "#hs.silo: Lambda2 computed successfully (range: [" 
-                        << min_val << ":" << max_val << "])" << std::endl;
+            // Always print range for derived fields
+            float min_val = scalars[0], max_val = scalars[0];
+            for (float v : scalars) {
+              if (v < min_val) min_val = v;
+              if (v > max_val) max_val = v;
             }
+            std::cout << "#hs.silo: Domain " << partID << " lambda2 range: [" 
+                      << min_val << ", " << max_val << "]" << std::endl;
           }
         } else {
           if (verbose)
