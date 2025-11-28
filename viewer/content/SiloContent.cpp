@@ -414,6 +414,38 @@ namespace hs {
       }
     }
     
+    // Check for multivars and print global min/max if available
+    std::string requestedVar = resource.get("var", "");
+    if (toc && toc->nmultivar > 0) {
+      for (int i = 0; i < toc->nmultivar; i++) {
+        // If a specific variable is requested, only check that one
+        if (!requestedVar.empty() && requestedVar != toc->multivar_names[i])
+          continue;
+          
+        DBmultivar *mv = DBGetMultivar(dbfile, toc->multivar_names[i]);
+        if (mv && mv->extents && mv->extentssize >= 2 && mv->nvars > 0) {
+          double global_min = std::numeric_limits<double>::max();
+          double global_max = std::numeric_limits<double>::lowest();
+          
+          for (int b = 0; b < mv->nvars; b++) {
+            double block_min = mv->extents[b * mv->extentssize];
+            double block_max = mv->extents[b * mv->extentssize + 1];
+            if (block_min < global_min) global_min = block_min;
+            if (block_max > global_max) global_max = block_max;
+          }
+          
+          std::cout << "#hs.silo: Variable '" << toc->multivar_names[i] 
+                    << "' global range: [" << global_min << ", " << global_max << "]" 
+                    << std::endl;
+        }
+        if (mv) DBFreeMultivar(mv);
+        
+        // If we found the requested variable, stop looking
+        if (!requestedVar.empty())
+          break;
+      }
+    }
+    
     DBClose(dbfile);
     
     if (numDomains == 0) {
@@ -957,14 +989,14 @@ namespace hs {
                           for (int i = var_min[0]; i <= var_max[0]; i++) {
                             int src_idx = i + var_dims[0] * (j + var_dims[1] * k);
                             if (src_idx < 0 || src_idx >= total_var_els) {
-                              if (verbose) {
-                                std::cerr << "#hs.silo: ERROR: Out of bounds access at domain " << partID 
-                                          << ": src_idx=" << src_idx << " >= " << total_var_els 
-                                          << " (i=" << i << ",j=" << j << ",k=" << k << ")" 
-                                          << " var_dims=(" << var_dims[0] << "," << var_dims[1] << "," << var_dims[2] << ")"
-                                          << " var_range=[(" << var_min[0] << "," << var_min[1] << "," << var_min[2] << ") to ("
-                                          << var_max[0] << "," << var_max[1] << "," << var_max[2] << ")]" << std::endl;
-                              }
+                              // if (verbose) {
+                              //   std::cerr << "#hs.silo: ERROR: Out of bounds access at domain " << partID 
+                              //             << ": src_idx=" << src_idx << " >= " << total_var_els 
+                              //             << " (i=" << i << ",j=" << j << ",k=" << k << ")" 
+                              //             << " var_dims=(" << var_dims[0] << "," << var_dims[1] << "," << var_dims[2] << ")"
+                              //             << " var_range=[(" << var_min[0] << "," << var_min[1] << "," << var_min[2] << ") to ("
+                              //             << var_max[0] << "," << var_max[1] << "," << var_max[2] << ")]" << std::endl;
+                              // }
                               continue;  // Skip this element
                             }
                             scalars[idx++] = data[src_idx];
