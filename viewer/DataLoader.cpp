@@ -26,6 +26,7 @@
 #include "viewer/content/MiniContent.h"
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
+#include "viewer/content/DGEFContent.h"
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
 #include "viewer/content/IsoDump.h"
@@ -319,6 +320,8 @@ namespace hs {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
       OBJContent::create(this,contentDescriptor);
+    } else if (endsWith(contentDescriptor,".dgef")) {
+      DGEFContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".vmdcyls")) {

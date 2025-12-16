@@ -43,6 +43,9 @@ set(SOURCES
   content/Capsules.cpp
   content/TSTris.h
   content/TSTris.cpp
+  content/DGEF.h
+  content/DGEFContent.h
+  content/DGEFContent.cpp
   content/TriangleMesh.h
   content/TriangleMesh.cpp
   content/RAWVolumeContent.h
