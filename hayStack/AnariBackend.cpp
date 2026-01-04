@@ -552,6 +552,10 @@ namespace hs {
       anari::setParameter(device,material,"color",
                           (const anari::math::float3&)disney->baseColor);
       anari::commitParameters(device, material);
+      if (disney->colorTexture) {
+        anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->colorTexture);
+        if (tex) anari::setParameter(device,material,"color",tex);
+      }
       return {material,"color"};
     }
 #endif
