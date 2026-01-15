@@ -10,3 +10,6 @@
 [submodule "submodules/tinyAMR"]
 	path = submodules/tinyAMR
 	url = https://github.com/ingowald/tinyAMR
+[submodule "submodules/owl"]
+	path = submodules/owl
+	url = https://github.com/NVIDIA/owl
