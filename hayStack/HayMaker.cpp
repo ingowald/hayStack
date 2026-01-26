@@ -15,15 +15,7 @@
 // ======================================================================== //
 
 #include "HayMaker.h"
-#if !NO_BARNEY
-# include "BarneyBackend.h"
-#endif
-#if HANARI
 #include "AnariBackend.h"
-
-#endif
-// #include "hayStack/TransferFunction.h"
-// #include <map>
 
 namespace hs {
 
@@ -276,47 +268,15 @@ namespace hs {
                               LocalModel &localModel,
                               bool verbose)
   {
-#if HANARI
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
                                        pathsPerPixel,
                                        localModel,
                                        verbose);
-#else
-    throw std::runtime_error("ANARI support not compiled in");
-#endif
   }
 
-#if NO_BARNEY
-  HayMaker *HayMaker
-  ::createBarneyImplementation(Comm &world,
-                               Comm &workers,
-                               int pathsPerPixel,
-                               LocalModel &localModel,
-                               bool verbose)
-  { throw std::runtime_error("barney support not compiled in"); }
-#else 
-  HayMaker *HayMaker
-  ::createBarneyImplementation(Comm &world,
-                               Comm &workers,
-                               int pathsPerPixel,
-                               LocalModel &localModel,
-                               bool verbose)
-  {
-    return new HayMakerT<BarneyBackend>(world,
-                                        /* the workers */workers,
-                                        pathsPerPixel,
-                                        localModel,
-                                        verbose);
-  }
-  
-  template struct HayMakerT<BarneyBackend>;
-  template struct TextureLibrary<BarneyBackend>;
-  template struct MaterialLibrary<BarneyBackend>;
-#endif
-#if HANARI
   template struct HayMakerT<AnariBackend>;
   template struct TextureLibrary<AnariBackend>;
   template struct MaterialLibrary<AnariBackend>;
-#endif
 }
+

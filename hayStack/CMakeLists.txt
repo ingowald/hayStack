@@ -14,14 +14,7 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
-option(HANARI "Use ANARI device?" ON)
-
-if (HANARI)
-  find_package(anari 0.8.0 REQUIRED #COMPONENTS viewer
-    )
-#  find_package(MP IREQUIRED)
-endif()
-
+find_package(anari 0.13.0 REQUIRED)
 
 add_library(hayStack
   MPIWrappers.h
@@ -47,54 +40,18 @@ add_library(hayStack
   MPIRenderer.cpp
   HayMaker.h
   HayMaker.cpp
-  BarneyBackend.h
-  BarneyBackend.cpp
   AnariBackend.h
   AnariBackend.cpp
   TransferFunction.h
   TransferFunction.cpp
-  )
+)
 
-if (NO_BARNEY)
-  target_compile_definitions(hayStack PUBLIC -DNO_BARNEY=1)
-  target_link_libraries(hayStack
-    PUBLIC
-#    owl
-    miniScene
-    umesh
-#    barney
-    #  mpiRenderInf
-    )
-else()
-if (WIN32)
-  target_link_libraries(hayStack
-    PUBLIC
-    owl
-    miniScene
-    umesh
-    barney
-    #  mpiRenderInf
-    )
-elseif(BARNEY_MPI)
-  target_link_libraries(hayStack
-    PUBLIC
-    owl
-    miniScene
-    umesh
-    barney_mpi
-    #  mpiRenderInf
-    )
-else()
-  target_link_libraries(hayStack
-    PUBLIC
-    owl
-    miniScene
-    umesh
-    barney
-    #  mpiRenderInf
-    )
-endif()
-endif()
+target_link_libraries(hayStack
+  PUBLIC
+  miniScene
+  umesh
+  anari::anari
+  )
 
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 
@@ -106,20 +63,10 @@ if (NOT (TARGET barney_mpi))
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-if (HANARI)
-  target_compile_definitions(hayStack
-    PUBLIC
-    -DHANARI=1
-    )
+if (MPI_FOUND)
   target_link_libraries(hayStack
     PUBLIC
-    anari::anari
-    )
-  if (MPI_FOUND)
-    target_link_libraries(hayStack
-      PUBLIC
-      MPI::MPI_CXX
-      )
-  endif()
+    MPI::MPI_CXX
+  )
 endif()
   

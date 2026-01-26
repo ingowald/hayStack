@@ -14,7 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#if HANARI
 #include "AnariBackend.h"
 
 namespace hs {
@@ -798,5 +797,3 @@ namespace hs {
   
 
 } // ::hs
-#endif
-

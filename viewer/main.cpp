@@ -458,29 +458,11 @@ int main(int ac, char **av)
 
   int numDataGroupsLocally = thisRankData.size();
   HayMaker *hayMaker
-    = hanari
-    ? HayMaker::createAnariImplementation(world,
+    = HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
                                           fromCL.spp,
                                           thisRankData,
-                                          verbose())
-    : HayMaker::createBarneyImplementation(world,
-                                           /* the workers */workers,
-                                           fromCL.spp,
-                                           thisRankData,
-                                           verbose());
-// #if HANARI
-//     hayMaker = new HayMakerT<AnariBackend>(world,
-//                                            /* the workers */workers,
-//                                            thisRankData,
-//                                            verbose());
-// #else
-// #endif
-//   } else 
-//     hayMaker = new HayMakerT<BarneyBackend>(world,
-//                                             /* the workers */workers,
-//                                             thisRankData,
-//                                             verbose());
+                                          verbose());
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
@@ -499,18 +481,15 @@ int main(int ac, char **av)
   world.barrier();
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
-              << "#hs: creating barney context"
+              << "#hs: creating context"
               << MINI_TERMINAL_DEFAULT << std::endl;
-  // hayMaker->createBarney();
   world.barrier();
   if (world.rank == 0)
     std::cout << MINI_TERMINAL_CYAN
-              << "#hs: building barney data groups"
+              << "#hs: building data groups"
               << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
     hayMaker->buildSlots();
-    // for (int dgID=0;dgID<numDataGroupsLocally;dgID++)
-    //   hayMaker->buildDataGroup(dgID);
   
   world.barrier();
   

@@ -39,13 +39,9 @@ option(HS_VIEWER "Build hsViewer" ON)
 # ------------------------------------------------------------------
 # owl - do this first so miniScene can pick it up
 # ------------------------------------------------------------------
-option(NO_BARNEY "do not build barney?" OFF)
+set(NO_BARNEY ON)
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
-endif()
-if (NOT NO_BARNEY)
-  enable_language(CUDA)
-  add_subdirectory(../barney builddir_barney EXCLUDE_FROM_ALL)
 endif()
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)

@@ -22,12 +22,9 @@
 #include "hayStack/HayStack.h"
 #include "hayStack/LocalModel.h"
 #include "hayStack/MPIRenderer.h"
-#if HANARI
-# include <anari/anari_cpp.hpp>
-# include "anari/anari_cpp/ext/linalg.h"
-#else
-# include "barney.h"
-#endif
+
+#include <anari/anari_cpp.hpp>
+#include "anari/anari_cpp/ext/linalg.h"
 
 namespace hs {
 
@@ -51,12 +48,6 @@ namespace hs {
                                                int pathsPerPixel,
                                                LocalModel &localModel,
                                                bool verbose);
-    /*! creates a "native" barney renderer */
-    static HayMaker *createBarneyImplementation(Comm &world,
-                                                Comm &workers,
-                                                int pathsPerPixel,
-                                                LocalModel &localModel,
-                                                bool verbose);
     Comm        &world;
     Comm         workers;
     LocalModel localModel;
