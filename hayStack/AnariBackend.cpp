@@ -77,19 +77,26 @@ namespace hs {
     anari::commitParameters(device, model);
   
     auto renderer = anari::newObject<anari::Renderer>(device, "default");
-    anari::setParameter(device, renderer, "ambientRadiance", .6f);
+
+    anari::setParameter(device, renderer, "ambientRadiance",
+                        global->base->ambientRadiance
+                        );
     anari::setParameter(device, renderer, "pixelSamples", global->base->pixelSamples);
-#if 1
-    std::vector<vec4f> bgGradient = {
-      vec4f(.9f,.9f,.9f,1.f),
-      vec4f(0.15f, 0.25f, .8f,1.f),
-    };
-    anari::setAndReleaseParameter
-      (device,renderer,"background",
-       anari::newArray2D(device,
-                         (const anari::math::float4*)bgGradient.data(),
-                         1,2));
-#endif
+    if (isnan(global->base->bgColor.x) || global->base->bgColor.x < 0.f) { 
+      std::vector<vec4f> bgGradient = {
+        vec4f(.9f,.9f,.9f,1.f),
+        vec4f(0.15f, 0.25f, .8f,1.f),
+      };
+      anari::setAndReleaseParameter
+        (device,renderer,"background",
+         anari::newArray2D(device,
+                           (const anari::math::float4*)bgGradient.data(),
+                           1,2));
+    } else {
+      anari::setParameter
+        (device,renderer,"background",
+         (const anari::math::float4 &)global->base->bgColor);
+    }
     anari::commitParameters(device, renderer);
 
     frame = anari::newObject<anari::Frame>(device);
@@ -156,14 +163,36 @@ namespace hs {
                                (const anari::math::uint3*)miniMesh->indices.data(),
                                miniMesh->indices.size());
     if (!miniMesh->texcoords.empty())
-      anari::setParameterArray1D(device, mesh, "vertex.attribute0",
-                                 (const anari::math::float2*)miniMesh->texcoords.data(),
-                                 miniMesh->texcoords.size());
+      if (miniMesh->texcoords.size() == miniMesh->vertices.size()) {
+        anari::setParameterArray1D(device, mesh, "vertex.attribute0",
+                                   (const anari::math::float2*)miniMesh->texcoords.data(),
+                                   miniMesh->texcoords.size());
+      } else if (miniMesh->texcoords.size() == 3*miniMesh->indices.size()) {
+        anari::setParameterArray1D(device, mesh, "faceVarying.attribute0",
+                                   (const anari::math::float2*)miniMesh->texcoords.data(),
+                                   miniMesh->texcoords.size());
+      } else  {
+        PING;
+        PRINT(miniMesh->texcoords.size());
+        PRINT(miniMesh->vertices.size());
+        PRINT(miniMesh->indices.size());
+      }
 #if 1
     if (!miniMesh->normals.empty()) {
-      anari::setParameterArray1D(device, mesh, "vertex.normal",
-                                 (const anari::math::float3*)miniMesh->normals.data(),
-                                 miniMesh->normals.size());
+      if (miniMesh->normals.size() == miniMesh->vertices.size()) {
+        anari::setParameterArray1D(device, mesh, "vertex.normal",
+                                   (const anari::math::float3*)miniMesh->normals.data(),
+                                   miniMesh->normals.size());
+      } else if (miniMesh->normals.size() == 3*miniMesh->indices.size()) {
+        anari::setParameterArray1D(device, mesh, "faceVarying.normal",
+                                   (const anari::math::float3*)miniMesh->normals.data(),
+                                   miniMesh->normals.size());
+      } else  {
+        PING;
+        PRINT(miniMesh->normals.size());
+        PRINT(miniMesh->vertices.size());
+        PRINT(miniMesh->indices.size());
+      }
     }
 #endif
     anari::commitParameters(device, mesh);
@@ -542,6 +571,71 @@ namespace hs {
   }
   
   std::pair<anari::Material,std::string>
+  AnariBackend::Slot::create(mini::ANARIMaterial::SP disney)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(device, "physicallyBased");
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)    
+#define SET_FLOAT1(name) anari::setParameter(device,material,STRINGIFY(name),disney->name)
+#define SET_FLOAT3(name) anari::setParameter(device,material,STRINGIFY(name),(anari::math::float3&)disney->name)
+#define SET_INT(name) anari::setParameter(device,material,STRINGIFY(name),disney->name)
+#define SET_TEXTURE(name) \
+    if (disney->name##_texture) { \
+      anari::Sampler tex = impl->textureLibrary.getOrCreate(disney->name##_texture); \
+      if (tex) anari::setParameter(device,material,STRINGIFY(name),tex);\
+    }
+
+    
+    SET_FLOAT3(baseColor);
+    SET_TEXTURE(baseColor);
+    SET_FLOAT1(opacity);
+    SET_TEXTURE(opacity);
+    SET_FLOAT1(metallic);
+    SET_TEXTURE(metallic);
+    SET_FLOAT1(roughness);
+    SET_TEXTURE(roughness);
+    SET_TEXTURE(normal);
+    SET_FLOAT3(emissive);
+    SET_TEXTURE(emissive);
+    SET_TEXTURE(occlusion);
+    SET_INT(alphaMode);
+    SET_FLOAT1(alphaCutoff);
+    SET_FLOAT1(specular);
+    SET_TEXTURE(specular);
+    SET_FLOAT3(specularColor);
+    SET_TEXTURE(specularColor);
+    SET_FLOAT1(clearcoat);
+    SET_TEXTURE(clearcoat);
+    SET_FLOAT1(clearcoatRoughness);
+    SET_TEXTURE(clearcoatRoughness);
+    SET_TEXTURE(clearcoatNormal);
+    SET_FLOAT1(transmission);
+    SET_TEXTURE(transmission);
+    SET_FLOAT1(ior);
+    SET_TEXTURE(ior);
+    SET_FLOAT1(thickness);
+    SET_TEXTURE(thickness);
+    SET_FLOAT1(attenuationDistance);
+    SET_FLOAT3(attenuationColor);
+    SET_TEXTURE(attenuationColor);
+    SET_FLOAT3(sheenColor);
+    SET_TEXTURE(sheenColor);
+    SET_FLOAT1(sheenRoughness);
+    SET_TEXTURE(sheenRoughness);
+    SET_FLOAT1(iridescence);
+    SET_TEXTURE(iridescence);
+    SET_FLOAT1(iridescenceIor);
+    SET_TEXTURE(iridescenceIor);
+    SET_FLOAT1(iridescenceThickness);
+    SET_TEXTURE(iridescenceThickness);
+
+    anari::commitParameters(device, material);
+    return {material,"baseColor"};
+  }
+  
+  std::pair<anari::Material,std::string>
   AnariBackend::Slot::create(mini::DisneyMaterial::SP disney)
   {
 #if 0
@@ -665,6 +759,8 @@ namespace hs {
       return create(plastic);
     if (mini::DisneyMaterial::SP disney = miniMat->as<mini::DisneyMaterial>())
       return create(disney);
+    if (mini::ANARIMaterial::SP anari = miniMat->as<mini::ANARIMaterial>())
+      return create(anari);
     if (mini::Dielectric::SP dielectric = miniMat->as<mini::Dielectric>())
       return create(dielectric);
     // if (mini::Velvet::SP velvet = miniMat->as<mini::Velvet>())
@@ -848,7 +944,7 @@ namespace hs {
     anari::Light light = anari::newObject<anari::Light>(device,"directional");
     assert(light);
     anari::setParameter(device,light,"direction",(const anari::math::float3&)ml.direction);
-    anari::setParameter(device,light,"irradiance",average(ml.radiance));
+    anari::setParameter(device,light,"irradiance",2.f*average(ml.radiance));
     anari::commitParameters(device,light);
     return light;
   }
@@ -1083,10 +1179,22 @@ namespace hs {
        (const anari::math::float3*)content->vertices.data(),
        content->vertices.size());
     if (!content->normals.empty()) {
-      anari::setParameterArray1D
-        (device, geom, "vertex.normal",
-         (const anari::math::float3*)content->normals.data(),
-         content->normals.size());
+      if (content->normals.size() == content->vertices.size()) {
+        anari::setParameterArray1D
+          (device, geom, "vertex.normal",
+           (const anari::math::float3*)content->normals.data(),
+           content->normals.size());
+      } else  if (content->normals.size() == 3*content->indices.size()) {
+        anari::setParameterArray1D
+          (device, geom, "faceVarying.normal",
+           (const anari::math::float3*)content->normals.data(),
+           content->normals.size());
+      } else {
+        PING;
+        PRINT(content->normals.size());
+        PRINT(content->vertices.size());
+        PRINT(content->indices.size());
+      }
     }
     anari::setParameterArray1D
       (device, geom, "primitive.index",

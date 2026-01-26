@@ -18,6 +18,7 @@
 #include "viewer/content/TSTris.h"
 #include "viewer/content/TriangleMesh.h"
 #include "viewer/content/RAWVolumeContent.h"
+#include "viewer/content/GESTS.h"
 #include "viewer/content/TAMRContent.h"
 #include "viewer/content/CylindersFromFile.h"
 #include "viewer/content/SpheresFromFile.h"
@@ -27,12 +28,16 @@
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DGEFContent.h"
+#if HS_USD
+#include "viewer/content/USD.h"
+#endif
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
 #include "viewer/content/IsoDump.h"
 
 namespace hs {
 
+  
   /*! default radius to use for spheres that do not have a radius specified */
   float DataLoader::defaultRadius = .1f;
 
@@ -208,6 +213,27 @@ namespace hs {
     return size;
   }
 
+#if HS_USD
+  mini::Scene::SP loadUSD(const std::string &fileName);
+#endif
+  
+  mini::Scene::SP loadEnvMap(const std::string &fileName)
+  {
+    if (fileName.empty()) return mini::Scene::create();
+    if (endsWith(fileName,".mini"))
+      return mini::Scene::load(fileName);
+    if (endsWith(fileName,".usda")) {
+#if HS_USD
+      mini::Scene::SP scene = loadUSD(fileName);
+      scene->instances = {};
+      return scene;
+#else
+      throw std::runtime_error("USD support not build in");
+#endif
+    }
+    throw std::runtime_error("unsupported env-map light filename "+fileName);
+  }
+
   /*! actually loads one rank's data, based on which content got
     assigned to which rank. must get called on every worker
     collaboratively - but only on active workers */
@@ -245,32 +271,20 @@ namespace hs {
         std::cout << ss.str()
                   << std::endl << std::flush;
       }
-      // if (verbose) {
-      //   // for (int r=0;r<workers.rank;r++) 
-      //   //   workers.barrier();
-      //   std::cout << "#hv: worker #" << workers.rank
-      //             << " loading global data group ID " << dataGroupID
-      //             << " into slot " << workers.rank << "." << i << ":"
-      //             << std::endl << std::flush;
-      //   usleep(100);
-      //   fflush(0);
-      // }
       loadDataRank(localModel.dataGroups[i],
                    workers.rank,
                    dataGroupID,
                    verbose);
-      // if (verbose) 
-      //   for (int r=workers.rank;r<workers.size;r++) 
-      //     workers.barrier();
     }
 
 
     if (!sharedLights.directional.empty() || sharedLights.envMap != "")
       for (int i=0;i<localModel.dataGroups.size();i++) {
         mini::Scene::SP lights
-          = (sharedLights.envMap == "")
-          ? mini::Scene::create()
-          : mini::Scene::load(sharedLights.envMap);
+          = loadEnvMap(sharedLights.envMap);
+          // = (sharedLights.envMap == "")
+          // ? mini::Scene::create()
+          // : mini::Scene::load(sharedLights.envMap);
           
         lights->dirLights = sharedLights.directional;
         localModel.dataGroups[i].minis.push_back(lights);
@@ -322,6 +336,10 @@ namespace hs {
       OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".dgef")) {
       DGEFContent::create(this,contentDescriptor);
+#if HS_USD
+    } else if (endsWith(contentDescriptor,".usda")) {
+      USDContent::create(this,contentDescriptor);
+#endif
     } else if (endsWith(contentDescriptor,".caps")) {
       content::Capsules::create(this,addIfRequired("capsules://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".vmdcyls")) {
@@ -358,6 +376,8 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+      else if (url.type == "gests") 
+        GESTSVolumeContent::create(this,url);
       else if (url.type == "tamr") 
         TAMRContent::create(this,url);
       else if (url.type == "boxes") 

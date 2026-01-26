@@ -22,6 +22,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+add_library(viewer-config INTERFACE)
+
 set(SOURCES
   main.cpp
   DataLoader.h
@@ -48,13 +50,28 @@ set(SOURCES
   content/DGEFContent.cpp
   content/TriangleMesh.h
   content/TriangleMesh.cpp
+  content/GESTS.h
+  content/GESTS.cpp
   content/RAWVolumeContent.h
   content/RAWVolumeContent.cpp
   content/TAMRContent.h
   content/TAMRContent.cpp
   content/UMeshContent.h
   content/UMeshContent.cpp
-  )  
+)
+
+option(HS_USD "build usd loader" OFF)
+if (HS_USD)
+  list(APPEND SOURCES content/USD.cpp)
+  
+  find_package(OpenGL)
+  find_package(X11)
+  find_package(pxr REQUIRED usd usdGeom tf gf usdShade usdLux)
+  target_compile_definitions(viewer-config INTERFACE -DHS_USD=1)
+  target_link_libraries(viewer-config INTERFACE ${PXR_LIBRARIES})
+  target_link_libraries(viewer-config INTERFACE ext_tinyexr_impl)
+
+endif()
 
 set(TFE_SOURCES
   external/imgui/imgui.cpp
@@ -79,29 +96,6 @@ if(WIN32)
   )
 endif()
 
-if (HS_VIEWER AND (TARGET barney))
-  # ------------------------------------------------------------------
-  add_executable(hsViewer
-    ${SOURCES}
-    ${TFE_SOURCES}
-    ${GLAD_SOURCES}
-    )
-  target_link_libraries(hsViewer
-    PUBLIC
-    hayStack
-    owl_viewer
-    )
-  target_compile_definitions(hsViewer PUBLIC -DHS_VIEWER=1)
-  if (WIN32)
-    target_include_directories(hsViewer SYSTEM PRIVATE external/imgui external/glad)
-  else()
-    target_include_directories(hsViewer SYSTEM PRIVATE external/imgui)
-  endif()
-  if (HS_USE_IMGUI)
-    target_compile_definitions(hsViewer PUBLIC -DHS_HAVE_IMGUI=1)
-  endif()
-endif()
-
 # ------------------------------------------------------------------
 add_executable(hsOffline
   ${SOURCES}
@@ -109,6 +103,7 @@ add_executable(hsOffline
 target_link_libraries(hsOffline
   PUBLIC
   hayStack
+  viewer-config
   )
 
 # ------------------------------------------------------------------
@@ -125,6 +120,7 @@ if (HS_CUTEE)
     PUBLIC
     hayStack
     qtOWL
+    viewer-config
     )
   target_compile_definitions(hsViewerQT PUBLIC -DHS_CUTEE=1)
   set_target_properties(hsViewerQT

@@ -39,7 +39,8 @@ namespace hs {
     HayMaker(Comm &world,
              Comm &workers,
              int   pixelSamples,
-             bool  useBG,
+             float ambientRadiance,
+             vec4f bgColor,
              LocalModel &localModel,
              const std::vector<int> &gpuIDs,
              bool verbose);
@@ -51,7 +52,8 @@ namespace hs {
     static HayMaker *createAnariImplementation(Comm &world,
                                                Comm &workers,
                                                int pathsPerPixel,
-                                               bool useBG,
+                                               float ambientRadiance,
+                                               vec4f bgColor,
                                                LocalModel &localModel,
                                                const std::vector<int> &gpuIDs,
                                                bool verbose);
@@ -59,7 +61,8 @@ namespace hs {
     static HayMaker *createBarneyImplementation(Comm &world,
                                                 Comm &workers,
                                                 int pathsPerPixel,
-                                                bool useBG,
+                                                float ambientRadiance,
+                                                vec4f bgColor,
                                                 LocalModel &localModel,
                                                 const std::vector<int> &gpuIDs,
                                                 bool verbose);
@@ -68,7 +71,8 @@ namespace hs {
     Comm         workers;
     LocalModel   localModel;
     bool         verbose;
-    bool         useBackground = true;
+    vec4f        bgColor { NAN, NAN, NAN, NAN };
+    const float  ambientRadiance;
     const int    pixelSamples;
     const std::vector<int> gpuIDs;
   };
@@ -124,7 +128,8 @@ namespace hs {
     HayMakerT(Comm &world,
               Comm &workers,
               int pathsPerPixel,
-              bool useBG,
+              float ambientRadiance,
+              vec4f bgColor,
               LocalModel &localModel,
               const std::vector<int> &gpuIDs,
               bool verbose);

@@ -148,7 +148,7 @@ namespace hs {
     bnSet1i(renderer,"pathsPerPixel",base->pixelSamples);
     bnSet1f(renderer,"ambientRadiance",0.5f);
 
-    if (base->useBackground) {
+    if (isnan(base->bgColor.x) || base->bgColor.x < 0.f) {
       vec4f gradient[2] = {
         vec4f(.9f,.9f,.9f,1.f),
         vec4f(0.15f, 0.25f, .8f,1.f),
@@ -159,6 +159,12 @@ namespace hs {
                                           BN_TEXTURE_LINEAR,
                                           BN_TEXTURE_CLAMP,BN_TEXTURE_CLAMP);
       bnSetObject(renderer,"bgTexture",tex);
+    } else {
+      bnSet4f(renderer,"bgColor",
+              base->bgColor.x,
+              base->bgColor.y,
+              base->bgColor.z,
+              base->bgColor.w);
     }
     bnCommit(renderer);
     

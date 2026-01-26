@@ -19,21 +19,7 @@
 #if HS_HAVE_CUDA
 # include <cuda_runtime.h>
 #endif
-#if HS_VIEWER
-#ifdef _WIN32 
-#  include "glad.h"
-#endif
-# include "samples/common/owlViewer/InspectMode.h"
-# include "samples/common/owlViewer/OWLViewer.h"
-#define STB_IMAGE_IMPLEMENTATION 1
-# include "stb/stb_image.h"
-# include "stb/stb_image_write.h"
-# if HS_HAVE_IMGUI
-#  include "imgui_tfe/imgui_impl_glfw_gl3.h"
-#  include "imgui_tfe/TFEditor.h"
-#  include <imgui.h>
-# endif
-#elif HS_CUTEE
+#if HS_CUTEE
 # include "cutee/OWLViewer.h"
 # include "cutee/XFEditor.h"
 # include "stb/stb_image_write.h"
@@ -47,17 +33,12 @@
 #include <unistd.h>
 #endif
 
-
-#if HS_VIEWER
-namespace viewer {
-  using namespace owl::common;
-}
-#endif
-#if HS_CUTEE
-namespace viewer {
-  using namespace cutee::common;
-}
-#endif
+// #if HS_CUTEE
+// namespace viewer {
+//   using cutee::common::vec3
+//   // using namespace cutee::common;
+// }
+// #endif
 
 namespace hs {
 
@@ -66,6 +47,13 @@ namespace hs {
   typedef enum { DPMODE_NOT_SPECIFIED,
                  DPMODE_DATA_PARALLEL,
                  DPMODE_DATA_REPLICATED } DPMode;
+
+  struct CmdLineCamera {
+    vec3f vp   = vec3f(0.f);
+    vec3f vi   = vec3f(0.f);
+    vec3f vu   = vec3f(0.f,1.f,0.f);
+    float fovy = 60.f;
+  };
   
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
@@ -85,8 +73,8 @@ namespace hs {
     int cmID = 0;
     
     bool mergeUnstructuredMeshes = false;
-    bool useBackground = true;
-    
+    vec4f bgColor { NAN, NAN, NAN, NAN };
+    float ambientRadiance = .6f;
     std::string xfFileName = "";
     std::string outFileName = "hayStack.png";
     vec2i fbSize = { 800,600 };
@@ -95,12 +83,13 @@ namespace hs {
     int  numFramesAccum = 1;
     int  spp            = 1;
     bool verbose = true;
-    struct {
-      vec3f vp   = vec3f(0.f);
-      vec3f vi   = vec3f(0.f);
-      vec3f vu   = vec3f(0.f,1.f,0.f);
-      float fovy = 60.f;
-    } camera;
+    CmdLineCamera camera;
+    std::vector<CmdLineCamera> cameraPath;
+    // struct {
+    //   vec3f vp0, vp1;
+    //   vec3f vi0, vi1;
+    //   int numSteps = 0;
+    // } cameraPath;
     bool measure = 0;
     std::string envMapFileName;
   };
@@ -122,47 +111,28 @@ namespace hs {
     exit(0);
   }
 
-#if HS_VIEWER
-  using namespace owl::viewer; //owl::viewer::OWLViewer;
-#endif
 #if HS_CUTEE
   using namespace cutee; //cutee::OWLViewer
 #endif
   
-#if HS_VIEWER || HS_CUTEE
+#if HS_CUTEE
   struct Viewer : public OWLViewer
   {
     Viewer(Renderer *const renderer,
            hs::mpi::Comm *world)
       : renderer(renderer),
         world(world)
-    {
-#if HS_VIEWER
-# if HS_HAVE_IMGUI
-      ImGui_ImplGlfwGL3_Init(handle, true);
-# endif
-#endif
-    }
+    {}
 
-#if HS_CUTEE
   public slots:
     void colorMapChanged(cutee::XFEditor *xf);
     void rangeChanged(cutee::common::interval<float> r);
     void opacityScaleChanged(double scale);
-#endif
 
-#if HS_VIEWER
-    void updateXFImGui();
-#endif
   public:
     void screenShot()
     {
       std::string fileName = fromCL.outFileName;
-      // std::vector<int> hostFB(fbSize.x*fbSize.y);
-      // cudaMemcpy(hostFB.data(),fbPointer,
-      //            fbSize.x*fbSize.y*sizeof(int),
-      //            cudaMemcpyDefault);
-      // cudaDeviceSynchronize();g
       std::cout << "#ht: saving screen shot in " << fileName << std::endl;
       stbi_flip_vertically_on_write(true);
       stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
@@ -170,7 +140,7 @@ namespace hs {
     }
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const viewer::vec2i &where) override
+    void key(char key, const cutee::common::vec2i &where) override
     {
       switch(key) {
       case '!':
@@ -179,9 +149,9 @@ namespace hs {
       case '*': {
         hs::Camera camera;
         OWLViewer::getCameraOrientation
-          ((viewer::vec3f&)camera.vp,
-           (viewer::vec3f&)camera.vi,
-           (viewer::vec3f&)camera.vu,
+          ((cutee::common::vec3f&)camera.vp,
+           (cutee::common::vec3f&)camera.vi,
+           (cutee::common::vec3f&)camera.vu,
            camera.fovy);
         PRINT(normalize(camera.vi - camera.vp));
       } break;
@@ -230,13 +200,6 @@ namespace hs {
 #if HS_CUTEE
         if (xfEditor)
           xfEditor->saveTo("hayThere.xf");
-#elif HS_VIEWER
-# if HS_HAVE_IMGUI
-        if (xfEditor)
-          xfEditor->saveToFile("hayThere.xf");
-# endif
-#else
-        std::cout << "dumping transfer function only works in QT viewer" << std::endl;
 #endif
         break;
 
@@ -244,23 +207,10 @@ namespace hs {
       };
     }
 
-#if HS_VIEWER
-    void mouseMotion(const viewer::vec2i &newMousePosition) override
-    {
-# if HS_HAVE_IMGUI
-      ImGuiIO &io = ImGui::GetIO();
-      if (!io.WantCaptureMouse) 
-# endif
-        {
-          OWLViewer::mouseMotion((const viewer::vec2i&)newMousePosition);
-        }
-    }
-#endif
-    
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const viewer::vec2i &newSize) override
+    void resize(const cutee::common::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
       renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
@@ -269,12 +219,7 @@ namespace hs {
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override
     {
-      double _t0 = viewer::getCurrentTime();
-#if HS_VIEWER
-# if HS_HAVE_IMGUI
-      ImGui_ImplGlfwGL3_NewFrame();
-# endif
-#endif
+      double _t0 = mini::common::getCurrentTime();
 
       if (xfDirty) {
         renderer->setTransferFunction(xf);
@@ -294,12 +239,12 @@ namespace hs {
       
       static double measure_t0 = 0.;
       if (numFramesRendered == measure_warmup_frames)
-        measure_t0 = viewer::getCurrentTime();
+        measure_t0 = mini::common::getCurrentTime();
 
-      static double t0 = viewer::getCurrentTime();
+      static double t0 = mini::common::getCurrentTime();
       renderer->renderFrame();
       ++numFramesRendered;
-      double t1 = viewer::getCurrentTime();
+      double t1 = mini::common::getCurrentTime();
 
       if (fromCL.measure) {
         int numFramesMeasured = numFramesRendered - measure_warmup_frames;
@@ -327,42 +272,20 @@ namespace hs {
       sum_w = 0.8f*sum_w + 1.f;
       float timePerFrame = float(sum_t / sum_w);
       float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+viewer::prettyDouble(fps)+"fps)";
+      std::string title = "HayThere ("+mini::common::prettyDouble(fps)+"fps)";
       setTitle(title.c_str());
       t0 = t1;
-      double _t1 = viewer::getCurrentTime();
+      double _t1 = mini::common::getCurrentTime();
       t_last_render = _t1-_t0;
     }
     
-#if HS_VIEWER
-    void draw() override
-    {
-      OWLViewer::draw();
-
-#if HS_HAVE_IMGUI
-      if (xfEditor) {
-        ImGui::Begin("TFE");
-    
-        xfEditor->drawImmediate();
-
-        ImGui::End();
-
-        ImGui::Render();
-        ImGui_ImplGlfwGL3_Render();
-
-        updateXFImGui();
-      }
-#endif
-    }
-#endif
-
     void cameraChanged() override
     {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation
-        ((viewer::vec3f&)camera.vp,
-         (viewer::vec3f&)camera.vi,
-         (viewer::vec3f&)camera.vu,
+        ((cutee::common::vec3f&)camera.vp,
+         (cutee::common::vec3f&)camera.vi,
+         (cutee::common::vec3f&)camera.vu,
          camera.fovy);
       renderer->setCamera(camera);
       accumDirty = true;
@@ -373,15 +296,9 @@ namespace hs {
     bool accumDirty = true;
     Renderer *const renderer;
     hs::mpi::Comm *world;
-#if HS_CUTEE
     XFEditor *xfEditor = 0;
-#elif HS_VIEWER
-# if HS_HAVE_IMGUI
-    TFEditor *xfEditor = 0;
-# endif
-#endif
   };
-
+#endif
 
 #if HS_CUTEE
   void Viewer::colorMapChanged(cutee::XFEditor *xfEditor)
@@ -402,32 +319,6 @@ namespace hs {
     xf.baseDensity = powf(1.03,scale - 100.f);
     xfDirty = true;
   }
-  
-#elif HS_VIEWER
-# if HS_HAVE_IMGUI
-  void Viewer::updateXFImGui()
-  {
-    if (xfEditor->cmapUpdated()) {
-      xf.colorMap = xfEditor->getColorMap();
-      xfDirty = true;
-    }
-
-    if (xfEditor->rangeUpdated()) {
-      xf.domain = xfEditor->getRange();
-      xfDirty = true;
-    }
-
-    if (xfEditor->opacityUpdated()) {
-      float scale = xfEditor->getOpacityScale();
-      xf.baseDensity = powf(1.1f,scale - 100.f);
-      xfDirty = true;
-    }
-
-    xfEditor->downdate(); // TODO: is this necessary?
-  }
-# endif
-#endif
-
 #endif
 
   inline mini::common::vec3f get3f(char **av, int &i)
@@ -712,6 +603,52 @@ namespace hs {
   //   }
   // world.barrier();
   // if (fromCL.dpMode == DPMODE_DATA_PARALLEL && slurmIsBeingUsed
+
+  inline float lerp_l(float f, float a, float b)
+  { return (1.f-f)*a + f*b; }
+  inline mini::common::vec3f lerp_l(float f,
+                                    mini::common::vec3f a,
+                                    mini::common::vec3f b)
+  { return (1.f-f)*a + f*b; }
+  
+  void addCameraPath(int numSteps,
+                     CmdLineCamera c0,
+                     CmdLineCamera c1)
+  {
+    for (int i=0;i<numSteps;i++) {
+      float f = i/(numSteps-1.f);
+      CmdLineCamera c;
+      c.vp = lerp_l(f,c0.vp,c1.vp);
+      c.vi = lerp_l(f,c0.vi,c1.vi);
+      c.vu = lerp_l(f,c0.vu,c1.vu);
+      c.fovy = lerp_l(f,c0.fovy,c1.fovy);
+      fromCL.cameraPath.push_back(c);
+    }
+  }
+
+  void addCamerasFromFile(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str());
+    std::string line;
+    while (in.good()) {
+      std::getline(in,line);
+      CmdLineCamera c;
+      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
+                      &c.vp.x,
+                      &c.vp.y,
+                      &c.vp.z,
+                      &c.vi.x,
+                      &c.vi.y,
+                      &c.vi.z,
+                      &c.vu.x,
+                      &c.vu.y,
+                      &c.vu.z,
+                      &c.fovy);
+      if (rc != 10)
+        break;
+      fromCL.cameraPath.push_back(c);
+    }
+  }
   
 }
 
@@ -743,9 +680,12 @@ int main(int ac, char **av)
     if (arg[0] != '-') {
       loader.addContent(arg);
     } else if (arg == "--no-bg") {
-      fromCL.useBackground = false;
-    } else if (arg == "-bg") {
-      fromCL.useBackground = true;
+      fromCL.bgColor = ::mini::common::vec4f(0.f);
+    } else if (arg == "--bg-color") {
+      fromCL.bgColor.x = std::stof(av[++i]);
+      fromCL.bgColor.y = std::stof(av[++i]);
+      fromCL.bgColor.z = std::stof(av[++i]);
+      fromCL.bgColor.w = std::stof(av[++i]);
     } else if (arg == "-dp" || arg == "--data-parallel") {
       fromCL.dpMode = DPMODE_DATA_PARALLEL;
     } else if (arg == "-sg" || arg == "--single-gpu") {
@@ -762,6 +702,8 @@ int main(int ac, char **av)
       loader.sharedLights.envMap = fromCL.envMapFileName;
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
+    } else if (arg == "--ambient") {
+      fromCL.ambientRadiance = std::stof(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
       fromCL.spp = std::stoi(av[++i]);
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
@@ -787,6 +729,25 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
+    } else if (arg == "--cameras-from-file") {
+      hs::addCamerasFromFile(av[++i]);
+    } else if (arg == "--camera-path") {
+      CmdLineCamera c0, c1;
+      int numSteps = std::stoi(av[++i]);
+      // --camera
+      ++i;
+      c0.vp = get3f(av,i);
+      c0.vp = get3f(av,i);
+      c0.vu = get3f(av,i);
+      ++i;// -fovy
+      c0.fovy = std::stof(av[++i]);
+      ++i;// --camera
+      c1.vp = get3f(av,i);
+      c1.vp = get3f(av,i);
+      c1.vu = get3f(av,i);
+      ++i;// -fovy
+      c1.fovy = std::stof(av[++i]);
+      hs::addCameraPath(numSteps,c0,c1);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
@@ -867,29 +828,19 @@ int main(int ac, char **av)
     ? HayMaker::createAnariImplementation(world,
                                           /* the workers */workers,
                                           fromCL.spp,
-                                          fromCL.useBackground,
+                                           fromCL.ambientRadiance,
+                                          fromCL.bgColor,
                                           thisRankData,
                                           gpuIDs,
                                           verbose())
     : HayMaker::createBarneyImplementation(world,
                                            /* the workers */workers,
                                            fromCL.spp,
-                                           fromCL.useBackground,
+                                           fromCL.ambientRadiance,
+                                           fromCL.bgColor,
                                            thisRankData,
                                            gpuIDs,
                                            verbose());
-// #if HANARI
-//     hayMaker = new HayMakerT<AnariBackend>(world,
-//                                            /* the workers */workers,
-//                                            thisRankData,
-//                                            verbose());
-// #else
-// #endif
-//   } else 
-//     hayMaker = new HayMakerT<BarneyBackend>(world,
-//                                             /* the workers */workers,
-//                                             thisRankData,
-//                                             verbose());
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
@@ -939,44 +890,25 @@ int main(int ac, char **av)
     exit(0);
   }
 
-#if HS_VIEWER
-  Viewer viewer(renderer,&world);
-  
-  viewer.enableFlyMode();
-  viewer.enableInspectMode((const viewer::box3f&)worldBounds.spatial);
-  viewer.setWorldScale(length(worldBounds.spatial.span()));
-  viewer.setCameraOrientation
-    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
-     /*fovy(deg)*/fromCL.camera.fovy);
-# if HS_HAVE_IMGUI
-  TFEditor    *xfEditor = new TFEditor;
-  xfEditor->setRange(worldBounds.scalars);
-  viewer.xfEditor       = xfEditor;
-
-  if (!fromCL.xfFileName.empty())
-    xfEditor->loadFromFile(fromCL.xfFileName.c_str());
-# endif
-  viewer.showAndRun();
-#elif HS_CUTEE
+#if HS_CUTEE
   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication app(ac,av);
   Viewer viewer(renderer,&world);
 
   viewer.show();
   viewer.enableFlyMode();
-  viewer.enableInspectMode();///*owl::glutViewer::OWLViewer::Arcball,*/worldBounds.spatial);
+  viewer.enableInspectMode();
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const viewer::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const viewer::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const viewer::vec3f &)fromCL.camera.vu,
+    (/*origin   */(const cutee::common::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const cutee::common::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const cutee::common::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
   QMainWindow secondWindow;
   if (modelHasVolumeData) {
-    XFEditor    *xfEditor = new XFEditor((viewer::interval<float>&)worldBounds.scalars);
+    XFEditor    *xfEditor = new XFEditor
+      ((cutee::common::interval<float>&)worldBounds.scalars);
     viewer.xfEditor       = xfEditor;
     QFormLayout *layout   = new QFormLayout;
     layout->addWidget(xfEditor);
@@ -1019,6 +951,37 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
+  if (!fromCL.cameraPath.empty()) {
+    std::cout << "rendering camera path sequence" << std::endl;
+    for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
+      hs::Camera camera;
+      auto c = fromCL.cameraPath[frameID];
+      camera.vi = c.vi;
+      camera.vp = c.vp;
+      camera.vu = c.vu;
+      camera.fovy = c.fovy;
+      // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
+      // camera.vu = fromCL.camera.vu;
+      // camera.vp
+      //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
+      // camera.vi
+      //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
+      renderer->setCamera(camera);
+      renderer->renderFrame();
+      stbi_flip_vertically_on_write(true);
+      char suffix[100];
+      sprintf(suffix,"_frame%05i.png",frameID);
+      std::string fileName = fromCL.outFileName+std::string(suffix);
+      std::cout << " ... saving frame " << fileName << std::endl;
+      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+                     pixels.data(),fbSize.x*sizeof(uint32_t));
+    }
+    renderer->terminate();
+    world.barrier();
+    hs::mpi::finalize();
+    exit(0);
+  }
+  
 #if 1
   if (fromCL.measure) {
     int numFramesRendered = 0;
