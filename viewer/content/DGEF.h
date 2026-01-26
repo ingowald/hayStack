@@ -8,7 +8,6 @@
 #else
 # include "miniScene/Scene.h"
 #endif
-#include <cuda_runtime.h>
 
 #include <vector>
 #include <map>

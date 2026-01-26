@@ -1,4 +1,19 @@
-// #include "owl/common/owl-common.h"
+// ======================================================================== //
+// Copyright 2022-2023 Ingo Wald                                            //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
 #include "miniScene/common/math/vec.h"
 #include <array>
 #include <vector>
@@ -36,7 +51,7 @@ void importDLAFFile(const char *filename, DLAFScene &s)
 }
 
 
-  // inline float saturate(float f) { return min(1.f,max(0.f,f)); }
+inline float saturate(float f) { return min(1.f,max(0.f,f)); }
 
   inline vec3f hue_to_rgb(float hue)
   {

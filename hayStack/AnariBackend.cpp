@@ -14,7 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#if HANARI
 #include "AnariBackend.h"
 
 // # define TEST_IDCHANNEL "channel.objectId"    
@@ -1286,5 +1285,3 @@ namespace hs {
   
 
 } // ::hs
-#endif
-

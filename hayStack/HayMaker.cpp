@@ -1,27 +1,9 @@
-// ======================================================================== //
-// Copyright 2022-2024 Ingo Wald                                            //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
+// SPDX-License-Identifier: Apache-2.0
 
 #include "HayMaker.h"
-#if !NO_BARNEY
-# include "BarneyBackend.h"
-#endif
-#if HANARI
-# include "AnariBackend.h"
-#endif
 #include "hayStack/ColorMap.h"
+#include "AnariBackend.h"
 
 namespace hs {
 
@@ -343,7 +325,6 @@ namespace hs {
                               const std::vector<int> &gpuIDs,
                               bool verbose)
   {
-#if HANARI
     assert(!gpuIDs.empty());
     return new HayMakerT<AnariBackend>(world,
                                        /* the workers */workers,
@@ -353,50 +334,10 @@ namespace hs {
                                        localModel,
                                        gpuIDs,
                                        verbose);
-#else
-    throw std::runtime_error("ANARI support not compiled in");
-#endif
   }
 
-#if NO_BARNEY
-  HayMaker *HayMaker
-  ::createBarneyImplementation(Comm &world,
-                               Comm &workers,
-                               int pathsPerPixel,
-                               float ambientRadiance,
-                               vec4f bgColor,
-                               LocalModel &localModel,
-                               const std::vector<int> &gpuIDs,
-                               bool verbose)
-  { throw std::runtime_error("barney support not compiled in"); }
-#else 
-  HayMaker *HayMaker
-  ::createBarneyImplementation(Comm &world,
-                               Comm &workers,
-                               int pathsPerPixel,
-                               float ambientRadiance,
-                               vec4f bgColor,
-                               LocalModel &localModel,
-                               const std::vector<int> &gpuIDs,
-                               bool verbose)
-  {
-    return new HayMakerT<BarneyBackend>(world,
-                                        /* the workers */workers,
-                                        pathsPerPixel,
-                                        ambientRadiance,
-                                        bgColor,
-                                        localModel,
-                                        gpuIDs,
-                                        verbose);
-  }
-  
-  template struct HayMakerT<BarneyBackend>;
-  template struct TextureLibrary<BarneyBackend>;
-  template struct MaterialLibrary<BarneyBackend>;
-#endif
-#if HANARI
   template struct HayMakerT<AnariBackend>;
   template struct TextureLibrary<AnariBackend>;
   template struct MaterialLibrary<AnariBackend>;
-#endif
 }
+
