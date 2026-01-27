@@ -55,10 +55,10 @@ inline float saturate(float f) { return min(1.f,max(0.f,f)); }
 
   inline vec3f hue_to_rgb(float hue)
   {
-    float s = saturate( hue ) * 6.0f;
-    float r = saturate( fabsf(s - 3.f) - 1.0f );
-    float g = saturate( 2.0f - fabsf(s - 2.0f) );
-    float b = saturate( 2.0f - fabsf(s - 4.0f) );
+    float s = ::saturate( hue ) * 6.0f;
+    float r = ::saturate( fabsf(s - 3.f) - 1.0f );
+    float g = ::saturate( 2.0f - fabsf(s - 2.0f) );
+    float b = ::saturate( 2.0f - fabsf(s - 4.0f) );
     return vec3f(r, g, b);
   }
 
