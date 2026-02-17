@@ -260,11 +260,11 @@ or partition spatially (into, in this example, 8 ranks) as such:
 
 then run as follows:
 
-#	mm && /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT /cluster/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /cluster/lander-small-surface.obj
+	mm && /home/wald/opt/bin/mpirun -n 2 ./hsViewerQT /cluster/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /cluster/lander-small-surface.obj
 
 # to run offline
 
-#    mm && /home/wald/opt/bin/mpirun -n 2 ./hsOffline /cluster/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /cluster/lander-small-surface.obj -o lander-small-offline.png
+    mm && /home/wald/opt/bin/mpirun -n 2 ./hsOffline /cluster/lander-small.*umesh -mum -ndg 2 -xf lander-small-3.xf `cat lander-small-3.cam` /cluster/lander-small-surface.obj -o lander-small-offline.png
 	
 # camera and xf file checked into this repo, under `data/`
 
