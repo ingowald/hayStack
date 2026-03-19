@@ -333,11 +333,12 @@ namespace hs {
     if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".obj")) {
-      ResourceSpecifier url(contentDescriptor);
-      if (url.type == "cylinders") 
-        content::CylindersFromFile::create(this,url);
-      else
-        OBJContent::create(this,contentDescriptor);
+      if (contentDescriptor.substr(0,12)=="cylinders://") {
+        ResourceSpecifier url(contentDescriptor);
+        if (url.type == "cylinders") 
+          content::CylindersFromFile::create(this,url);
+      }
+      else OBJContent::create(this,contentDescriptor);
     } else if (endsWith(contentDescriptor,".dgef")) {
       DGEFContent::create(this,contentDescriptor);
 #if HS_USD
