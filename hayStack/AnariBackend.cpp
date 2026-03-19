@@ -1238,6 +1238,12 @@ namespace hs {
       (device, geom, "vertex.position",
        (const anari::math::float3*)content->vertices.data(),
        content->vertices.size());
+    if (!content->indices.empty()) {
+      anari::setParameterArray1D
+        (device, geom, "primitive.index",
+         (const anari::math::uint2*)content->indices.data(),
+         content->indices.size());
+    }
     if (content->radii.empty()) {
       std::vector<float> radii;
       for (int i=0;i<content->vertices.size();i++)

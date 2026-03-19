@@ -115,6 +115,53 @@ namespace hs {
       }
       fclose(file);
     }
+    void loadOBJ(hs::Cylinders::SP result, const std::string &fileName)
+    {
+      FILE *file = fopen(fileName.c_str(),"r");
+      if (!file)
+        throw std::runtime_error("#hs.obj: could not open "+fileName);
+     
+      std::vector<char> line(1<<24);
+
+      while (fgets(line.data(),line.size(),file) && !feof(file)) {
+        if (line[0] == '#')
+          continue;
+        if (line[0] == 'v') {
+          vec3f v;
+          unsigned c[3];
+          int n = sscanf(line.data(),"v %f %f %f %u %u %u",
+                         &v.x, &v.y, &v.z, &c[0], &c[1], &c[2]);
+          if (n != 6) {
+            fclose(file);
+            throw std::runtime_error("#hs.obj: could not parse line");
+          }
+          result->vertices.push_back(v);
+          result->radii.push_back(1.f);
+          result->colors.push_back({c[0]/255.f,c[1]/255.f,c[2]/255.f});
+        }
+        if (line[0] == 'l') {
+          std::istringstream iss(line.data());
+          char l;
+          iss >> l;
+
+          int head, tail;
+          iss >> head;
+          while (iss >> tail) {
+            vec2i segment(head-1,tail-1);
+            result->indices.push_back(segment);
+            head = tail;
+          }
+        }
+      }
+
+      result->colorPerVertex  = true;
+      result->radiusPerVertex = true;
+
+      std::cout << "#hs.obj: done reading OBJ file" << std::endl;
+//      std::cout << "last line was " << line << std::endl;
+
+      fclose(file);
+    }
     
     CylindersFromFile::CylindersFromFile(const std::string &fileName,
                                          size_t fileSize,
@@ -186,6 +233,10 @@ namespace hs {
           // cs->colors.push_back(randomColor(++primID));
         }
         cs->radiusPerVertex = false;
+      } else if (endsWith(fileName,".obj")) {
+        loadOBJ(cs,fileName);
+        for (auto &vtx : cs->vertices)
+          vtx = vtx * scale + shift;
       } else if (endsWith(fileName,".raw")) {
         // serkan dumped files
         std::ifstream in(fileName.c_str(),std::ios::binary);
