@@ -677,7 +677,7 @@ int main(int ac, char **av)
   }
 
 #if HS_CUTEE
-  QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication app(ac,av);
   Viewer viewer(renderer,&world);
 
