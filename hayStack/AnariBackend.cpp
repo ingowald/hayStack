@@ -224,11 +224,13 @@ namespace hs {
        before we create anything else */
 
     bool thisIsBarney = (!envlib || std::string(envlib) == "barney" || std::string(envlib) == "barney_mpi");
-    if (numDataGroups == 1 && !thisIsBarney) {
+    PRINT(numDataGroups);
+    if (numDataGroups == 1/* && !thisIsBarney*/) {
       auto device = anari::newDevice(library, "default");
       anari::commitParameters(device, device);
       devices.push_back(device);
     } else {
+      PING;
       for (int devIdx=0;devIdx<numGPUs;devIdx++) {
         int gpuID = base->gpuIDs[devIdx];
         int slot = devIdx % numDataGroups;
