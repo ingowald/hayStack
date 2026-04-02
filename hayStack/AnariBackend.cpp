@@ -326,9 +326,21 @@ namespace hs {
         (device,vol,"opacity",
          anari::newArray1D(device, opacities.data(), opacities.size()));
 #endif
+      float unitDist
+        = 100.f/xf.baseDensity;
+      unitDist
+        = (xf.baseDensity >= 100)
+        ? (1.f/(xf.baseDensity-99))
+        : powf(1.03f,100-xf.baseDensity);
+       
+      PRINT(unitDist);
+      // > 100
+      //   ? (1.f/(xf.baseDensity-100))
       anari::setParameter(device, vol,
                           "unitDistance",
-                          xf.baseDensity);
+                          unitDist
+                          // xf.baseDensity
+                          );
       range1f valueRange = xf.domain;
       anariSetParameter(device, vol, "valueRange",
                         ANARI_FLOAT32_BOX1,

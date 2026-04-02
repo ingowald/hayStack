@@ -294,10 +294,12 @@ namespace hs {
   void Viewer::opacityScaleChanged(double scale)
   {
     // xf.baseDensity = powf(scale > 100 ? 1.03 : 1.08,scale - 100.f);
-    xf.baseDensity
-      = scale >= 100
-      ? 1.f/(scale-100)
-      : powf(1.03,100.f-scale);
+    // xf.baseDensity
+    //   = scale >= 100
+    //   ? 1.f/(scale-100)
+    //   : powf(1.03,100.f-scale);
+    PING; PRINT(scale);
+    xf.baseDensity = scale;
     xfDirty = true;
   }
 #endif
