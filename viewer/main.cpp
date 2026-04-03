@@ -298,7 +298,6 @@ namespace hs {
     //   = scale >= 100
     //   ? 1.f/(scale-100)
     //   : powf(1.03,100.f-scale);
-    PING; PRINT(scale);
     xf.baseDensity = scale;
     xfDirty = true;
   }
@@ -817,6 +816,7 @@ int main(int ac, char **av)
     renderer->renderFrame();
 
   stbi_flip_vertically_on_write(true);
+  std::cout << "saving in " << fromCL.outFileName.c_str() << std::endl;
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
 

@@ -326,16 +326,20 @@ namespace hs {
         (device,vol,"opacity",
          anari::newArray1D(device, opacities.data(), opacities.size()));
 #endif
-      float unitDist
-        = 100.f/xf.baseDensity;
-      unitDist
-        = (xf.baseDensity >= 100)
-        ? (1.f/(xf.baseDensity-99))
-        : powf(1.03f,100-xf.baseDensity);
+      // float unitDist
+      //   = 100.f/xf.baseDensity;
+      // unitDist
+      //   = (xf.baseDensity >= 100)
+      //   ? (1.f/(xf.baseDensity-99))
+      //   : powf(1.03f,100-xf.baseDensity);
        
-      PRINT(unitDist);
+      // PRINT(unitDist);
       // > 100
       //   ? (1.f/(xf.baseDensity-100))
+
+      float unitDist = powf(1.05f,xf.baseDensity - 100.f);
+      PRINT(xf.baseDensity);
+      PRINT(unitDist);
       anari::setParameter(device, vol,
                           "unitDistance",
                           unitDist

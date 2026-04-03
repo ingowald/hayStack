@@ -32,7 +32,7 @@ namespace hs {
     in.read((char*)&magic,sizeof(xfFileFormatMagic));
     
     in.read((char*)&baseDensity,sizeof(baseDensity));
-    baseDensity = powf(1.1f,baseDensity - 100.f);
+    // baseDensity = powf(1.1f,baseDensity - 100.f);
     
     range1f absDomain, relDomain;
     in.read((char*)&absDomain,sizeof(absDomain));
