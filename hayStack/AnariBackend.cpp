@@ -101,6 +101,7 @@ namespace hs {
     frame = anari::newObject<anari::Frame>(device);
     anari::setParameter(device, frame, "world",    model);
     anari::setParameter(device, frame, "renderer", renderer);
+    anari::setParameter(device, frame, "denoise",  (bool)true);
 
     this->camera = anari::newObject<anari::Camera>(device, "perspective");
 
