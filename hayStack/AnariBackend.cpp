@@ -1043,7 +1043,7 @@ namespace hs {
     std::vector<uint32_t> indexData;
 
     // this isn't fully spec'ed yet
-    enum { _VTK_TET = 10, _VTK_HEX=12, _VTK_WEDGE=13, _VTK_PYR=14 };
+    enum { _VTK_TET = 10, _VTK_HEX=12, _VTK_WEDGE=13, _VTK_PYR=14, _VTK_POLYHEDRON=42 };
     enum { _ANARI_TET = 0, _ANARI_HEX=1, _ANARI_WEDGE=2, _ANARI_PYR=3 };
     for (auto prim : mesh->tets) {
       cellTypeData.push_back(_VTK_TET);
@@ -1068,6 +1068,21 @@ namespace hs {
       cellBeginData.push_back((uint32_t)indexData.size());
       for (int i=0;i<prim.numVertices;i++)
         indexData.push_back(prim[i]);
+    }
+    for (int i=0;i<(int)mesh->polyOffsets.size();i++) {
+      cellTypeData.push_back(_VTK_POLYHEDRON);
+      cellBeginData.push_back((uint32_t)indexData.size());
+      // copy this polyhedron's face stream into the index array
+      int streamOfs = mesh->polyOffsets[i];
+      int numFaces = mesh->polyFaceStream[streamOfs];
+      int pos = streamOfs;
+      int streamEnd;
+      if (i+1 < (int)mesh->polyOffsets.size())
+        streamEnd = mesh->polyOffsets[i+1];
+      else
+        streamEnd = (int)mesh->polyFaceStream.size();
+      for (int j = pos; j < streamEnd; j++)
+        indexData.push_back(mesh->polyFaceStream[j]);
     }
     
     anari::setParameterArray1D

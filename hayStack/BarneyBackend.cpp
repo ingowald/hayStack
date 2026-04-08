@@ -659,7 +659,9 @@ namespace hs {
     int pyrBegin = tetBegin + 4 * mesh->tets.size();
     int wedBegin = pyrBegin + 5 * mesh->pyrs.size();
     int hexBegin = wedBegin + 6 * mesh->wedges.size();
-    int numIndices = hexBegin + 8 * mesh->hexes.size();
+    int fixedIndicesEnd = hexBegin + 8 * mesh->hexes.size();
+    int polyBegin = fixedIndicesEnd;
+    int numIndices = fixedIndicesEnd + (int)mesh->polyFaceStream.size();
     std::vector<int> indices(numIndices);
     memcpy(indices.data()+tetBegin,mesh->tets.data(),
            4*sizeof(int)*mesh->tets.size());
@@ -669,6 +671,9 @@ namespace hs {
            6*sizeof(int)*mesh->wedges.size());
     memcpy(indices.data()+hexBegin,mesh->hexes.data(),
            8*sizeof(int)*mesh->hexes.size());
+    if (!mesh->polyFaceStream.empty())
+      memcpy(indices.data()+polyBegin,mesh->polyFaceStream.data(),
+             mesh->polyFaceStream.size()*sizeof(int));
 
     std::vector<int>     elementOffsets;
     std::vector<uint8_t> cellTypes;
@@ -687,6 +692,10 @@ namespace hs {
     for (int i=0;i<mesh->hexes.size();i++) {
       elementOffsets.push_back(hexBegin+8*i);
       cellTypes.push_back(BN_UNSTRUCTURED_HEX);
+    }
+    for (int i=0;i<(int)mesh->polyOffsets.size();i++) {
+      elementOffsets.push_back(polyBegin+mesh->polyOffsets[i]);
+      cellTypes.push_back(BN_UNSTRUCTURED_POLYHEDRON);
     }
     
     assert(mesh->perVertex);
