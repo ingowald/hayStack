@@ -28,6 +28,9 @@
 #include "viewer/content/UMeshContent.h"
 #include "viewer/content/OBJContent.h"
 #include "viewer/content/DGEFContent.h"
+#if HS_VTK
+#include "viewer/content/VTUContent.h"
+#endif
 #if HS_USD
 #include "viewer/content/USD.h"
 #endif
@@ -332,6 +335,11 @@ namespace hs {
     // extension:
     if (endsWith(contentDescriptor,".umesh")) {
       UMeshContent::create(this,contentDescriptor);
+#if HS_VTK
+    } else if (endsWith(contentDescriptor,".vtu") ||
+               endsWith(contentDescriptor,".vtp")) {
+      VTUContent::create(this,contentDescriptor);
+#endif
     } else if (endsWith(contentDescriptor,".obj")) {
       if (contentDescriptor.substr(0,12)=="cylinders://") {
         ResourceSpecifier url(contentDescriptor);
