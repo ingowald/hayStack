@@ -304,7 +304,8 @@ namespace hs {
 
       // volume = umesh::tetrahedralize(volume,0,0,0,volume->hexes.size());
       // PRINT(volume->toString());
-      umesh::UMesh::SP surf = umesh::extractIsoSurface(volume,isoValue);
+      std::vector<float> mappedScalar;
+      umesh::UMesh::SP surf = umesh::extractIsoSurface(volume,isoValue,mappedScalar);
       surf->finalize();
       PRINT(surf->toString());
 
