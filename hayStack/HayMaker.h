@@ -9,6 +9,10 @@
 #include "hayStack/HayStack.h"
 #include "hayStack/LocalModel.h"
 #include "hayStack/MPIRenderer.h"
+#if HS_USE_MULTI_SCATTERING
+# include "hayStack/NanoVDBVolume.h"
+# include <unordered_map>
+#endif
 #include <anari/anari_cpp.hpp>
 #include <anari/anari_cpp/ext/linalg.h>
 
@@ -121,6 +125,19 @@ namespace hs {
       for (auto slot : perSlot)
         slot->setTransferFunction(xf);
     }
+#if HS_USE_MULTI_SCATTERING
+    void setVolumeScatterSettings(const VolumeScatterSettings &settings) override
+    {
+      for (auto slot : perSlot)
+        slot->setVolumeScatterSettings(settings);
+    }
+    VolumeScatterSettings getVolumeScatterSettings() const override
+    {
+      if (perSlot.empty())
+        return {};
+      return perSlot[0]->volumeScatterSettings;
+    }
+#endif
     void renderFrame() override
     {
       buildSlots();
@@ -157,6 +174,9 @@ namespace hs {
 
       std::vector<VolumeHandle> rootVolumes;
       std::vector<GeomHandle>   rootGeoms;
+#if HS_USE_MULTI_SCATTERING
+      std::unordered_map<VolumeHandle, VolumeScatterParams> principledScatterByVolume;
+#endif
       
       LightHandle envLight;
       std::vector<LightHandle> lights;
@@ -166,8 +186,17 @@ namespace hs {
       void setTransferFunction(const TransferFunction &xf)
       {
         currentXF = xf;
-        // Backend::Slot::setTransferFunction(rootVolumes,xf);
-        dirty = true;
+        if (rootInstances.groups.empty()) {
+          dirty = true;
+          return;
+        }
+#if HS_USE_MULTI_SCATTERING
+        if (isUnsetTransferFunctionDomain(xf.domain)
+            && !rootVolumes.empty()
+            && principledScatterByVolume.size() == rootVolumes.size())
+          return;
+#endif
+        this->applyTransferFunction(xf);
       }
       
       void renderAll();
@@ -181,6 +210,16 @@ namespace hs {
       MaterialLibrary<Backend> materialLibrary;
 
       TransferFunction currentXF;
+#if HS_USE_MULTI_SCATTERING
+      VolumeScatterSettings volumeScatterSettings;
+      void setVolumeScatterSettings(const VolumeScatterSettings &settings)
+      {
+        volumeScatterSettings = settings;
+        for (auto &entry : principledScatterByVolume)
+          entry.second = settings.medium;
+        this->applyVolumeScatterSettings(settings);
+      }
+#endif
       bool dirty = true;
     };
     

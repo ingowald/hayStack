@@ -17,6 +17,9 @@
 #pragma once
 
 #include "hayStack/TransferFunction.h"
+#if HS_USE_MULTI_SCATTERING
+# include "hayStack/NanoVDBVolume.h"
+#endif
 
 /* parallel renderer abstraction */
 namespace hs {
@@ -43,6 +46,10 @@ namespace hs {
   struct Renderer {
 
     virtual void setTransferFunction(const TransferFunction &xf) {}
+#if HS_USE_MULTI_SCATTERING
+    virtual void setVolumeScatterSettings(const VolumeScatterSettings &settings) {}
+    virtual VolumeScatterSettings getVolumeScatterSettings() const { return {}; }
+#endif
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
     virtual void resetAccumulation() {}

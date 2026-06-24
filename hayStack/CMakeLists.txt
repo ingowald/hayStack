@@ -50,6 +50,16 @@ target_include_directories(hayStack PUBLIC
   ${PROJECT_SOURCE_DIR}
 )
 
+if (HS_USE_MULTI_SCATTERING)
+  if (NOT NANOVDB_INCLUDE_DIR)
+    message(FATAL_ERROR
+      "HS_USE_MULTI_SCATTERING=ON requires NANOVDB_INCLUDE_DIR "
+      "(directory containing nanovdb/NanoVDB.h)")
+  endif()
+  target_compile_definitions(hayStack PUBLIC HS_USE_MULTI_SCATTERING=1)
+  target_include_directories(hayStack PUBLIC ${NANOVDB_INCLUDE_DIR})
+endif()
+
 if (HS_MPI)
   find_package(MPI REQUIRED)
   target_compile_definitions(hayStack PUBLIC -DHS_MPI=1)

@@ -4,6 +4,9 @@
 #pragma once
 
 #include "HayMaker.h"
+#if HS_USE_MULTI_SCATTERING
+# include "hayStack/NanoVDBVolume.h"
+#endif
 
 namespace hs {
 
@@ -55,6 +58,9 @@ namespace hs {
            typename HayMakerT<AnariBackend>::Slot *impl);
     
       void applyTransferFunction(const TransferFunction &xf);
+#if HS_USE_MULTI_SCATTERING
+      void applyVolumeScatterSettings(const VolumeScatterSettings &settings);
+#endif
       // void setTransferFunction(const std::vector<VolumeHandle> &volumes,
       //                          const TransferFunction &xf);
       
@@ -78,6 +84,9 @@ namespace hs {
       
       anari::Volume create(const TAMRVolume::SP &v);
       anari::Volume create(const StructuredVolume::SP &v);
+#if HS_USE_MULTI_SCATTERING
+      anari::Volume create(const NanoVDBVolume::SP &v);
+#endif
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
       void setColorMapping(anari::Material mat, const std::string &colorName);
@@ -123,6 +132,7 @@ namespace hs {
       
       anari::Sampler scalarMapper = 0;
       anari::Frame  frame  = 0;
+      anari::Renderer renderer = 0;
       anari::Device device = 0;
       anari::World  model  = 0;
       anari::Camera camera = 0;

@@ -139,9 +139,12 @@ if (HS_CUTEE)
   set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
   
   set(CMAKE_AUTOMOC OFF)
-  add_executable(hsViewerQT
-    ${SOURCES}
-    )
+  add_executable(hsViewerQT ${SOURCES})
+  if (HS_USE_MULTI_SCATTERING)
+    target_sources(hsViewerQT PRIVATE
+      VolumeScatterPanel.cpp
+      VolumeScatterPanel.h)
+  endif()
   target_link_libraries(hsViewerQT
     PUBLIC
     hayStack
@@ -151,6 +154,7 @@ if (HS_CUTEE)
   target_compile_definitions(hsViewerQT PUBLIC -DHS_CUTEE=1)
   set_target_properties(hsViewerQT
     PROPERTIES
+    AUTOMOC ON
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON

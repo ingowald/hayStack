@@ -38,6 +38,9 @@ namespace hs {
      TERMINATE,
      SET_XF,
      RESET_ACCUMULATION,
+#if HS_USE_MULTI_SCATTERING
+     SET_VOLUME_SCATTER,
+#endif
      // SET_ISO,
      MAX_VALID_COMMANDS
     } CommandTag;
@@ -50,7 +53,10 @@ namespace hs {
      "SCREEN_SHOT",
      "TERMINATE",
      "SET_XF",
-     "RESET_ACCUMULATION"
+     "RESET_ACCUMULATION",
+#if HS_USE_MULTI_SCATTERING
+     "SET_VOLUME_SCATTER",
+#endif
   };
 
   
@@ -63,6 +69,9 @@ namespace hs {
                            "terminate",
                            "set_xf",
                            "reset_accum",
+#if HS_USE_MULTI_SCATTERING
+                           "set_volume_scatter",
+#endif
                            "<EOL>" };
                            
   
@@ -99,6 +108,9 @@ namespace hs {
     void cmd_resetAccumulation();
     void cmd_setCamera();
     void cmd_setTransferFunction();
+#if HS_USE_MULTI_SCATTERING
+    void cmd_setVolumeScatterSettings();
+#endif
     void cmd_setISO();
     void cmd_setShadeMode();
     void cmd_setNodeSelection();
@@ -408,6 +420,28 @@ namespace hs {
     // ------------------------------------------------------------------
     renderer->setTransferFunction(xf);
   }
+
+#if HS_USE_MULTI_SCATTERING
+  // ==================================================================
+
+  void MPIRenderer::setVolumeScatterSettings(const VolumeScatterSettings &settings)
+  {
+    int cmd = SET_VOLUME_SCATTER;
+    sendToWorkers(cmd);
+    sendToWorkers(settings);
+    sendEndOfMessage();
+    if (passThrough)
+      passThrough->setVolumeScatterSettings(settings);
+  }
+
+  void WorkerLoop::cmd_setVolumeScatterSettings()
+  {
+    VolumeScatterSettings settings;
+    fromMaster(settings);
+    checkEndOfMessage();
+    renderer->setVolumeScatterSettings(settings);
+  }
+#endif
   
   // ==================================================================
 
@@ -539,6 +573,11 @@ namespace hs {
       case SET_XF:
         cmd_setTransferFunction();
         break;
+#if HS_USE_MULTI_SCATTERING
+      case SET_VOLUME_SCATTER:
+        cmd_setVolumeScatterSettings();
+        break;
+#endif
       // case SET_ISO:
       //   cmd_setISO();
       //   break;

@@ -25,6 +25,9 @@
 #include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
 #include "hayStack/TAMRVolume.h"
+#if HS_USE_MULTI_SCATTERING
+# include "hayStack/NanoVDBVolume.h"
+#endif
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
 
@@ -59,6 +62,9 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
+#if HS_USE_MULTI_SCATTERING
+    std::vector<NanoVDBVolume::SP>    nanovdbVolumes;
+#endif
     std::vector<TAMRVolume::SP>       amr;
     int                               dataGroupID = -1;
   };
