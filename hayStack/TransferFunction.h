@@ -32,5 +32,10 @@ namespace hs {
     range1f domain = { 0.f, 0.f };
     float   baseDensity = 1.f;
   };
+
+  inline bool isUnsetTransferFunctionDomain(const range1f &domain)
+  {
+    return domain.upper <= domain.lower;
+  }
   
 }

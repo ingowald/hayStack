@@ -75,6 +75,12 @@ namespace hs {
       bounds.spatial.extend(volume->getBounds());
       bounds.scalars.extend(volume->getValueRange());
     }
+#if HS_USE_MULTI_SCATTERING
+    for (auto &volume : nanovdbVolumes) {
+      bounds.spatial.extend(volume->getBounds());
+      bounds.scalars.extend(volume->getValueRange());
+    }
+#endif
     return bounds;
   }
 

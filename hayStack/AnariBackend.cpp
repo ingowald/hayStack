@@ -15,12 +15,59 @@
 // ======================================================================== //
 
 #include "AnariBackend.h"
+#include "hayStack/TransferFunction.h"
 
 // # define TEST_IDCHANNEL "channel.objectId"    
 // # define TEST_IDCHANNEL "channel.instanceId"    
 // # define TEST_IDCHANNEL "channel.primitiveId"    
 
 namespace hs {
+
+  namespace {
+#if HS_USE_MULTI_SCATTERING
+    void applyPrincipledScatterParams(anari::Device device,
+                                      anari::Volume volume,
+                                      const VolumeScatterParams &scatter)
+    {
+      anari::setParameter(device, volume, "anisotropy", scatter.anisotropy);
+      anari::setParameter(device, volume, "scatteringAlbedo", scatter.scatteringAlbedo);
+      anari::setParameter(device, volume, "scatterColor",
+                          (const anari::math::float3 &)scatter.scatterColor);
+      anari::setParameter(device, volume, "absorptionColor",
+                          (const anari::math::float3 &)scatter.absorptionColor);
+      anari::setParameter(device, volume, "density", scatter.density);
+      anari::setParameter(device, volume, "densityThreshold", scatter.densityThreshold);
+      anari::setParameter(device, volume, "emissionStrength", scatter.emissionStrength);
+      anari::setParameter(device, volume, "emissionColor",
+                          (const anari::math::float3 &)scatter.emissionColor);
+      anari::setParameter(device, volume, "blackbodyIntensity", scatter.blackbodyIntensity);
+      anari::setParameter(device, volume, "blackbodyTint",
+                          (const anari::math::float3 &)scatter.blackbodyTint);
+      anari::setParameter(device, volume, "temperature", scatter.temperature);
+    }
+
+    void applyDefaultPrincipledTransferFunction(anari::Device device,
+                                                anari::Volume volume)
+    {
+      range1f valueRange = {0.f, 1.f};
+      anariSetParameter(device, volume, "valueRange",
+                        ANARI_FLOAT32_BOX1,
+                        &valueRange.lower);
+      anari::setParameter(device, volume, "unitDistance", 1.f);
+
+      vec3f colors[2] = {vec3f(1.f), vec3f(1.f)};
+      float alphas[2] = {0.f, 1.f};
+      auto colorArray = anari::newArray1D(device, ANARI_FLOAT32_VEC3, 2);
+      auto alphaArray = anari::newArray1D(device, ANARI_FLOAT32, 2);
+      memcpy(anariMapArray(device, colorArray), colors, sizeof(colors));
+      memcpy(anariMapArray(device, alphaArray), alphas, sizeof(alphas));
+      anariUnmapArray(device, colorArray);
+      anariUnmapArray(device, alphaArray);
+      anari::setAndReleaseParameter(device, volume, "color", colorArray);
+      anari::setAndReleaseParameter(device, volume, "opacity", alphaArray);
+    }
+#endif
+  }
 
     static void statusFunc(const void * /*userData*/,
                          ANARIDevice /*device*/,
@@ -75,29 +122,34 @@ namespace hs {
     model = anari::newObject<anari::World>(device);
     anari::commitParameters(device, model);
   
-    auto renderer = anari::newObject<anari::Renderer>(device, "default");
+    auto rendererObj = anari::newObject<anari::Renderer>(device, "default");
 
-    anari::setParameter(device, renderer, "ambientRadiance",
+    anari::setParameter(device, rendererObj, "ambientRadiance",
                         global->base->ambientRadiance
                         );
-    anari::setParameter(device, renderer, "pixelSamples", global->base->pixelSamples);
+    anari::setParameter(device, rendererObj, "pixelSamples", global->base->pixelSamples);
+#if HS_USE_MULTI_SCATTERING
+    anari::setParameter(device, rendererObj, "volumeMultiScatter", (bool)true);
+    anari::setParameter(device, rendererObj, "maxVolumeBounces", 8);
+#endif
     if (isnan(global->base->bgColor.x) || global->base->bgColor.x < 0.f) { 
       std::vector<vec4f> bgGradient = {
         vec4f(.9f,.9f,.9f,1.f),
         vec4f(0.15f, 0.25f, .8f,1.f),
       };
       anari::setAndReleaseParameter
-        (device,renderer,"background",
+        (device,rendererObj,"background",
          anari::newArray2D(device,
                            (const anari::math::float4*)bgGradient.data(),
                            1,2));
     } else {
       anari::setParameter
-        (device,renderer,"background",
+        (device,rendererObj,"background",
          (const anari::math::float4 &)global->base->bgColor);
     }
-    anari::commitParameters(device, renderer);
+    anari::commitParameters(device, rendererObj);
 
+    renderer = rendererObj;
     frame = anari::newObject<anari::Frame>(device);
     anari::setParameter(device, frame, "world",    model);
     anari::setParameter(device, frame, "renderer", renderer);
@@ -294,6 +346,14 @@ namespace hs {
     // auto model = global->model;
     
     for (auto vol : impl->rootVolumes) {
+#if HS_USE_MULTI_SCATTERING
+      auto principledIt = impl->principledScatterByVolume.find(vol);
+      const bool isPrincipled = principledIt != impl->principledScatterByVolume.end();
+      if (isPrincipled && isUnsetTransferFunctionDomain(xf.domain))
+        continue;
+#else
+      const bool isPrincipled = false;
+#endif
 #if 1
       int N = xf.colorMap.size();
       auto colorArray = anari::newArray1D(device,ANARI_FLOAT32_VEC3,N);
@@ -347,16 +407,37 @@ namespace hs {
                           // xf.baseDensity
                           );
       range1f valueRange = xf.domain;
+#if HS_USE_MULTI_SCATTERING
+      if (isPrincipled && isUnsetTransferFunctionDomain(valueRange))
+        valueRange = {0.f, 1.f};
+#endif
       anariSetParameter(device, vol, "valueRange",
                         ANARI_FLOAT32_BOX1,
                         &valueRange.lower);
 
       anari::commitParameters(device, vol);
     }
-
-    anari::commitParameters(device, impl->volumeGroup);
-    anari::commitParameters(device, model);
   }
+
+#if HS_USE_MULTI_SCATTERING
+  void AnariBackend::Slot::applyVolumeScatterSettings
+  (const VolumeScatterSettings &settings)
+  {
+    if (renderer) {
+      anari::setParameter(device, renderer, "volumeMultiScatter",
+                          (bool)settings.enabled);
+      anari::setParameter(device, renderer, "maxVolumeBounces",
+                          settings.maxVolumeBounces);
+      anari::commitParameters(device, renderer);
+    }
+
+    for (auto &entry : impl->principledScatterByVolume) {
+      applyPrincipledScatterParams(device, entry.first, settings.medium);
+      entry.second = settings.medium;
+      anari::commitParameters(device, entry.first);
+    }
+  }
+#endif
 #else
   void AnariBackend::Slot::setTransferFunction(const std::vector<anari::Volume> &rootVolumes,
                                                const TransferFunction &xf)
@@ -1016,6 +1097,25 @@ namespace hs {
     return volume;
   }
 
+#if HS_USE_MULTI_SCATTERING
+  anari::Volume AnariBackend::Slot::create(const NanoVDBVolume::SP &vol)
+  {
+    auto field = anari::newObject<anari::SpatialField>(device, "nanovdb");
+    anari::setParameterArray1D
+      (device, field, "data", (const uint8_t *)vol->data.data(),
+       vol->data.size());
+    anari::commitParameters(device, field);
+
+    auto volume = anari::newObject<anari::Volume>(device, "principled_volume");
+    anari::setAndReleaseParameter(device, volume, "value", field);
+    applyPrincipledScatterParams(device, volume, vol->scatter);
+    applyDefaultPrincipledTransferFunction(device, volume);
+    anari::commitParameters(device, volume);
+
+    return volume;
+  }
+#endif
+  
   anari::Volume AnariBackend::Slot::create(const TAMRVolume::SP &input)
   {
     std::cout << "skipping amr volume ..." << std::endl;

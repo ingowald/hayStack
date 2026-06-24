@@ -37,6 +37,9 @@ namespace hs {
     // void setXF(const range1f &domain,
     //            const std::vector<vec4f> &colors) override;
     void setTransferFunction(const TransferFunction &xf) override;
+#if HS_USE_MULTI_SCATTERING
+    void setVolumeScatterSettings(const VolumeScatterSettings &settings) override;
+#endif
     void screenShot() override;
     void terminate() override;
     void setLights(float ambient,

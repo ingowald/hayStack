@@ -3,6 +3,7 @@
 
 #include "HayMaker.h"
 #include "hayStack/ColorMap.h"
+#include "hayStack/TransferFunction.h"
 #include "AnariBackend.h"
 
 namespace hs {
@@ -135,9 +136,11 @@ namespace hs {
   {
     auto impl = this->impl;
     if (!dirty) return;
+
+    const bool building = rootInstances.groups.empty();
     dirty = false;
        
-    if (rootInstances.groups.empty()) {
+    if (building) {
 
       // ==================================================================
       // first, "render" all content in the sense that we create
@@ -198,6 +201,15 @@ namespace hs {
         if (createdVolume)
           rootVolumes.push_back(createdVolume);
       }
+#if HS_USE_MULTI_SCATTERING
+      for (auto vol : myData.nanovdbVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume) {
+          rootVolumes.push_back(createdVolume);
+          principledScatterByVolume[createdVolume] = vol->scatter;
+        }
+      }
+#endif
       // ------------------------------------------------------------------
       // render all *UN*-structured volumes
       // -----------------------------------------------------------------
@@ -239,9 +251,19 @@ namespace hs {
       // -----------------------------------------------------------------
     }
 
-    impl->applyTransferFunction(currentXF);
+#if HS_USE_MULTI_SCATTERING
+    const bool skipTfApply =
+      isUnsetTransferFunctionDomain(currentXF.domain)
+      && !rootVolumes.empty()
+      && principledScatterByVolume.size() == rootVolumes.size();
+#else
+    const bool skipTfApply = false;
+#endif
+    if (!skipTfApply)
+      impl->applyTransferFunction(currentXF);
     
-    this->setInstances(rootInstances.groups,rootInstances.xfms);
+    if (building)
+      this->setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
   template<typename Backend>

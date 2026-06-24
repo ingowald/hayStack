@@ -37,6 +37,9 @@
 #include "viewer/content/DistData.h"
 #include "viewer/content/Capsules.h"
 #include "viewer/content/IsoDump.h"
+#if HS_USE_MULTI_SCATTERING
+# include "viewer/content/NVDBVolumeContent.h"
+#endif
 
 namespace hs {
 
@@ -369,6 +372,10 @@ namespace hs {
       content::HSMesh::create(this,addIfRequired("hsmesh://",contentDescriptor));
     } else if (endsWith(contentDescriptor,".raw")) {
       RAWVolumeContent::create(this,addIfRequired("raw://",contentDescriptor));
+#if HS_USE_MULTI_SCATTERING
+    } else if (endsWith(contentDescriptor,".nvdb")) {
+      NVDBVolumeContent::create(this,addIfRequired("nvdb://",contentDescriptor));
+#endif
     } else if (endsWith(contentDescriptor,".tamr")) {
       TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
     } else {
@@ -389,6 +396,10 @@ namespace hs {
       //   ENDumpContent::create(this,contentDescriptor);
       else if (url.type == "raw") 
         RAWVolumeContent::create(this,url);
+#if HS_USE_MULTI_SCATTERING
+      else if (url.type == "nvdb")
+        NVDBVolumeContent::create(this,url);
+#endif
       else if (url.type == "gests") 
         GESTSVolumeContent::create(this,url);
       else if (url.type == "tamr") 

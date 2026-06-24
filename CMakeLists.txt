@@ -37,6 +37,7 @@ else()
   option(HS_CUTEE "Use QT Viewer and XFEditor" ON)
 endif()
 option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
+option(HS_USE_MULTI_SCATTERING "NanoVDB volumes for Barney multi-scattering" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
 if (NOT (TARGET miniScene))

@@ -6,6 +6,10 @@
 #if HS_CUTEE
 # include "cutee/OWLViewer.h"
 # include "cutee/XFEditor.h"
+# if HS_USE_MULTI_SCATTERING
+#  include "viewer/VolumeScatterPanel.h"
+# endif
+# include <QVBoxLayout>
 # include "stb/stb_image_write.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -105,6 +109,9 @@ namespace hs {
     void colorMapChanged(cutee::XFEditor *xf);
     void rangeChanged(cutee::common::interval<float> r);
     void opacityScaleChanged(double scale);
+#if HS_USE_MULTI_SCATTERING
+    void scatterSettingsChanged(const VolumeScatterSettings &settings);
+#endif
 
   public:
     void screenShot()
@@ -204,6 +211,14 @@ namespace hs {
         accumDirty = true;
       }
 
+#if HS_USE_MULTI_SCATTERING
+      if (scatterDirty) {
+        renderer->setVolumeScatterSettings(scatterSettings);
+        scatterDirty = false;
+        accumDirty = true;
+      }
+#endif
+
       if (accumDirty) {
         renderer->resetAccumulation();
         accumDirty = false;
@@ -270,6 +285,11 @@ namespace hs {
 
     TransferFunction xf;
     bool xfDirty = true;
+#if HS_USE_MULTI_SCATTERING
+    VolumeScatterSettings scatterSettings;
+    bool scatterDirty = true;
+    VolumeScatterPanel *scatterPanel = 0;
+#endif
     bool accumDirty = true;
     Renderer *const renderer;
     hs::mpi::Comm *world;
@@ -301,6 +321,14 @@ namespace hs {
     xf.baseDensity = scale;
     xfDirty = true;
   }
+
+#if HS_USE_MULTI_SCATTERING
+  void Viewer::scatterSettingsChanged(const VolumeScatterSettings &settings)
+  {
+    scatterSettings = settings;
+    scatterDirty = true;
+  }
+#endif
 #endif
 
   inline mini::common::vec3f get3f(char **av, int &i)
@@ -698,26 +726,39 @@ int main(int ac, char **av)
 
   QMainWindow secondWindow;
   if (modelHasVolumeData) {
-    XFEditor    *xfEditor = new XFEditor
+    XFEditor *xfEditor = new XFEditor
       ((cutee::common::interval<float>&)worldBounds.scalars);
-    viewer.xfEditor       = xfEditor;
-    QFormLayout *layout   = new QFormLayout;
-    layout->addWidget(xfEditor);
-    
+    viewer.xfEditor = xfEditor;
+
+    QWidget *sidePanel = new QWidget;
+    auto *sideLayout = new QVBoxLayout(sidePanel);
+    sideLayout->addWidget(xfEditor);
+
     QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
-                   &viewer, &Viewer::colorMapChanged);
+                     &viewer, &Viewer::colorMapChanged);
     QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
                      &viewer, &Viewer::rangeChanged);
     QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
                      &viewer, &Viewer::opacityScaleChanged);
-    
-    
+
     if (!fromCL.xfFileName.empty())
       viewer.xfEditor->loadFrom(fromCL.xfFileName);
-    
-    // Set QWidget as the central layout of the main window
-    secondWindow.setCentralWidget(viewer.xfEditor);
-    
+
+#if HS_USE_MULTI_SCATTERING
+    {
+      VolumeScatterPanel *scatterPanel = new VolumeScatterPanel;
+      viewer.scatterPanel = scatterPanel;
+      scatterPanel->setSettings(VolumeScatterSettings{});
+      viewer.scatterSettings = scatterPanel->getSettings();
+      sideLayout->addWidget(scatterPanel);
+      QObject::connect(scatterPanel, &VolumeScatterPanel::settingsChanged,
+                       &viewer, &Viewer::scatterSettingsChanged);
+    }
+#endif
+
+    secondWindow.setWindowTitle("Transfer function");
+    secondWindow.setCentralWidget(sidePanel);
+    secondWindow.resize(420, 900);
     secondWindow.show();
   }
   
