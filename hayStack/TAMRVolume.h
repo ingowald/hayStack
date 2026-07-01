@@ -19,6 +19,7 @@
 #pragma once
 
 #include "hayStack/HayStack.h"
+#include "hayStack/Cylinders.h"
 #include <tinyAMR/Model.h>
 
 namespace hs {
@@ -38,6 +39,9 @@ namespace hs {
 
     box3f getBounds() const;
     range1f getValueRange() const;
+
+    /*! wireframe outline of each AMR block (for tamr://...:dbg) */
+    static Cylinders::SP createBlockDebugCylinders(const tamr::Model::SP &model);
 
     tamr::Model::SP model;
     const vec3f gridOrigin;

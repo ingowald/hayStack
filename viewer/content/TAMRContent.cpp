@@ -21,9 +21,11 @@
 namespace hs {
   
   TAMRContent::TAMRContent(const std::string &fileName,
-                           int thisPartID)
+                           int thisPartID,
+                           bool showBlockDebug)
     : fileName(fileName),
-      thisPartID(thisPartID)
+      thisPartID(thisPartID),
+      showBlockDebug(showBlockDebug)
   {}
 
   void TAMRContent::create(DataLoader *loader,
@@ -33,8 +35,9 @@ namespace hs {
       throw std::runtime_error("on-demand splitting of TAMR files not yet supported");
     // std::string type = dataURL.get("type",dataURL.get("format",""));
     
+    const bool showBlockDebug = dataURL.has("dbg");
     for (int i=0;i<dataURL.numParts;i++) {
-      loader->addContent(new TAMRContent(dataURL.where,i));
+      loader->addContent(new TAMRContent(dataURL.where, i, showBlockDebug));
     }
   }
   
@@ -47,6 +50,8 @@ namespace hs {
   {
     tamr::Model::SP model = tamr::Model::load(fileName);
     dataGroup.amr.push_back(std::make_shared<TAMRVolume>(model));
+    if (showBlockDebug)
+      dataGroup.cylinderSets.push_back(TAMRVolume::createBlockDebugCylinders(model));
   }
   
   std::string TAMRContent::toString() 

@@ -1118,8 +1118,44 @@ namespace hs {
   
   anari::Volume AnariBackend::Slot::create(const TAMRVolume::SP &input)
   {
-    std::cout << "skipping amr volume ..." << std::endl;
-    return 0;
+    auto model = input->model;
+
+    struct AmrBlockBounds {
+      vec3i lower;
+      vec3i upper;
+    };
+
+    std::vector<AmrBlockBounds> blockBounds;
+    std::vector<int> blockLevels;
+    blockBounds.reserve(model->grids.size());
+    blockLevels.reserve(model->grids.size());
+    for (auto &grid : model->grids) {
+      AmrBlockBounds bounds;
+      bounds.lower = (const vec3i &)grid.origin;
+      bounds.upper = bounds.lower + (const vec3i &)grid.dims - vec3i(1);
+      blockBounds.push_back(bounds);
+      blockLevels.push_back(grid.level);
+    }
+
+    auto boundsArray
+      = anari::newArray1D(device, ANARI_INT32_BOX3, blockBounds.size());
+    auto *mappedBounds = anari::map<AmrBlockBounds>(device, boundsArray);
+    for (size_t i = 0; i < blockBounds.size(); ++i)
+      mappedBounds[i] = blockBounds[i];
+    anari::unmap(device, boundsArray);
+
+    auto field = anari::newObject<anari::SpatialField>(device, "amr");
+    anari::setAndReleaseParameter(device, field, "block.bounds", boundsArray);
+    anari::setParameterArray1D(device, field, "block.level",
+                                blockLevels.data(), blockLevels.size());
+    anari::setParameterArray1D(device, field, "data",
+                                model->scalars.data(), model->scalars.size());
+    anari::commitParameters(device, field);
+
+    auto volume = anari::newObject<anari::Volume>(device, "transferFunction1D");
+    anari::setAndReleaseParameter(device, volume, "value", field);
+    anari::commitParameters(device, volume);
+    return volume;
   }
   
   anari::Volume
