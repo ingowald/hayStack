@@ -31,11 +31,15 @@ namespace hs {
     
     TAMRVolume(tamr::Model::SP model,
                const vec3f &gridOrigin=vec3f(0.f),
-               const vec3f &gridSpacing=vec3f(1.f))
+               const vec3f &gridSpacing=vec3f(1.f),
+               float isoValue=NAN)
       : model(model),
         gridOrigin(gridOrigin),
-        gridSpacing(gridSpacing)
+        gridSpacing(gridSpacing),
+        isoValue(isoValue)
     {}
+
+    bool wantsIsoSurface() const { return !isnan(isoValue); }
 
     box3f getBounds() const;
     range1f getValueRange() const;
@@ -46,6 +50,7 @@ namespace hs {
     tamr::Model::SP model;
     const vec3f gridOrigin;
     const vec3f gridSpacing;
+    const float isoValue;
   };
 
 }

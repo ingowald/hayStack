@@ -1118,6 +1118,9 @@ namespace hs {
   
   anari::Volume AnariBackend::Slot::create(const TAMRVolume::SP &input)
   {
+    if (input->wantsIsoSurface())
+      return {};
+
     auto model = input->model;
 
     struct AmrBlockBounds {
@@ -1156,6 +1159,60 @@ namespace hs {
     anari::setAndReleaseParameter(device, volume, "value", field);
     anari::commitParameters(device, volume);
     return volume;
+  }
+
+  anari::Surface
+  AnariBackend::Slot::createAMRIsoSurface(const TAMRVolume::SP &input,
+                                        MaterialLibrary<AnariBackend> *materialLib)
+  {
+    assert(input->wantsIsoSurface());
+    auto model = input->model;
+
+    struct AmrBlockBounds {
+      vec3i lower;
+      vec3i upper;
+    };
+
+    std::vector<AmrBlockBounds> blockBounds;
+    std::vector<int> blockLevels;
+    blockBounds.reserve(model->grids.size());
+    blockLevels.reserve(model->grids.size());
+    for (auto &grid : model->grids) {
+      AmrBlockBounds bounds;
+      bounds.lower = (const vec3i &)grid.origin;
+      bounds.upper = bounds.lower + (const vec3i &)grid.dims - vec3i(1);
+      blockBounds.push_back(bounds);
+      blockLevels.push_back(grid.level);
+    }
+
+    auto boundsArray
+      = anari::newArray1D(device, ANARI_INT32_BOX3, blockBounds.size());
+    auto *mappedBounds = anari::map<AmrBlockBounds>(device, boundsArray);
+    for (size_t i = 0; i < blockBounds.size(); ++i)
+      mappedBounds[i] = blockBounds[i];
+    anari::unmap(device, boundsArray);
+
+    auto field = anari::newObject<anari::SpatialField>(device, "amr");
+    anari::setAndReleaseParameter(device, field, "block.bounds", boundsArray);
+    anari::setParameterArray1D(device, field, "block.level",
+                                blockLevels.data(), blockLevels.size());
+    anari::setParameterArray1D(device, field, "data",
+                                model->scalars.data(), model->scalars.size());
+    anari::commitParameters(device, field);
+
+    anari::Geometry geom
+      = anari::newObject<anari::Geometry>(device, "isosurface");
+    anari::setAndReleaseParameter(device, geom, "field", field);
+    anari::setParameter(device, geom, "isovalue", input->isoValue);
+    anari::commitParameters(device, geom);
+
+    anari::Material material
+      = materialLib->getOrCreate(mini::Matte::create(), false, true);
+    anari::Surface surface = anari::newObject<anari::Surface>(device);
+    anari::setAndReleaseParameter(device, surface, "geometry", geom);
+    anari::setParameter(device, surface, "material", material);
+    anari::commitParameters(device, surface);
+    return surface;
   }
   
   anari::Volume
