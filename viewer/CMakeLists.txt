@@ -1,14 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
 # SPDX-License-Identifier: Apache-2.0
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-    "MinSizeRel" "RelWithDebInfo")
-endif()
-
 add_library(viewer-config INTERFACE)
 
 set(SOURCES
@@ -116,12 +108,6 @@ if(WIN32)
   )
 endif()
 
-# add_executable(hsViewer
-#   ${SOURCES}
-#   ${TFE_SOURCES}
-#   ${GLAD_SOURCES}
-#   )
-
 # ------------------------------------------------------------------
 add_executable(hsOffline
   ${SOURCES}
@@ -129,6 +115,7 @@ add_executable(hsOffline
 target_link_libraries(hsOffline
   PUBLIC
   hayStack
+  hayMaker
   viewer-config
   )
 
@@ -148,6 +135,7 @@ if (HS_CUTEE)
   target_link_libraries(hsViewerQT
     PUBLIC
     hayStack
+  hayMaker
     qtOWL
     viewer-config
     )

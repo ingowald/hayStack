@@ -1,7 +1,5 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
+# SPDX-FileCopyrightText: Copyright (c) 2023-2026 Ingo Wald
 # SPDX-License-Identifier: Apache-2.0
-
-find_package(anari 0.13.0 REQUIRED)
 
 add_library(hayStack
   MPIWrappers.h
@@ -27,12 +25,6 @@ add_library(hayStack
   ColorMap.cpp
 
   Renderer.h
-  MPIRenderer.h
-  MPIRenderer.cpp
-  HayMaker.h
-  HayMaker.cpp
-  AnariBackend.h
-  AnariBackend.cpp
   TransferFunction.h
   TransferFunction.cpp
   TriangleMesh.h
@@ -68,9 +60,7 @@ else()
   target_compile_definitions(hayStack PUBLIC -DHS_FAKE_MPI=1)
 endif()
 
-target_link_libraries(hayStack PUBLIC 
-  anari::anari
-)
+#target_link_libraries(hayStack PUBLIC)
 
 target_include_directories(hayStack PUBLIC ${PROJECT_SOURCE_DIR})
 

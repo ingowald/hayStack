@@ -1,13 +1,53 @@
-// SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
+// SPDX-FileCopyrightText: Copyright (c) 2023-2026 Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "HayMaker.h"
 #include "hayStack/ColorMap.h"
 #include "hayStack/TransferFunction.h"
-#include "AnariBackend.h"
+#include "hayMaker/HayMaker.h"
 
-namespace hs {
+namespace hm {
 
+#if 0
+  //void init();
+  void terminate() override { global.terminate(); }
+    
+
+  void buildSlots() override;
+    
+  void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
+  { global.resize(fbSize,hostRGBA); }
+    
+  void setTransferFunction(const TransferFunction &xf) override
+  {
+    for (auto slot : perSlot)
+      slot->setTransferFunction(xf);
+  }
+#if HS_USE_MULTI_SCATTERING
+  void setVolumeScatterSettings(const VolumeScatterSettings &settings) override
+  {
+    for (auto slot : perSlot)
+      slot->setVolumeScatterSettings(settings);
+  }
+  VolumeScatterSettings getVolumeScatterSettings() const override
+  {
+    if (perSlot.empty())
+      return {};
+    return perSlot[0]->volumeScatterSettings;
+  }
+#endif
+  void renderFrame() override
+  {
+    buildSlots();
+    global.renderFrame();
+  }
+    
+  void resetAccumulation() override
+  { global.resetAccumulation(); }
+    
+  void setCamera(const Camera &camera) override
+  { global.setCamera(camera); }
+
+  
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
                      int   pixelSamples,
@@ -76,59 +116,6 @@ namespace hs {
     }  
     
     return bb;
-  }
-
-  template<typename Backend>
-  TextureLibrary<Backend>::TextureLibrary(typename Backend::Slot *backend)
-    : backend(backend)
-  {}
-
-  template<typename Backend>
-  typename Backend::TextureHandle
-  TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
-  {
-    auto it = alreadyCreated.find(miniTex);
-    if (it != alreadyCreated.end()) return it->second;
-
-    auto bnTex = backend->create(miniTex);
-    alreadyCreated[miniTex] = bnTex;
-    return bnTex;
-  }
-
-  template<typename Backend>
-  MaterialLibrary<Backend>::MaterialLibrary(typename Backend::Slot *backend)
-    : backend(backend)
-  {}
-
-  template<typename Backend>
-  MaterialLibrary<Backend>::~MaterialLibrary()
-  {
-    for (auto it : alreadyCreated)
-      backend->release(it.second);
-  }
-
-  template<typename Backend>
-  typename Backend::MaterialHandle
-  MaterialLibrary<Backend>::getOrCreate(mini::Material::SP miniMat,
-                                        bool colorMapped,
-                                        bool scalarMapped)
-  {
-    auto key = std::tuple<mini::Material::SP,bool,bool>(miniMat,colorMapped,scalarMapped);
-    if (alreadyCreated.find(key) != alreadyCreated.end())
-      return alreadyCreated[key];
-
-    auto matAndColorName = backend->create(miniMat);
-    auto mat = matAndColorName.first;
-    const std::string colorName = matAndColorName.second;
-    if (colorMapped)
-      backend->setColorMapping(mat,colorName);
-      // bnSetString(mat,colorName.c_str(),"color");
-    if (scalarMapped)
-      backend->setScalarMapping(mat,colorName);
-      // bnSetObject(mat,colorName.c_str(),backend->colorMapper);
-      
-    alreadyCreated[key] = mat;
-    return mat;
   }
 
   template<typename Backend>
@@ -337,29 +324,7 @@ namespace hs {
     global.finalizeRender();
   }
 
-  HayMaker *HayMaker
-  ::createAnariImplementation(Comm &world,
-                              Comm &workers,
-                              int pathsPerPixel,
-                              float ambientRadiance,
-                              vec4f bgColor,
-                              LocalModel &localModel,
-                              const std::vector<int> &gpuIDs,
-                              bool verbose)
-  {
-    assert(!gpuIDs.empty());
-    return new HayMakerT<AnariBackend>(world,
-                                       /* the workers */workers,
-                                       pathsPerPixel,
-                                       ambientRadiance,
-                                       bgColor,
-                                       localModel,
-                                       gpuIDs,
-                                       verbose);
-  }
-
-  template struct HayMakerT<AnariBackend>;
-  template struct TextureLibrary<AnariBackend>;
-  template struct MaterialLibrary<AnariBackend>;
+#endif
+  
 }
 

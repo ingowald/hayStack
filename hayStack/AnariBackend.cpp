@@ -1,25 +1,8 @@
-// ======================================================================== //
-// Copyright 2022-2024 Ingo Wald                                            //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// SPDX-FileCopyrightText: Copyright (c) 2022-2026 Ingo Wald
+// SPDX-License-Identifier: Apache-2.0
 
 #include "AnariBackend.h"
 #include "hayStack/TransferFunction.h"
-
-// # define TEST_IDCHANNEL "channel.objectId"    
-// # define TEST_IDCHANNEL "channel.instanceId"    
-// # define TEST_IDCHANNEL "channel.primitiveId"    
 
 namespace hs {
 
@@ -69,7 +52,7 @@ namespace hs {
 #endif
   }
 
-    static void statusFunc(const void * /*userData*/,
+  static void statusFunc(const void * /*userData*/,
                          ANARIDevice /*device*/,
                          ANARIObject source,
                          ANARIDataType /*sourceType*/,
@@ -91,18 +74,6 @@ namespace hs {
   }
 
 
-  void AnariBackend::Slot::setColorMapping(anari::Material mat,
-                                           const std::string &colorName)
-  {
-    anari::setParameter(device,mat,colorName.c_str(),"color");
-  }
-  
-  void AnariBackend::Slot::setScalarMapping(anari::Material mat,
-                                            const std::string &colorName)
-  {
-    anari::setParameter(device,mat,colorName.c_str(),scalarMapper);
-  }
-  
   AnariBackend::Slot::Slot(Global *global,
                            int mySlotIndex,
                            int localDataSlotWeWorkOn,
@@ -162,33 +133,6 @@ namespace hs {
     
   }
 
-  void AnariBackend::Slot::createColorMapper(const range1f &inputRange,
-                                             const std::vector<vec3f> &colorMap)
-  {
-    std::vector<vec4f> as4f;
-    for (auto v : colorMap)
-      as4f.push_back({v.x,v.y,v.z,1.f});
-    scalarMapper = anari::newObject<anari::Sampler>(device,"image1D");
-    anari::setParameterArray1D(device, scalarMapper, "image",
-                               (const anari::math::float4*)as4f.data(),as4f.size());
-    float scale = 1.f / (inputRange.upper-inputRange.lower);
-    struct {
-      vec4f v0,v1,v2,v3;
-    } xfm;
-    xfm.v0={scale,0.f,0.f,-inputRange.lower/scale};
-    xfm.v1={0.f,1.f,0.f,0.f};
-    xfm.v2={0.f,0.f,1.f,0.f};
-    xfm.v3={0.f,0.f,0.f,1.f};
-    anariSetParameter(device,scalarMapper,
-                      "inTransform",
-                      ANARI_FLOAT32_MAT4,
-                      &xfm);
-    anari::setParameter(device,scalarMapper,"inAttribute","attribute0");
-    anari::setParameter(device,scalarMapper,"filter","linear");
-    anari::commitParameters(device,scalarMapper);
-    std::cout << "color mapper created" << std::endl;
-  }
-  
   anari::Group AnariBackend::Slot::createGroup(const std::vector<anari::Surface> &geoms,
                                                const std::vector<anari::Volume> &volumes)
   {
@@ -328,9 +272,6 @@ namespace hs {
       static bool have_depth = getenv("HS_HAVE_DEPTH");
       if (have_depth)
       anari::setParameter(slot->device, slot->frame, "channel.depth", ANARI_FLOAT32);
-#ifdef TEST_IDCHANNEL
-      anari::setParameter(slot->device, slot->frame, TEST_IDCHANNEL, ANARI_UINT32);
-#endif
 
       anari::commitParameters(slot->device, slot->frame);
     }
@@ -484,42 +425,16 @@ namespace hs {
     // anari::render(slots[0]->device, slots[0]->frame);
     for (auto slot : slots)
       anari::render(slot->device, slot->frame);
-#ifdef TEST_IDCHANNEL
-    auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, TEST_IDCHANNEL);
-#else
     auto fb = anari::map<uint32_t>(slots[0]->device, slots[0]->frame, "channel.color");
-#endif
 
     if (fb.width != fbSize.x || fb.height != fbSize.y)
       std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
       if (hostRGBA) {
-#ifdef TEST_IDCHANNEL
-        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
-        const uint64_t FNV_prime = 0x100000001b3ULL;
-        for (int i=0;i<fb.width*fb.height;i++) {
-          uint32_t ID = fb.data[i];
-          uint64_t s = FNV_basis + FNV_prime * ID;
-          
-          s = s * FNV_prime ^ ID;
-          int r = s & 0xff;
-          s = s * FNV_prime ^ ID;
-          int g = s & 0xff;
-          s = s * FNV_prime ^ ID;
-          int b = s & 0xff;
-          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
-          hostRGBA[i] = rgba;
-        }
-#else
         memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
-#endif
       }
     }
-#ifdef TEST_IDCHANNEL
-    anari::unmap(slots[0]->device,slots[0]->frame,TEST_IDCHANNEL);
-#else
     anari::unmap(slots[0]->device,slots[0]->frame,"channel.color");
-#endif
   }
 
   void AnariBackend::Global::resetAccumulation()

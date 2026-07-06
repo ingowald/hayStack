@@ -16,11 +16,12 @@
 
 #pragma once
 
-#include "hayStack/Renderer.h"
+#include "hayMaker/common.h"
 #include "hayStack/MPIWrappers.h"
+#include "hayMaker/Renderer.h"
 
 /* parallel renderer abstraction */
-namespace hs {
+namespace hm {
 
   using hs::mpi::Comm;
   

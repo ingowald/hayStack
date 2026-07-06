@@ -9,54 +9,14 @@
 #endif
 
 namespace hs {
+  namespace hm {
 
-  struct AnariBackend {
-    typedef anari::Material MaterialHandle;
-    typedef anari::Sampler  TextureHandle;
-    typedef anari::Group    GroupHandle;
-    typedef anari::Light    LightHandle;
-    typedef anari::Surface  GeomHandle;
-    typedef anari::Volume   VolumeHandle;
+    struct PerDevice {
+      PerDevice(PerRank *const perRank,
+                int const cudaDevice,
+                int const dataGroupRank,
+                int const dataGroupSize);
 
-    struct Slot;
-
-    static const int slotPerDevice = true; 
-    static const int slotPerDataRank = false;
-
-    struct Global {
-      Global(HayMaker *base);
-
-      void init();
-      void resize(const vec2i &fbSize, uint32_t *hostRgba);
-      void renderFrame();
-      void resetAccumulation();
-      void setCamera(const Camera &camera);
-      void finalizeRender();
-      /*! clean up and shut down */
-      void terminate() {}
-      
-      HayMaker *const base;
-
-      uint32_t     *hostRGBA   = 0;
-      vec2i         fbSize;
-      /*! whether we have to re-commit the model next frame */
-      bool          dirty = true;
-
-      /*! points to the first slot, which is the only slot in
-          non-data-parallel, and the master slot in data-parallel */
-      std::vector<Slot *> slots;
-      inline int numDevices() const { return devices.size(); }
-      std::vector<anari::Device> devices;
-      // the library used to create the device(s)
-      anari::Library library;
-    };
-
-    struct Slot {
-      Slot(Global *global,
-           int mySlotIndex,
-           int localDataSlotWeWorkOn,
-           typename HayMakerT<AnariBackend>::Slot *impl);
-    
       void applyTransferFunction(const TransferFunction &xf);
 #if HS_USE_MULTI_SCATTERING
       void applyVolumeScatterSettings(const VolumeScatterSettings &settings);
@@ -89,8 +49,8 @@ namespace hs {
 #endif
       anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
 
-      void setColorMapping(anari::Material mat, const std::string &colorName);
-      void setScalarMapping(anari::Material mat, const std::string &colorName);
+      // void setColorMapping(anari::Material mat, const std::string &colorName);
+      // void setScalarMapping(anari::Material mat, const std::string &colorName);
       
       std::vector<anari::Surface>
       createSpheres(SphereSet::SP content,
@@ -121,21 +81,22 @@ namespace hs {
       
       void finalizeSlot() { PING; }
 
-      void createColorMapper(const range1f &inputRange,
-                             const std::vector<vec3f> &colors);
+      // void createColorMapper(const range1f &inputRange,
+      //                        const std::vector<vec3f> &colors);
       
-      typename HayMakerT<AnariBackend>::Slot *const impl;
-      Global *const global;
-      // int     const slot;
-      int const mySlotIndex;
-      int const localDataSlotWeWorkOn;
       
-      anari::Sampler scalarMapper = 0;
-      anari::Frame  frame  = 0;
+      anari::Sampler  scalarMapper = 0;
+      anari::Frame    frame  = 0;
       anari::Renderer renderer = 0;
-      anari::Device device = 0;
-      anari::World  model  = 0;
-      anari::Camera camera = 0;
+      anari::World    model  = 0;
+      anari::Camera   camera = 0;
+      
+      anari::Device   device = 0;
+
+      PerRank *const perRank;
+      int const cudaDevice;
+      int const dataGroupRank;
+      int const dataGroupSize;
     };
 
     

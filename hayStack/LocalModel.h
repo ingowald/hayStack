@@ -26,6 +26,12 @@
 
 namespace hs {
 
+  struct Globals {
+    int   pixelSamples;
+    float ambientRadiance;
+    vec4f bgColor;
+  };
+    
   struct LocalModel {
     BoundsData getBounds() const;
 
