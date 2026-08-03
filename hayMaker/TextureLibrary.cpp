@@ -2,24 +2,89 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayMaker/TextureLibrary.h"
+#include "hayMaker/SingleDeviceRenderer.h"
 
 namespace hm {
 
-  template<typename Backend>
-  TextureLibrary<Backend>::TextureLibrary(typename Backend::Slot *backend)
-    : backend(backend)
+  TextureLibrary::TextureLibrary(SingleDeviceRenderer *renderer)
+    : renderer(renderer)
   {}
-  
-  template<typename Backend>
-  typename Backend::TextureHandle
-  TextureLibrary<Backend>::getOrCreate(mini::Texture::SP miniTex)
+
+  anari::Sampler
+  TextureLibrary::getOrCreate(mini::Texture::SP miniTex)
   {
     auto it = alreadyCreated.find(miniTex);
     if (it != alreadyCreated.end()) return it->second;
 
-    auto bnTex = backend->create(miniTex);
+    auto bnTex = create(miniTex);
     alreadyCreated[miniTex] = bnTex;
     return bnTex;
   }
+  
+  anari::Sampler
+  TextureLibrary::create(mini::Texture::SP miniTex)
+  {
+    if (!miniTex) return 0;
+    
+    // auto device = device;
+    std::string filterMode;
+    switch (miniTex->filterMode) {
+    case mini::Texture::FILTER_BILINEAR:
+      /*! default filter mode - bilinear */
+      filterMode = "linear";
+      break;
+    case mini::Texture::FILTER_NEAREST:
+      /*! explicitly request nearest-filtering */
+      filterMode = "nearest";
+      break;
+    default:
+      std::cout << "warning: unsupported mini::Texture filter mode #"
+                << (int)miniTex->filterMode << std::endl;
+      return 0;
+    }
 
+    std::string wrapMode   = "mirrorRepeat";
+    // BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
+    //                                               texelFormat,
+    //                                               miniTex->size.x,miniTex->size.y,
+    //                                               miniTex->data.data());
+
+    anari::Array2D image;
+    switch (miniTex->format) {
+    case mini::Texture::FLOAT4:
+      image = anariNewArray2D(renderer->device,
+                              (const void *)miniTex->data.data(),
+                              nullptr,nullptr,ANARI_FLOAT32_VEC4,
+                              (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    case mini::Texture::FLOAT1:
+      image = anariNewArray2D(renderer->device,
+                              (const void **)miniTex->data.data(),
+                              0,0,ANARI_FLOAT32,
+                              (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    case mini::Texture::RGBA_UINT8:
+      image = anariNewArray2D(renderer->device,
+                              (const void *)miniTex->data.data(),
+                              0,0,ANARI_UFIXED8_VEC4,
+                              (size_t)miniTex->size.x,(size_t)miniTex->size.y);
+      break;
+    default:
+      std::cout << "warning: unsupported mini::Texture format #"
+                << (int)miniTex->format << std::endl;
+      return 0;
+    }
+    anari::commitParameters(renderer->device,image);
+
+    anari::Sampler sampler
+      = anari::newObject<anari::Sampler>(renderer->device,"image2D");
+    assert(sampler);
+    // anari::setParameter(device,sampler,"inAttribute","attribute0");
+    anari::setParameter(renderer->device,sampler,"wrapMode1",wrapMode);
+    anari::setParameter(renderer->device,sampler,"wrapMode2",wrapMode);
+    anari::setParameter(renderer->device,sampler,"filterMode",filterMode);
+    anari::setParameter(renderer->device,sampler,"image",image);
+    anari::commitParameters(renderer->device,sampler);
+    return sampler;
+  }  
 }

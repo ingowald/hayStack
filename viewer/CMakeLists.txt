@@ -5,85 +5,7 @@ add_library(viewer-config INTERFACE)
 
 set(SOURCES
   main.cpp
-  DataLoader.h
-  DataLoader.cpp
-  content/MiniContent.h
-  content/IsoDump.h
-  content/IsoDump.cpp
-  content/OBJContent.h
-  content/OBJContent.cpp
-  content/SpheresFromFile.h
-  content/SpheresFromFile.cpp
-  content/MaterialsTest.h
-  content/MaterialsTest.cpp
-  content/BoxesFromFile.h
-  content/BoxesFromFile.cpp
-  content/CylindersFromFile.h
-  content/CylindersFromFile.cpp
-  content/Capsules.h
-  content/Capsules.cpp
-  content/TSTris.h
-  content/TSTris.cpp
-  content/DGEF.h
-  content/DGEFContent.h
-  content/DGEFContent.cpp
-  content/TriangleMesh.h
-  content/TriangleMesh.cpp
-  content/GESTS.h
-  content/GESTS.cpp
-  content/RAWVolumeContent.h
-  content/RAWVolumeContent.cpp
-  content/TAMRContent.h
-  content/TAMRContent.cpp
-  content/UMeshContent.h
-  content/UMeshContent.cpp
 )
-
-option(HS_VTK "build VTK/VTU loader for unstructured grids with polyhedral cells" OFF)
-if (HS_VTK)
-  find_package(VTK COMPONENTS
-    CommonCore
-    CommonDataModel
-    IOXML
-    QUIET)
-  if (NOT VTK_FOUND)
-    # Try legacy component names (VTK < 9.2)
-    find_package(VTK COMPONENTS
-      vtkCommonCore
-      vtkCommonDataModel
-      vtkIOXML
-      QUIET)
-  endif()
-  if (VTK_FOUND)
-    list(APPEND SOURCES content/VTUContent.h content/VTUContent.cpp)
-    target_compile_definitions(viewer-config INTERFACE -DHS_VTK=1)
-    target_link_libraries(viewer-config INTERFACE ${VTK_LIBRARIES})
-    if (VTK_VERSION VERSION_GREATER_EQUAL "8.90.0")
-      vtk_module_autoinit(
-        TARGETS viewer-config
-        MODULES ${VTK_LIBRARIES}
-      )
-    else()
-      include(${VTK_USE_FILE})
-    endif()
-    message(STATUS "VTK support enabled (version ${VTK_VERSION})")
-  else()
-    message(WARNING "HS_VTK enabled but VTK not found - disabling VTU loader")
-  endif()
-endif()
-
-option(HS_USD "build usd loader" OFF)
-if (HS_USD)
-  list(APPEND SOURCES content/USD.cpp)
-
-  find_package(OpenGL)
-  find_package(X11)
-  find_package(pxr REQUIRED usd usdGeom tf gf usdShade usdLux)
-  target_compile_definitions(viewer-config INTERFACE -DHS_USD=1)
-  target_link_libraries(viewer-config INTERFACE ${PXR_LIBRARIES})
-  target_link_libraries(viewer-config INTERFACE ext_tinyexr_impl)
-
-endif()
 
 set(TFE_SOURCES
   external/imgui/imgui.cpp
@@ -115,6 +37,7 @@ add_executable(hsOffline
 target_link_libraries(hsOffline
   PUBLIC
   hayStack
+  hayStackDataLoader
   hayMaker
   viewer-config
   )
@@ -160,10 +83,10 @@ if (HS_CUTEE)
 endif()
 
 # ------------------------------------------------------------------
-add_executable(hsDLAFtoPCR
-  content/dlafToPCR.cpp
-  )
-target_link_libraries(hsDLAFtoPCR
-  PUBLIC
-  hayStack
-  )
+#add_executable(hsDLAFtoPCR
+#  content/dlafToPCR.cpp
+#  )
+#target_link_libraries(hsDLAFtoPCR
+#  PUBLIC
+#  hayStack
+#  )

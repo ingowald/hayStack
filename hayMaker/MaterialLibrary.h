@@ -3,16 +3,33 @@
 
 #pragma once
 
-#include "hayMaker/Anari.h"
+#include "hayMaker/common.h"
 
 namespace hm {
-  struct PerDevice;
+  struct SingleDeviceRenderer;
   
   struct ScalarMapper {
+    static ScalarMapper create(SingleDeviceRenderer *renderer,
+                               const range1f &inputRange,
+                               const std::vector<vec3f> &colorMap);
+    // void setOn(anari::Material material,
+    //            const std::string &colorName)
+    // { anari::setParameter(device,mat,colorName.c_str(),sampler); }
+    
     anari::Sampler sampler;
   };
 
   struct ColorMapper {
+    static ColorMapper create(SingleDeviceRenderer *renderer,
+                              const range1f &inputRange,
+                              const std::vector<vec3f> &colorMap);
+    // void setOn(anari::Material material,
+    //            const std::string &colorName)
+    // {
+    //   anari::setParameter(device,mat,colorName.c_str(),"color");
+    //   anari::setParameter(device,mat,colorName.c_str(),sampler);
+    // }
+    
     anari::Sampler sampler;
   };
   
@@ -22,7 +39,7 @@ namespace hm {
     yet the case */
   struct MaterialLibrary {
     
-    MaterialLibrary(PerDevice *device);
+    MaterialLibrary(SingleDeviceRenderer *renderer);
     ~MaterialLibrary();
     
     anari::Material getOrCreate(mini::Material::SP miniMat,
@@ -30,6 +47,8 @@ namespace hm {
                                 ScalarMapper *scalarMapper = nullptr);
 
   private:
+    static anari::Material create(mini::Material::SP miniMat);
+    
     std::map<
       /*key*/
       std::tuple<mini::Material::SP,
@@ -38,7 +57,7 @@ namespace hm {
       /* value */
       anari::Material> alreadyCreated;
     
-    anari::Device device;
+    SingleDeviceRenderer *const renderer;
   };
   
 }

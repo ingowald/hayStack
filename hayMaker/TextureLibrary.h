@@ -3,9 +3,11 @@
 
 #pragma once
 
-#include "hayMaker/Anari.h"
+#include "hayMaker/common.h"
 
 namespace hm {
+
+  struct SingleDeviceRenderer;
   
   /*! keeps track of which frontend textures have already been
     created on the backend, and returns handle to already created
@@ -13,12 +15,15 @@ namespace hm {
     yet the case */
   struct TextureLibrary
   {
-    TextureLibrary(anari::Device device);
+    TextureLibrary(SingleDeviceRenderer *renderer);
     anari::Sampler getOrCreate(mini::Texture::SP miniTex);
     
   private:
-    anari::Device device;
-    std::map<mini::Texture::SP,TextureHandle> alreadyCreated;
+    anari::Sampler
+    create(mini::Texture::SP miniTex);
+    
+    SingleDeviceRenderer *const renderer;
+    std::map<mini::Texture::SP,anari::Sampler> alreadyCreated;
   };
 
 }

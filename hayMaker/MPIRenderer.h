@@ -1,18 +1,5 @@
-// ======================================================================== //
-// Copyright 2022-2023 Ingo Wald                                            //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -22,7 +9,8 @@
 
 /* parallel renderer abstraction */
 namespace hm {
-
+  using namespace hs;
+  
   using hs::mpi::Comm;
   
   /*! base abstraction for any renderer - no matter whether its a
@@ -44,8 +32,8 @@ namespace hm {
     void screenShot() override;
     void terminate() override;
     void setLights(float ambient,
-                   const std::vector<PointLight> &pointLights,
-                   const std::vector<DirLight> &dirLights) override;
+                   const std::vector<hs::PointLight> &pointLights,
+                   const std::vector<hs::DirLight> &dirLights) override;
 
     static void runWorker(Comm &comm,
                           Renderer *client);

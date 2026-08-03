@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hayStack/HayMaker.h"
-#include "viewer/DataLoader.h"
+#include "hayMaker/HayMaker.h"
+#include "hayStack/loader/DataLoader.h"
 #if HS_CUTEE
 # include "cutee/OWLViewer.h"
 # include "cutee/XFEditor.h"
@@ -21,7 +21,7 @@
 #include <unistd.h>
 #endif
 
-namespace hs {
+namespace hm {
 
   double t_last_render;
   
@@ -482,7 +482,7 @@ namespace hs {
   
 }
 
-using namespace hs;
+using namespace hm;
 
 int main(int ac, char **av)
 {
@@ -504,7 +504,7 @@ int main(int ac, char **av)
   world.barrier();
 
   bool hanari = true;
-  DynamicDataLoader loader(world);
+  hs::loader::DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
     if (arg[0] != '-') {
@@ -560,7 +560,7 @@ int main(int ac, char **av)
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
     } else if (arg == "--cameras-from-file") {
-      hs::addCamerasFromFile(av[++i]);
+      hm::addCamerasFromFile(av[++i]);
     } else if (arg == "--camera-path") {
       CmdLineCamera c0, c1;
       int numSteps = std::stoi(av[++i]);
@@ -577,7 +577,7 @@ int main(int ac, char **av)
       c1.vu = get3f(av,i);
       ++i;// -fovy
       c1.fovy = std::stof(av[++i]);
-      hs::addCameraPath(numSteps,c0,c1);
+      hm::addCameraPath(numSteps,c0,c1);
     } else if (arg == "-fovy") {
       fromCL.camera.fovy = std::stof(av[++i]);
     } else if (arg == "-xf") {
@@ -632,7 +632,7 @@ int main(int ac, char **av)
     if (fromCL.dpMode == DPMODE_DATA_PARALLEL && world.size > 1)
       // we _are_ run in mpi mode with more than one rank, and in data
       // _parallel_mode. if not otherwise specified, use one data
-      // group per rank
+      // group per rank))
       fromCL.ndg = world.size;
     else
       fromCL.ndg = 1;
@@ -640,27 +640,47 @@ int main(int ac, char **av)
   
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
-  LocalModel thisRankData;
-  thisRankData.colorMapIndex = fromCL.cmID;
+  //  LocalModel thisRankData;
+  LocalPartitions *localPartitions = 0;
+  hm::HayMaker::colorMapIndex = fromCL.cmID;
+  // localPartitions->colorMapIndex = fromCL.cmID;
   if (!isHeadNode) {
-    loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
+    localPartitions = loader.loadData(dataPerRank,numDataGroupsGlobally);
+    // loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
   if (fromCL.mergeUnstructuredMeshes) {
     std::cout << "merging potentially separate unstructured meshes into single mesh" << std::endl;
-    thisRankData.mergeUnstructuredMeshes();
+    localPartitions->mergeUnstructuredMeshes();
     std::cout << "done mergine umeshes..." << std::endl;
   }
-
-  int numDataGroupsLocally = thisRankData.size();
+  
+  int numPartitionsLocally = localPartitions->numPartitionsOnThisRank();
   world.barrier();
+
+  // std::vector<int> gpuIDs;
+  std::vector<DeviceConfig> deviceConfigs;
+  for (int i=0;i<gpuIDs.size();i++) {
+    DeviceConfig dc;
+    dc.gpuID = gpuIDs[i];
+    dc.localPartitionIndex = i % numPartitionsLocally;
+    deviceConfigs.push_back(dc);
+  }
+
   HayMaker *hayMaker
-    = HayMaker::createAnariImplementation(world,
-                                          /* the workers */workers,
-                                          fromCL.spp,
-                                           fromCL.ambientRadiance,
-                                          fromCL.bgColor,
-                                          thisRankData,
-                                          gpuIDs,verbose());
+    = new HayMaker(// mpi/peers:
+                   world,workers,
+                   // the parition(s) we have loaded locally on this rank
+                   localPartitions,
+                   
+                   deviceConfigs);
+                   
+    // = HayMaker::createAnariImplementation(world,
+    //                                       /* the workers */workers,
+    //                                       fromCL.spp,
+    //                                        fromCL.ambientRadiance,
+    //                                       fromCL.bgColor,
+    //                                       thisRankData,
+    //                                       gpuIDs,verbose());
   
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
@@ -689,7 +709,7 @@ int main(int ac, char **av)
               << "#hs: building data groups"
               << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
-    hayMaker->buildSlots();
+    hayMaker->initialBuild();
   
   world.barrier();
 

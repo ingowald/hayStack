@@ -79,20 +79,4 @@ namespace hs {
       throw std::runtime_error("un-handled scalar type");
     // };
   }
-  // inline size_t sizeOf(BNDataType type)
-  // {
-  //   switch(type) {
-  //   case BN_FLOAT:
-  //     return sizeof(float); 
-  //   case BN_UFIXED16:
-  //     return sizeof(uint16_t);
-  //   case BN_UFIXED8:
-  //     return sizeof(uint8_t);
-  //   // case StructuredVolume::FLOAT: return sizeof(float); 
-  //   // case StructuredVolume::UINT16: return sizeof(uint8_t);
-  //   // case StructuredVolume::UINT8: return sizeof(uint8_t);
-  //   default: throw std::runtime_error("un-handled scalar type");
-  //   };
-  // }
-  
 }

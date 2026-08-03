@@ -2,19 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayMaker/MaterialLibrary.h"
-#include "hayMaker/PerDevice.h"
+#include "hayMaker/SingleDeviceRenderer.h"
+// #include "hayMaker/PerDevice.h"
 
 namespace hm {
 
-#if 0
-  void AnariBackend::Slot::createColorMapper(const range1f &inputRange,
-                                             const std::vector<vec3f> &colorMap)
+  ColorMapper ColorMapper::create(SingleDeviceRenderer *renderer,
+                                  const range1f &inputRange,
+                                  const std::vector<vec3f> &colorMap)
   {
     std::vector<vec4f> as4f;
     for (auto v : colorMap)
       as4f.push_back({v.x,v.y,v.z,1.f});
-    scalarMapper = anari::newObject<anari::Sampler>(device,"image1D");
-    anari::setParameterArray1D(device, scalarMapper, "image",
+    anari::Sampler scalarMapper
+      = anari::newObject<anari::Sampler>(renderer->device,"image1D");
+    anari::setParameterArray1D(renderer->device, scalarMapper, "image",
                                (const anari::math::float4*)as4f.data(),as4f.size());
     float scale = 1.f / (inputRange.upper-inputRange.lower);
     struct {
@@ -24,25 +26,25 @@ namespace hm {
     xfm.v1={0.f,1.f,0.f,0.f};
     xfm.v2={0.f,0.f,1.f,0.f};
     xfm.v3={0.f,0.f,0.f,1.f};
-    anariSetParameter(device,scalarMapper,
+    anariSetParameter(renderer->device,scalarMapper,
                       "inTransform",
                       ANARI_FLOAT32_MAT4,
                       &xfm);
-    anari::setParameter(device,scalarMapper,"inAttribute","attribute0");
-    anari::setParameter(device,scalarMapper,"filter","linear");
-    anari::commitParameters(device,scalarMapper);
+    anari::setParameter(renderer->device,scalarMapper,"inAttribute","attribute0");
+    anari::setParameter(renderer->device,scalarMapper,"filter","linear");
+    anari::commitParameters(renderer->device,scalarMapper);
     std::cout << "color mapper created" << std::endl;
+    return { scalarMapper };
   }
-#endif
   
-  MaterialLibrary::MaterialLibrary(anari::Device device)
-    : device(device)
+  MaterialLibrary::MaterialLibrary(SingleDeviceRenderer *renderer)
+    : renderer(renderer)
   {}
 
   MaterialLibrary::~MaterialLibrary()
   {
     for (auto it : alreadyCreated)
-      anariRelease(device,it.second);
+      anariRelease(renderer->device,it.second);
   }
 
   anari::Material
@@ -57,15 +59,16 @@ namespace hm {
     if (alreadyCreated.find(key) != alreadyCreated.end())
       return alreadyCreated[key];
 
-    auto matAndColorName = backend->create(miniMat);
-    auto mat = matAndColorName.first;
-    const std::string colorName = matAndColorName.second;
-    if (colorMapped)
-      anari::setParameter(device,mat,colorName.c_str(),"color");
-      backend->setColorMapping(mat,colorName);
-    if (scalarMapped)
-    anari::setParameter(device,mat,colorName.c_str(),scalarMapper);
-      backend->setScalarMapping(mat,colorName);
+    auto mat = create(miniMat);
+    // auto matAndColorName = create(miniMat);
+    // auto mat = matAndColorName.first;
+    // const std::string colorName = matAndColorName.second;
+    // if (colorMapped)
+    //   anari::setParameter(renderer->device,mat,colorName.c_str(),"color");
+    //   setColorMapping(mat,colorName);
+    // if (scalarMapped)
+    // anari::setParameter(renderer->device,mat,colorName.c_str(),scalarMapper);
+    // setScalarMapping(mat,colorName);
       
     alreadyCreated[key] = mat;
     return mat;
