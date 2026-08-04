@@ -715,7 +715,7 @@ int main(int ac, char **av)
               << "#hs: building data groups"
               << MINI_TERMINAL_DEFAULT << std::endl;
   if (!isHeadNode)
-    hayMaker->initialBuild();
+    hayMaker->renderInitialAnariWorld();
   
   world.barrier();
 

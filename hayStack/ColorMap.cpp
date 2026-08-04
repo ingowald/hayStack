@@ -20,7 +20,10 @@
 
 namespace hs {
 
-  std::vector<std::pair<std::string,std::vector<vec3f>>> ColorMap::maps;
+  std::vector<std::pair<std::string,std::vector<vec4f>>> ColorMap::maps;
+
+  const std::vector<vec4f> &ColorMap::get(int idx)
+  { return maps[idx % maps.size()].second; }
   
   const uint8_t paraview_cool_warm[]
   = {
@@ -211,7 +214,7 @@ namespace hs {
   };
 
 
-  std::vector<vec3f> colorMapFromPNG(const uint8_t asPNG[],
+  std::vector<vec4f> colorMapFromPNG(const uint8_t asPNG[],
                                      size_t numBytes)
   {
     int w, h, n;
@@ -220,13 +223,14 @@ namespace hs {
     if (n != 3 && n != 4)
       throw std::runtime_error("ColorMap::fromPNG: only supporting "
                                "PNG files with either 3 or 4 channels");
-    std::vector<vec3f> values_;
+    std::vector<vec4f> values_;
     values_.reserve(w);
     for (std::size_t i = 0; i < w; ++i) {
-      vec3f v;
+      vec4f v;
       v.x = img_data[i * 4 + 0] / 255.f;
       v.y = img_data[i * 4 + 1] / 255.f;
       v.z = img_data[i * 4 + 2] / 255.f;
+      v.w = 1.f;
       // v.w
       //   = (n == 3)
       //   ? 1.f

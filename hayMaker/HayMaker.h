@@ -56,9 +56,10 @@ namespace hm {
     /*! clean up and shut down */
     void terminate() {}
 
-    /*! perform initial rendering of local model partion(s) to created
-        anari device(s) */
-    void initialBuild();
+    /*! go over all input content, and 'render' this into an
+        anari::world; later renderFrame()'s can then simply use that
+        frame with updated camera */
+    void renderInitialAnariWorld();
     
     inline int numDevices() const { return perDevice.size(); }
     BoundsData getWorldBounds() const;

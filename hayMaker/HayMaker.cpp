@@ -48,8 +48,8 @@ namespace hm {
       std::cout << "#hs: using scalar-mapping color map #" << cmID
                 << " : " << hs::ColorMap::maps[cmID].first << std::endl;
       for (auto pd : perDevice)
-        pd->createColorMapper(bb.mapped,
-                              hs::ColorMap::maps[cmID].second);
+        pd->createDefaultColorMapper(bb.mapped,
+                                     hs::ColorMap::maps[cmID].second);
     }
     
     char *envlib = getenv("ANARI_LIBRARY");
@@ -61,15 +61,6 @@ namespace hm {
 #endif
       ;
     library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
-  }
-
-  void HayMaker::initialBuild()
-  {
-    for (auto dev : perDevice)
-      dev->renderAll();
-    
-    // for (auto dev : perDevice)
-    //   dev->finalizeRender();
   }
 
   BoundsData HayMaker::getWorldBounds() const
@@ -89,6 +80,11 @@ namespace hm {
     return bb;
   }
 
+  void HayMaker::renderInitialAnariWorld()
+  {
+    for (auto dev : perDevice)
+      dev->renderInitialAnariWorld();
+  }
 
 #if 0
   //void init();

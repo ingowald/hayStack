@@ -9,7 +9,8 @@ namespace hs {
   
   struct ColorMap {
     static void init();
-    static std::vector<std::pair<std::string,std::vector<vec3f>>> maps;
+    static const std::vector<vec4f> &get(int idx);
+    static std::vector<std::pair<std::string,std::vector<vec4f>>> maps;
   };
   
 }

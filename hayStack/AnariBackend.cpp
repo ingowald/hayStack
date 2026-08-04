@@ -705,50 +705,6 @@ namespace hs {
     return {material,"color"};
   }
 
-  void AnariBackend::Slot::setInstances(const std::vector<anari::Group> &groups,
-                                        const std::vector<affine3f> &xfms)
-  {
-    // auto device = device;
-    // auto model  = global->model;
-    std::vector<anari::Instance> instances;
-    for (int i=0;i<groups.size();i++) {
-      anari::Instance inst
-        = anari::newObject<anari::Instance>(device,"transform");
-      
-      anari::setParameter(device, inst, "id", i);
-      anari::setParameter(device, inst, "group", groups[i]);
-
-      // vec3f rc = randomColor(i);
-      // anari::math::float4 instColor(rc.x,rc.y,rc.z,1.f);
-      // anari::setParameter(device, inst, "color", instColor);
-
-      const affine3f xfm = xfms[i];
-
-      anari::math::mat4 axf = anari::math::identity;
-      axf[0].x = xfm.l.vx.x;
-      axf[0].y = xfm.l.vx.y;
-      axf[0].z = xfm.l.vx.z;
-      axf[1].x = xfm.l.vy.x;
-      axf[1].y = xfm.l.vy.y;
-      axf[1].z = xfm.l.vy.z;
-      axf[2].x = xfm.l.vz.x;
-      axf[2].y = xfm.l.vz.y;
-      axf[2].z = xfm.l.vz.z;
-      axf[3].x = xfm.p.x;
-      axf[3].y = xfm.p.y;
-      axf[3].z = xfm.p.z;
-      anari::setParameter(device, inst, "transform", axf);
-      anari::commitParameters(device, inst);
-      instances.push_back(inst);
-    }
-    anari::setAndReleaseParameter
-      (device,
-       model,
-       "instance",
-       anari::newArray1D(device, instances.data(),instances.size()));
-    anari::commitParameters(device, model);
-    
-  }
 
   void AnariBackend::Global::finalizeRender()
   {
@@ -860,16 +816,6 @@ namespace hs {
     anari::setParameter(device,light,"irradiance",2.f*average(ml.radiance));
     anari::commitParameters(device,light);
     return light;
-  }
-
-  void AnariBackend::Slot::setLights(anari::Group rootGroup,
-                                     const std::vector<anari::Light> &lights)
-  {
-    if (!lights.empty()) {
-      anari::setParameterArray1D
-        (device, model, "light", lights.data(),lights.size());
-    }
-    anari::commitParameters(device,model);
   }
 
   anari::Volume AnariBackend::Slot::create(const StructuredVolume::SP &vol)
@@ -1073,8 +1019,7 @@ namespace hs {
   }
   
   std::vector<anari::Surface>
-  AnariBackend::Slot::createSpheres(SphereSet::SP content,
-                                    MaterialLibrary<AnariBackend> *materialLib)
+  SingleDeviceRenderer::createSpheres(const hs::SphereSet *content)
   { 
     bool hasColor = !content->colors.empty();
     anari::Material material

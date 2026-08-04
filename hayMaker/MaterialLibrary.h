@@ -43,17 +43,20 @@ namespace hm {
     ~MaterialLibrary();
     
     anari::Material getOrCreate(mini::Material::SP miniMat,
-                                ColorMapper  *colorMapper  = nullptr,
-                                ScalarMapper *scalarMapper = nullptr);
+                               bool hasColorAttribute=false,
+                               anari::Sampler colorSampler=0);
 
   private:
-    static anari::Material create(mini::Material::SP miniMat);
+    /*! creates an anari::material for the given
+        mini::Material. returns both teh anari handle ti created, as
+        well as a string saying what the anari material's name for the
+        color paramter is (ie, 'color' vs 'baseColor') */
+    static std::pair<anari::Material,std::string>
+    create(mini::Material::SP miniMat);
     
     std::map<
       /*key*/
-      std::tuple<mini::Material::SP,
-                 ColorMapper *,
-                 ScalarMapper *>,
+      std::tuple<mini::Material::SP,bool,bool>,
       /* value */
       anari::Material> alreadyCreated;
     

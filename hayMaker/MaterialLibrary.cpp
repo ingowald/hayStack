@@ -50,27 +50,23 @@ namespace hm {
 
   anari::Material
   MaterialLibrary::getOrCreate(mini::Material::SP miniMat,
-                               ColorMapper *colorMapper,
-                               ScalarMapper *scalarMapper)
+                               bool hasColorAttribute,
+                               anari::Sampler colorSampler)
   {
-    auto key = std::tuple<mini::Material::SP,
-                          ColorMapper *,
-                          ScalarMapper *>
-      (miniMat,colorMapper,scalarMapper);
+    auto key = std::tuple<mini::Material::SP,bool,anari::Sampler>
+      (miniMat,hasColorAttribute,colorSampler);
     if (alreadyCreated.find(key) != alreadyCreated.end())
       return alreadyCreated[key];
 
-    auto mat = create(miniMat);
-    // auto matAndColorName = create(miniMat);
-    // auto mat = matAndColorName.first;
-    // const std::string colorName = matAndColorName.second;
-    // if (colorMapped)
-    //   anari::setParameter(renderer->device,mat,colorName.c_str(),"color");
-    //   setColorMapping(mat,colorName);
-    // if (scalarMapped)
-    // anari::setParameter(renderer->device,mat,colorName.c_str(),scalarMapper);
-    // setScalarMapping(mat,colorName);
-      
+    auto matAndColorName = create(miniMat);
+    auto mat = matAndColorName.first;
+    const std::string colorName = matAndColorName.second;
+    if (hasColorAttribute)
+      anari::setParameter(renderer->anari.device,mat,
+                          colorName.c_str(),"color");
+    if (colorSampler)
+      anari::setParameter(renderer->anari.device,mat,
+                          colorName.c_str(),colorSampler);
     alreadyCreated[key] = mat;
     return mat;
   }
