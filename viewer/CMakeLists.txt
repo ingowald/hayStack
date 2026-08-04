@@ -58,7 +58,8 @@ if (HS_CUTEE)
   target_link_libraries(hsViewerQT
     PUBLIC
     hayStack
-  hayMaker
+    hayStackDataLoader
+    hayMaker
     qtOWL
     viewer-config
     )
