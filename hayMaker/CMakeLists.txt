@@ -14,9 +14,9 @@ add_library(hayMaker
   MaterialLibrary.cpp
 #  AnariBackend.h
 #  AnariBackend.cpp
-  MPIRenderer.h
-  MPIRenderer.cpp
-  
+
+  MPIRenderEngine.h
+  MPIRenderEngine.cpp
 )
 
 target_link_libraries(hayMaker

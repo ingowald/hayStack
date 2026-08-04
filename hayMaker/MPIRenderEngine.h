@@ -5,7 +5,7 @@
 
 #include "hayMaker/common.h"
 #include "hayStack/MPIWrappers.h"
-#include "hayMaker/Renderer.h"
+#include "hayMaker/RenderEngineInterface.h"
 
 /* parallel renderer abstraction */
 namespace hm {
@@ -15,9 +15,9 @@ namespace hm {
   
   /*! base abstraction for any renderer - no matter whether its a
     single node or multiple workers on the back */
-  struct MPIRenderer : public Renderer {
-    MPIRenderer(Comm &comm,
-                Renderer *passThrough = 0);
+  struct MPIRenderEngine : public RenderEngineInterface {
+    MPIRenderEngine(Comm &comm,
+                    RenderEngineInterface *passThrough = 0);
     
     void renderFrame() override;
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
@@ -36,7 +36,7 @@ namespace hm {
                    const std::vector<hs::DirLight> &dirLights) override;
 
     static void runWorker(Comm &comm,
-                          Renderer *client);
+                          RenderEngineInterface *client);
 
   private:
     template<typename T>
@@ -51,7 +51,7 @@ namespace hm {
     Comm &comm;
     
     /*! passthrough-renderer on master node */
-    Renderer *passThrough = 0;
+    RenderEngineInterface *passThrough = 0;
 
     int eomIdentifierBase = 0x12345;
   };

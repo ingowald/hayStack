@@ -99,7 +99,7 @@ namespace hm {
 #if HS_CUTEE
   struct Viewer : public OWLViewer
   {
-    Viewer(Renderer *const renderer,
+    Viewer(RenderEngineInterface *const renderer,
            hs::mpi::Comm *world)
       : renderer(renderer),
         world(world)
@@ -291,7 +291,7 @@ namespace hm {
     VolumeScatterPanel *scatterPanel = 0;
 #endif
     bool accumDirty = true;
-    Renderer *const renderer;
+    RenderEngineInterface *const renderer;
     hs::mpi::Comm *world;
     XFEditor *xfEditor = 0;
   };
@@ -719,16 +719,16 @@ int main(int ac, char **av)
   
   world.barrier();
 
-  Renderer *renderer = nullptr;
+  RenderEngineInterface *renderer = nullptr;
   if (world.size == 1)
     // no MPI, render direcftly
     renderer = hayMaker;
   else if (world.rank == 0)
     // we're in MPI mode, _and_ the rank that runs the viewer
-    renderer = new MPIRenderer(world,hayMaker);
+    renderer = new MPIRenderEngine(world,hayMaker);
   else {
     // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
-    MPIRenderer::runWorker(world,hayMaker);
+    MPIRenderEngine::runWorker(world,hayMaker);
     world.barrier();
     hs::mpi::finalize();
 

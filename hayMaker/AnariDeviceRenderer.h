@@ -29,7 +29,7 @@ namespace hm {
                          OnePartition *myPartition);
     void renderInitialAnariWorld();    
     void renderFrame();
-    
+
     struct {
       std::vector<affine3f>     xfms;
       std::vector<anari::Group> groups;
@@ -48,6 +48,8 @@ namespace hm {
     anari::Group volumeGroup = 0;
     HayMaker     *const hayMaker;
     OnePartition *const myPartition;
+    
+    void setCamera(const hs::Camera &camera);
     
     void setTransferFunction(const TransferFunction &xf);
       
@@ -134,8 +136,9 @@ namespace hm {
                       const std::vector<affine3f> &xfms);
     void setLights(anari::Group rootGroup,
                    const std::vector<anari::Light> &lights);
-    
+
     bool dirty = true;
+    vec2i fbSize { -1,-1 };
 
     struct {
       anari::Device device;

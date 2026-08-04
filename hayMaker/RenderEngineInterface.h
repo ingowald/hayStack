@@ -11,7 +11,7 @@ namespace hm {
   
   /*! base abstraction for any renderer - no matter whether it's a
       single node or multiple workers on the back */
-  struct Renderer {
+  struct RenderEngineInterface {
 
     virtual void setTransferFunction(const hs::TransferFunction &xf) {}
     virtual void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) {}

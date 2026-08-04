@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "MPIRenderer.h"
-#include "hayStack/common.h"
+#include "hayMaker/MPIRenderEngine.h"
 
 // #define LOGGING 1
 #if LOGGING
@@ -63,8 +62,8 @@ namespace hm {
                            "<EOL>" };
                            
   
-  MPIRenderer::MPIRenderer(Comm &comm,
-                           Renderer *passThrough)
+  MPIRenderEngine::MPIRenderEngine(Comm &comm,
+                           RenderEngineInterface *passThrough)
     : comm(comm),
       passThrough(passThrough)
   {
@@ -76,7 +75,7 @@ namespace hm {
   struct WorkerLoop 
   {
     WorkerLoop(Comm &comm,
-               Renderer *client);
+               RenderEngineInterface *client);
 
     /*! the 'main loop' that receives and executes cmmands sent by the master */
     void runWorker();
@@ -112,7 +111,7 @@ namespace hm {
     void fromMaster(T &t);
     
     Comm &comm;
-    Renderer *renderer;
+    RenderEngineInterface *renderer;
 
   private:
     int eomIdentifierBase = 0x12345;
@@ -136,7 +135,7 @@ namespace hm {
   }
   
   template<typename T>
-  void MPIRenderer::sendToWorkers(const std::vector<T> &t)
+  void MPIRenderEngine::sendToWorkers(const std::vector<T> &t)
   {
     size_t s = t.size();
     sendToWorkers(s);
@@ -144,7 +143,7 @@ namespace hm {
   }
   
   template<typename T>
-  void MPIRenderer::sendToWorkers(const T &t)
+  void MPIRenderEngine::sendToWorkers(const T &t)
   {
     comm.bc_send(&t,sizeof(T));
   }
@@ -152,7 +151,7 @@ namespace hm {
     
 
   WorkerLoop::WorkerLoop(Comm &comm,
-                         Renderer *renderer)
+                         RenderEngineInterface *renderer)
     : comm(comm),
       renderer(renderer)
   {}
@@ -167,14 +166,14 @@ namespace hm {
     }
   }
 
-  void MPIRenderer::sendEndOfMessage()
+  void MPIRenderEngine::sendEndOfMessage()
   {
     int eomIdentifier = eomIdentifierBase++;
     sendToWorkers(eomIdentifier);
   }
   
   // ==================================================================
-  void MPIRenderer::screenShot()
+  void MPIRenderEngine::screenShot()
   {
     // ------------------------------------------------------------------
     // send request....
@@ -206,7 +205,7 @@ namespace hm {
 
   // ==================================================================
   
-  void MPIRenderer::resetAccumulation()
+  void MPIRenderEngine::resetAccumulation()
   {
     // ------------------------------------------------------------------
     // send request....
@@ -236,7 +235,7 @@ namespace hm {
     
 
   // ==================================================================
-  void MPIRenderer::terminate()
+  void MPIRenderEngine::terminate()
   {
     // ------------------------------------------------------------------
     // send request....
@@ -273,7 +272,7 @@ namespace hm {
 
   // ==================================================================
 
-  void MPIRenderer::renderFrame()
+  void MPIRenderEngine::renderFrame()
   {
     // ------------------------------------------------------------------
     // send request....
@@ -305,7 +304,7 @@ namespace hm {
 
   // ==================================================================
 
-  void MPIRenderer::resize(const vec2i &newSize, uint32_t *appFB)
+  void MPIRenderEngine::resize(const vec2i &newSize, uint32_t *appFB)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -342,7 +341,7 @@ namespace hm {
 
   // ==================================================================
 
-  void MPIRenderer::setCamera(const Camera &camera)
+  void MPIRenderEngine::setCamera(const Camera &camera)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -374,7 +373,7 @@ namespace hm {
 
   // ==================================================================
 
-  void MPIRenderer::setTransferFunction(const TransferFunction &xf)
+  void MPIRenderEngine::setTransferFunction(const TransferFunction &xf)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -412,7 +411,7 @@ namespace hm {
 #if HS_USE_MULTI_SCATTERING
   // ==================================================================
 
-  void MPIRenderer::setVolumeScatterSettings(const VolumeScatterSettings &settings)
+  void MPIRenderEngine::setVolumeScatterSettings(const VolumeScatterSettings &settings)
   {
     int cmd = SET_VOLUME_SCATTER;
     sendToWorkers(cmd);
@@ -433,7 +432,7 @@ namespace hm {
   
   // ==================================================================
 
-  // void MPIRenderer::setISO(int numActive,
+  // void MPIRenderEngine::setISO(int numActive,
   //                           const std::vector<int> &active,
   //                           const std::vector<float> &values,
   //                           const std::vector<vec3f> &colors)
@@ -478,7 +477,7 @@ namespace hm {
 
   // ==================================================================
   
-  void MPIRenderer::setLights(float ambient,
+  void MPIRenderEngine::setLights(float ambient,
                               const std::vector<PointLight> &pointLights,
                               const std::vector<DirLight> &dirLights)
   {
@@ -579,8 +578,8 @@ namespace hm {
   }
   
 
-  void MPIRenderer::runWorker(Comm &comms,
-                              Renderer *client)
+  void MPIRenderEngine::runWorker(Comm &comms,
+                              RenderEngineInterface *client)
   {
     WorkerLoop helper(comms,client);
     helper.runWorker();

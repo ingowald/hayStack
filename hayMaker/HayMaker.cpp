@@ -63,6 +63,99 @@ namespace hm {
     library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
   }
 
+  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRgba)
+  {
+    this->fbSize = fbSize;
+    this->hostRGBA = hostRGBA;
+    for (auto dev : perDevice) {
+      dev->fbSize = fbSize;
+      auto device = dev->anari.device;
+      auto frame = dev->anari.frame;
+      anari::setParameter(device, frame,
+                          "size",
+                          (const anari::math::uint2&)fbSize);
+      anari::setParameter(device, frame,
+                          "channel.color",
+                          ANARI_UFIXED8_RGBA_SRGB);
+      static bool have_depth = getenv("HS_HAVE_DEPTH");
+      if (have_depth)
+        anari::setParameter(device, frame,
+                            "channel.depth", ANARI_FLOAT32);
+#ifdef TEST_IDCHANNEL
+      anari::setParameter(device, frame,
+                          TEST_IDCHANNEL, ANARI_UINT32);
+#endif
+
+      anari::commitParameters(device, frame);
+    }
+  }
+  
+
+  void HayMaker::renderFrame()
+  {
+    const char *channelName = "channel.color";
+#ifdef TEST_IDCHANNEL
+    channelName = TEST_IDCHANNEL;
+#endif
+    
+    for (auto dev : perDevice)
+      dev->renderFrame();
+
+    auto dev0 = perDevice[0];
+    auto fb = anari::map<uint32_t>(dev0->anari.device,
+                                   dev0->anari.frame,
+                                   channelName);
+
+    if (fb.width != fbSize.x || fb.height != fbSize.y)
+      std::cout << "resized frame or unsupported channel type!?" << std::endl;
+    else {
+      if (hostRGBA) {
+#ifdef TEST_IDCHANNEL
+        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
+        const uint64_t FNV_prime = 0x100000001b3ULL;
+        for (int i=0;i<fb.width*fb.height;i++) {
+          uint32_t ID = fb.data[i];
+          uint64_t s = FNV_basis + FNV_prime * ID;
+          
+          s = s * FNV_prime ^ ID;
+          int r = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int g = s & 0xff;
+          s = s * FNV_prime ^ ID;
+          int b = s & 0xff;
+          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
+          hostRGBA[i] = rgba;
+        }
+#else
+        memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+#endif
+      }
+    }
+    anari::unmap(dev0->anari.device,dev0->anari.frame,channelName);
+  }
+  
+  void HayMaker::resetAccumulation()
+  {
+    for (auto dev : perDevice)
+      anari::commitParameters(dev->anari.device, dev->anari.frame);
+  }
+
+  void HayMaker::setCamera(const Camera &camera) 
+  {
+    for (auto dev : perDevice)
+      dev->setCamera(camera); 
+  }
+  
+  void HayMaker::finalizeRender()
+  {
+    for (auto dev : perDevice) {
+      anari::setParameter(dev->anari.device, dev->anari.frame,
+                          "world", dev->anari.world);
+      anari::commitParameters(dev->anari.device, dev->anari.frame);
+    }
+  }
+  
+  
   BoundsData HayMaker::getWorldBounds() const
   {
     BoundsData bb = localPartitions->getBounds();

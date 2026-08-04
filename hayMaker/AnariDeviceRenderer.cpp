@@ -94,6 +94,11 @@ namespace hm {
     anari::commitParameters(anari.device, anari.frame);
   }
   
+  void AnariDeviceRenderer::renderFrame()
+  {
+    anari::render(anari.device, anari.frame);
+  }
+  
   void AnariDeviceRenderer::setTransferFunction(const TransferFunction &xf)
   {
     currentXF = xf;
@@ -187,6 +192,20 @@ namespace hm {
   }
 
 
+  void AnariDeviceRenderer::setCamera(const hs::Camera &camera)
+  {
+    anari::setParameter(anari.device, anari.camera,
+                        "aspect",    fbSize.x / (float)fbSize.y);
+    anari::setParameter(anari.device, anari.camera,
+                        "position",  (const anari::math::float3&)camera.vp);
+    vec3f camera_dir = normalize(camera.vi - camera.vp);
+    anari::setParameter(anari.device, anari.camera,
+                        "direction", (const anari::math::float3&)camera_dir);
+    anari::setParameter(anari.device, anari.camera,
+                        "up",        (const anari::math::float3&)camera.vu);
+    anari::commitParameters(anari.device, anari.camera);
+  }
+  
   void AnariDeviceRenderer::renderInitialAnariWorld()
   {
     // ==================================================================
@@ -1164,5 +1183,5 @@ namespace hm {
     return {material,"color"};
   }
   
-  
+    
 }

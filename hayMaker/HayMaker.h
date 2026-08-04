@@ -6,7 +6,7 @@
 #include "hayStack/HayStack.h"
 // current rank's parition(s) of distributed: model
 #include "hayStack/LocalPartitions.h"
-#include "hayMaker/MPIRenderer.h"
+#include "hayMaker/MPIRenderEngine.h"
 
 #include <anari/anari_cpp.hpp>
 #include <anari/anari_cpp/ext/linalg.h>
@@ -41,7 +41,7 @@ namespace hm {
     int localPartitionIndex = 0;
   };
     
-  struct HayMaker : public Renderer {
+  struct HayMaker : public RenderEngineInterface {
     HayMaker(Comm &world,
              Comm &workers,
              GlobalRenderSettings &globalRenderSettings,
