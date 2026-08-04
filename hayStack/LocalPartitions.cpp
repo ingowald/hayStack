@@ -13,12 +13,15 @@ namespace hs {
 
   LocalPartitions::LocalPartitions(const std::vector<int> &localDataRanks,
                                    int numPartitionsGlobally)
+    : numPartitionsGlobally(numPartitionsGlobally)
   {
+    assert(!localDataRanks.empty());
     for (int i=0;i<localDataRanks.size();i++) {
       auto p = new OnePartition(localDataRanks[i],
                                 numPartitionsGlobally);
       myPartitions.push_back(p);
     }
+    assert(!myPartitions.empty());
   }
 
   BoundsData LocalPartitions::getBounds() const
@@ -31,11 +34,21 @@ namespace hs {
 
   /*! returns whether this rank does *not* have any data; in this
     case it's a passive (head?-)node */
-  bool LocalPartitions::empty() const { return myPartitions.empty(); }
+  bool LocalPartitions::empty() const
+  {
+    return myPartitions.empty();
+  }
     
   /*! returns the number of data groups *on this rank* */
   int LocalPartitions::numPartitionsOnThisRank() const
-  { return (int)myPartitions.size(); }
+  {
+    return (int)myPartitions.size();
+  }
+
+  int LocalPartitions::numPartitionsTotal() const
+  {
+    return numPartitionsGlobally;
+  }
 
   /*! this is an optimization in particular for models (like lander)
     where one rank might get multiple "smaller" unstructured

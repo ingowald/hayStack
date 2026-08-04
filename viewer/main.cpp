@@ -644,7 +644,7 @@ int main(int ac, char **av)
   LocalPartitions *localPartitions = 0;
   // localPartitions->colorMapIndex = fromCL.cmID;
   if (!isHeadNode) {
-    localPartitions = loader.loadData(dataPerRank,numDataGroupsGlobally);
+    localPartitions = loader.loadData(numDataGroupsGlobally,dataPerRank);
     // loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
   }
   if (fromCL.mergeUnstructuredMeshes) {
@@ -654,6 +654,8 @@ int main(int ac, char **av)
   }
   
   int numPartitionsLocally = localPartitions->numPartitionsOnThisRank();
+  if (numPartitionsLocally == 0)
+    throw std::runtime_error("no partitions on this rank!?");
   world.barrier();
 
   // std::vector<int> gpuIDs;

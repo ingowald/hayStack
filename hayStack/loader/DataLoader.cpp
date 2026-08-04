@@ -242,6 +242,8 @@ namespace hs {
           dataPerRank = 1;
         }
       }
+      assert(numDataRanks > 0);
+      assert(dataPerRank > 0);
 
       if (numDataRanks % dataPerRank) {
         std::cout << "warning - num data groups is not a "
@@ -263,7 +265,9 @@ namespace hs {
           std::cout << ss.str()
                     << std::endl << std::flush;
         }
+        localDataRanks.push_back(dataGroupID);
       }
+      assert(!localDataRanks.empty());
       LocalPartitions *localPartitions
         = new LocalPartitions(localDataRanks,numDataRanks);
 
@@ -289,6 +293,9 @@ namespace hs {
           std::cout << "#hv: all workers done loading their data..." << std::endl;
         workers.barrier();
       }
+      assert(localPartitions);
+      assert(localPartitions->numPartitionsOnThisRank() > 0);
+      assert(localPartitions->numPartitionsTotal() > 0);
       return localPartitions;
     }
 
@@ -403,6 +410,7 @@ namespace hs {
     
     void DynamicDataLoader::assignGroups(int numDifferentDataRanks)
     {
+      assert(numDifferentDataRanks > 0);
       contentOfGroup.resize(numDifferentDataRanks);
 
       std::priority_queue<std::pair<double,int>> loadedGroups;

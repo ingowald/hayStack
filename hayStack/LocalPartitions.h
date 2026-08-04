@@ -39,6 +39,7 @@ namespace hs {
     /*! these are (only) the current rank's partitions; there might be
         more ranks with more data */
     std::vector<OnePartition *> myPartitions;
+    int const numPartitionsGlobally;
     // int colorMapIndex = 0;
   };
 
