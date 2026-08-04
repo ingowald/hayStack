@@ -52,19 +52,19 @@ namespace hm {
     anari::Array2D image;
     switch (miniTex->format) {
     case mini::Texture::FLOAT4:
-      image = anariNewArray2D(renderer->device,
+      image = anariNewArray2D(renderer->anari.device,
                               (const void *)miniTex->data.data(),
                               nullptr,nullptr,ANARI_FLOAT32_VEC4,
                               (size_t)miniTex->size.x,(size_t)miniTex->size.y);
       break;
     case mini::Texture::FLOAT1:
-      image = anariNewArray2D(renderer->device,
+      image = anariNewArray2D(renderer->anari.device,
                               (const void **)miniTex->data.data(),
                               0,0,ANARI_FLOAT32,
                               (size_t)miniTex->size.x,(size_t)miniTex->size.y);
       break;
     case mini::Texture::RGBA_UINT8:
-      image = anariNewArray2D(renderer->device,
+      image = anariNewArray2D(renderer->anari.device,
                               (const void *)miniTex->data.data(),
                               0,0,ANARI_UFIXED8_VEC4,
                               (size_t)miniTex->size.x,(size_t)miniTex->size.y);
@@ -74,17 +74,17 @@ namespace hm {
                 << (int)miniTex->format << std::endl;
       return 0;
     }
-    anari::commitParameters(renderer->device,image);
+    anari::commitParameters(renderer->anari.device,image);
 
     anari::Sampler sampler
-      = anari::newObject<anari::Sampler>(renderer->device,"image2D");
+      = anari::newObject<anari::Sampler>(renderer->anari.device,"image2D");
     assert(sampler);
     // anari::setParameter(device,sampler,"inAttribute","attribute0");
-    anari::setParameter(renderer->device,sampler,"wrapMode1",wrapMode);
-    anari::setParameter(renderer->device,sampler,"wrapMode2",wrapMode);
-    anari::setParameter(renderer->device,sampler,"filterMode",filterMode);
-    anari::setParameter(renderer->device,sampler,"image",image);
-    anari::commitParameters(renderer->device,sampler);
+    anari::setParameter(renderer->anari.device,sampler,"wrapMode1",wrapMode);
+    anari::setParameter(renderer->anari.device,sampler,"wrapMode2",wrapMode);
+    anari::setParameter(renderer->anari.device,sampler,"filterMode",filterMode);
+    anari::setParameter(renderer->anari.device,sampler,"image",image);
+    anari::commitParameters(renderer->anari.device,sampler);
     return sampler;
   }  
 }

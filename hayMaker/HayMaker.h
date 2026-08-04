@@ -8,10 +8,25 @@
 #include "hayStack/LocalPartitions.h"
 #include "hayMaker/MPIRenderer.h"
 
+#include <anari/anari_cpp.hpp>
+#include <anari/anari_cpp/ext/linalg.h>
+
 namespace hm {
   /*! the actual anari renderer part for the a given gpu/device */
   struct SingleDeviceRenderer;
 
+  struct GlobalRenderSettings {
+    int   samplesPerPixel = 1;
+    float ambientRadiance = .8f;
+    
+    // invalid value: leave this to the renderer, allowing to create
+    // the default gradient
+    vec4f bgColor { -1.f };
+    
+    /*! default color map index to use */
+    int defaultColorMapIndex = 0;
+  };
+  
   struct DeviceConfig {
     /*! which gpu to use. which actual gpu that refers to depends on
         the backend; for a cuda/optix based backend this'll be the
@@ -29,6 +44,7 @@ namespace hm {
   struct HayMaker : public Renderer {
     HayMaker(Comm &world,
              Comm &workers,
+             GlobalRenderSettings &globalRenderSettings,
              hs::LocalPartitions *localPartitions,
              const std::vector<DeviceConfig> &deviceConfigs);
 
@@ -60,11 +76,8 @@ namespace hm {
     Comm            &world;
     Comm            &workers;
     hs::LocalPartitions *const localPartitions;
-    GlobalModelData  globalModelData;
+    GlobalRenderSettings globalRenderSettings;
     const std::vector<DeviceConfig> deviceConfigs;
-    
-    /*! default color map index to use */
-    static int colorMapIndex;
   };
 
 }

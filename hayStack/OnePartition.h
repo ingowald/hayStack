@@ -20,20 +20,20 @@
 
 namespace hs {
 
-  /*! the model data that each rank/device should see, no matter which
-    logical partition it has - in particular light sources, but also
-    render settings as far as the scene is setting those */
-  struct GlobalModelData {
-    std::vector<mini::DirLight>     directional;
+  // /*! the model data that each rank/device should see, no matter which
+  //   logical partition it has - in particular light sources, but also
+  //   render settings as far as the scene is setting those */
+  // struct GlobalModelData {
+  //   std::vector<mini::DirLight>     directional;
     
-    /*! global data that _should_ remain the same across all ranks and
-      partitions */
-    struct  {
-      int   pixelSamples;
-      float ambientRadiance;
-      vec4f bgColor;
-    } renderSettings;
-  };
+  //   /*! global data that _should_ remain the same across all ranks and
+  //     partitions */
+  //   struct  {
+  //     int   pixelSamples;
+  //     float ambientRadiance;
+  //     vec4f bgColor;
+  //   } renderSettings;
+  // };
 
   /*! one "partition" of a data-distributed scene. For data replicated
       rendering this is simply "the" scene (ie, there is but one

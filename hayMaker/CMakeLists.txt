@@ -14,6 +14,9 @@ add_library(hayMaker
 #  AnariBackend.cpp
   MPIRenderer.h
   MPIRenderer.cpp
+  
+  SingleDeviceRenderer.h
+  SingleDeviceRenderer.cpp
 )
 
 target_link_libraries(hayMaker

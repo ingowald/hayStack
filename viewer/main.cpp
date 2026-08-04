@@ -642,7 +642,6 @@ int main(int ac, char **av)
   int dataPerRank   = fromCL.dpr;
   //  LocalModel thisRankData;
   LocalPartitions *localPartitions = 0;
-  hm::HayMaker::colorMapIndex = fromCL.cmID;
   // localPartitions->colorMapIndex = fromCL.cmID;
   if (!isHeadNode) {
     localPartitions = loader.loadData(dataPerRank,numDataGroupsGlobally);
@@ -666,9 +665,16 @@ int main(int ac, char **av)
     deviceConfigs.push_back(dc);
   }
 
+  GlobalRenderSettings globalRenderSettings;
+  globalRenderSettings.samplesPerPixel = fromCL.spp;
+  globalRenderSettings.ambientRadiance = fromCL.ambientRadiance;
+  globalRenderSettings.bgColor = fromCL.bgColor;
+  globalRenderSettings.defaultColorMapIndex = fromCL.cmID;
+  
   HayMaker *hayMaker
     = new HayMaker(// mpi/peers:
                    world,workers,
+                   globalRenderSettings,
                    // the parition(s) we have loaded locally on this rank
                    localPartitions,
                    

@@ -68,8 +68,14 @@ namespace hm {
     }
 #endif
     bool dirty = true;
-    
-    anari::Device device;
+
+    struct {
+      anari::Device device;
+      anari::World  world;
+      anari::Renderer renderer;
+      anari::Frame    frame;
+      anari::Camera   camera;
+    } anari;
   };
     
 

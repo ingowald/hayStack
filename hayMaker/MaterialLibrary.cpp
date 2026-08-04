@@ -15,8 +15,8 @@ namespace hm {
     for (auto v : colorMap)
       as4f.push_back({v.x,v.y,v.z,1.f});
     anari::Sampler scalarMapper
-      = anari::newObject<anari::Sampler>(renderer->device,"image1D");
-    anari::setParameterArray1D(renderer->device, scalarMapper, "image",
+      = anari::newObject<anari::Sampler>(renderer->anari.device,"image1D");
+    anari::setParameterArray1D(renderer->anari.device, scalarMapper, "image",
                                (const anari::math::float4*)as4f.data(),as4f.size());
     float scale = 1.f / (inputRange.upper-inputRange.lower);
     struct {
@@ -26,13 +26,14 @@ namespace hm {
     xfm.v1={0.f,1.f,0.f,0.f};
     xfm.v2={0.f,0.f,1.f,0.f};
     xfm.v3={0.f,0.f,0.f,1.f};
-    anariSetParameter(renderer->device,scalarMapper,
+    anariSetParameter(renderer->anari.device,scalarMapper,
                       "inTransform",
                       ANARI_FLOAT32_MAT4,
                       &xfm);
-    anari::setParameter(renderer->device,scalarMapper,"inAttribute","attribute0");
-    anari::setParameter(renderer->device,scalarMapper,"filter","linear");
-    anari::commitParameters(renderer->device,scalarMapper);
+    anari::setParameter(renderer->anari.device,scalarMapper,"inAttribute","attribute0");
+    anari::setParameter(renderer->anari.device,
+                        scalarMapper,"filter","linear");
+    anari::commitParameters(renderer->anari.device,scalarMapper);
     std::cout << "color mapper created" << std::endl;
     return { scalarMapper };
   }
@@ -44,7 +45,7 @@ namespace hm {
   MaterialLibrary::~MaterialLibrary()
   {
     for (auto it : alreadyCreated)
-      anariRelease(renderer->device,it.second);
+      anariRelease(renderer->anari.device,it.second);
   }
 
   anari::Material

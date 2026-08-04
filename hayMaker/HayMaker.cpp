@@ -8,28 +8,59 @@
 
 namespace hm {
 
-  /*! default color map index to use */
-  int HayMaker::colorMapIndex = 0;
+  static void anariStatusFunc(const void * /*userData*/,
+                              ANARIDevice /*device*/,
+                              ANARIObject source,
+                              ANARIDataType /*sourceType*/,
+                              ANARIStatusSeverity severity,
+                              ANARIStatusCode /*code*/,
+                              const char *message)
+  {
+    if (severity == ANARI_SEVERITY_FATAL_ERROR) {
+      fprintf(stderr, "[FATAL][%p] %s\n", source, message);
+      std::exit(1);
+    } else if (severity == ANARI_SEVERITY_ERROR) {
+      fprintf(stderr, "[ERROR][%p] %s\n", source, message);
+    } else if (severity == ANARI_SEVERITY_WARNING) {
+      fprintf(stderr, "[WARN ][%p] %s\n", source, message);
+    } else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING) {
+      fprintf(stderr, "[PERF ][%p] %s\n", source, message);
+    }
+    // Ignore INFO/DEBUG messages
+  }
 
   HayMaker::HayMaker(Comm &world,
                      Comm &workers,
+                     GlobalRenderSettings &globalRenderSettings,
                      hs::LocalPartitions *localPartitions,
                      const std::vector<DeviceConfig> &deviceConfigs)
     : world(world),
       workers(workers),
+      globalRenderSettings(globalRenderSettings),
       localPartitions(localPartitions)
   {
     assert(!deviceConfigs.empty());
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
       hs::ColorMap::init();
-      int cmID = colorMapIndex % hs::ColorMap::maps.size();
+      int cmID = globalRenderSettings.defaultColorMapIndex
+        % hs::ColorMap::maps.size();
       std::cout << "#hs: using scalar-mapping color map #" << cmID
                 << " : " << hs::ColorMap::maps[cmID].first << std::endl;
       for (auto pd : perDevice)
         pd->createColorMapper(bb.mapped,
                               hs::ColorMap::maps[cmID].second);
     }
+    
+    char *envlib = getenv("ANARI_LIBRARY");
+    std::string libname = envlib ? "environment" :
+#if HS_MPI
+      "barney_mpi"
+#else
+      "barney"
+#endif
+      ;
+    library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
   }
 
   void HayMaker::initialBuild()
