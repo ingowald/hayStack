@@ -727,11 +727,8 @@ namespace hm {
       = content.scalars.perVertex.empty()
       ? anari::Sampler{}
       : defaultColorMapper;
-      // will become null if perVertex is empty
     anari::Material material
       = materialLibrary.getOrCreate(content.material,colorMapped,scalarMapper);
-    // ,
-    //                              content.scalars.perVertex.size()>0);
     anari::Geometry geom
       = anari::newObject<anari::Geometry>(anari.device, "triangle");
     anari::setParameterArray1D
@@ -926,5 +923,246 @@ namespace hm {
     return volume;
   }
 
+
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::Metal::SP metal)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    
+    vec3f baseColor = metal->k * float (1.f/ M_PI);
+    anari::setParameter(anari.device,material,"baseColor",
+                        (const anari::math::float3&)baseColor);
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    anari::setParameter(anari.device,material,"metallic",1.f);
+    anari::setParameter(anari.device,material,"opacity",1.f);
+    anari::setParameter(anari.device,material,"roughness",metal->roughness);
+    anari::setParameter(anari.device,material,"ior",metal->eta.x);
+    anari::commitParameters(anari.device,material);
+    return {material,"baseColor"};
+  }
+  
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::MetallicPaint::SP metal)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+
+    vec3f baseColor = (const vec3f&)metal->shadeColor;
+    anari::setParameter(anari.device,material,"baseColor",
+                        (const anari::math::float3&)baseColor);
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    anari::setParameter(anari.device,material,"metallic",1.f);
+    anari::setParameter(anari.device,material,"opacity",1.f);
+    anari::setParameter(anari.device,material,"roughness",metal->glitterSpread);
+    anari::setParameter(anari.device,material,"ior",1.f/metal->eta);
+    anari::setParameter(anari.device,material,"specular",.0f);
+    anari::setParameter(anari.device,material,"clearcoat",.0f);
+    anari::setParameter(anari.device,material,"transmission",.0f);
+    anari::commitParameters(anari.device, material);
+    return {material,"baseColor"};
+  }
+
+  
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::Matte::SP matte)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "matte");
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+
+    vec3f color = matte->reflectance / 3.14f;
+    anari::setParameter(anari.device,material,"color",
+                        (const anari::math::float3&)color);
+    anari::commitParameters(anari.device, material);
+    return {material,"color"};
+  }
+  
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::ANARIMaterial::SP disney)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)    
+#define SET_FLOAT1(name) anari::setParameter(anari.device,material,STRINGIFY(name),disney->name)
+#define SET_FLOAT3(name) anari::setParameter(anari.device,material,STRINGIFY(name),(anari::math::float3&)disney->name)
+#define SET_INT(name) anari::setParameter(anari.device,material,STRINGIFY(name),disney->name)
+#define SET_TEXTURE(name) \
+    if (disney->name##_texture) { \
+      anari::Sampler tex = textureLibrary.getOrCreate(disney->name##_texture); \
+      if (tex) anari::setParameter(anari.device,material,STRINGIFY(name),tex);\
+    }
+    
+    SET_FLOAT3(baseColor);
+    SET_TEXTURE(baseColor);
+    SET_FLOAT1(opacity);
+    SET_TEXTURE(opacity);
+    SET_FLOAT1(metallic);
+    SET_TEXTURE(metallic);
+    SET_FLOAT1(roughness);
+    SET_TEXTURE(roughness);
+    SET_TEXTURE(normal);
+    SET_FLOAT3(emissive);
+    SET_TEXTURE(emissive);
+    SET_TEXTURE(occlusion);
+    SET_INT(alphaMode);
+    SET_FLOAT1(alphaCutoff);
+    SET_FLOAT1(specular);
+    SET_TEXTURE(specular);
+    SET_FLOAT3(specularColor);
+    SET_TEXTURE(specularColor);
+    SET_FLOAT1(clearcoat);
+    SET_TEXTURE(clearcoat);
+    SET_FLOAT1(clearcoatRoughness);
+    SET_TEXTURE(clearcoatRoughness);
+    SET_TEXTURE(clearcoatNormal);
+    SET_FLOAT1(transmission);
+    SET_TEXTURE(transmission);
+    SET_FLOAT1(ior);
+    SET_TEXTURE(ior);
+    SET_FLOAT1(thickness);
+    SET_TEXTURE(thickness);
+    SET_FLOAT1(attenuationDistance);
+    SET_FLOAT3(attenuationColor);
+    SET_TEXTURE(attenuationColor);
+    SET_FLOAT3(sheenColor);
+    SET_TEXTURE(sheenColor);
+    SET_FLOAT1(sheenRoughness);
+    SET_TEXTURE(sheenRoughness);
+    SET_FLOAT1(iridescence);
+    SET_TEXTURE(iridescence);
+    SET_FLOAT1(iridescenceIor);
+    SET_TEXTURE(iridescenceIor);
+    SET_FLOAT1(iridescenceThickness);
+    SET_TEXTURE(iridescenceThickness);
+
+    anari::commitParameters(anari.device, material);
+    return {material,"baseColor"};
+  }
+  
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::DisneyMaterial::SP disney)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+
+    anari::setParameter(anari.device,material,"baseColor",
+                        (const anari::math::float3&)disney->baseColor);
+    anari::setParameter(anari.device,material,"metallic",disney->metallic);
+    anari::setParameter(anari.device,material,"opacity",1.f-disney->transmission);
+    anari::setParameter(anari.device,material,"roughness",disney->roughness);
+    anari::setParameter(anari.device,material,"specular",.0f);
+    anari::setParameter(anari.device,material,"clearcoat",.0f);
+    anari::setParameter(anari.device,material,"ior",disney->ior);
+    if (disney->colorTexture) {
+      anari::Sampler tex = textureLibrary.getOrCreate(disney->colorTexture);
+      if (tex) anari::setParameter(anari.device,material,"baseColor",tex);
+    }
+
+    anari::commitParameters(anari.device, material);
+    return {material,"baseColor"};
+  }
+
+  std::pair<anari::Material,std::string> SingleDeviceRenderer::create(mini::Dielectric::SP dielectric)
+  {
+    // auto device = device;
+
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    anari::setParameter(anari.device,material,"ior",dielectric->etaInside);
+    anari::setParameter(anari.device,material,"transmission",1.f);
+    anari::setParameter(anari.device,material,"metallic",0.f);
+    anari::setParameter(anari.device,material,"specular",0.f);
+    anari::setParameter(anari.device,material,"roughness",0.f);
+
+    anari::commitParameters(anari.device, material);
+    return {material,"baseColor"};
+  }
+
+  std::pair<anari::Material,std::string> SingleDeviceRenderer::create(mini::Plastic::SP plastic)
+  {
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "physicallyBased");
+
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    anari::setParameter(anari.device,material,"ior",plastic->eta);
+    /* this is almost certainly wrong, but in the embree imported
+       xml files all the plastic's have Ks==1.f and only non-one
+       value is pigmentcolor... */
+    vec3f base = min(plastic->Ks,plastic->pigmentColor);;
+    anari::setParameter(anari.device,material,"baseColor",(const anari::math::float3&)base);
+    anari::setParameter(anari.device,material,"transmission",0.f);
+    anari::setParameter(anari.device,material,"metallic",0.f);
+    anari::setParameter(anari.device,material,"specular",0.f);
+    anari::setParameter(anari.device,material,"roughness",plastic->roughness);
+
+    anari::commitParameters(anari.device, material);
+    return {material,"baseColor"};
+  }
+  
+  
+  std::pair<anari::Material,std::string>
+  SingleDeviceRenderer::create(mini::Material::SP miniMat)
+  {
+    static std::set<std::string> typesCreated;
+    if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {
+      std::cout
+        << MINI_TERMINAL_YELLOW
+        << "#hs: creating at least one instance of material *** "
+        << miniMat->toString() << " ***"
+        << MINI_TERMINAL_DEFAULT << std::endl;
+      typesCreated.insert(miniMat->toString());
+    }
+
+    if (mini::Plastic::SP plastic
+        = miniMat->as<mini::Plastic>())
+      return create(plastic);
+    if (mini::DisneyMaterial::SP disney
+        = miniMat->as<mini::DisneyMaterial>())
+      return create(disney);
+    if (mini::ANARIMaterial::SP anari
+        = miniMat->as<mini::ANARIMaterial>())
+      return create(anari);
+    if (mini::Dielectric::SP dielectric
+        = miniMat->as<mini::Dielectric>())
+      return create(dielectric);
+    if (mini::MetallicPaint::SP metallicPaint
+        = miniMat->as<mini::MetallicPaint>())
+      return create(metallicPaint);
+    if (mini::Matte::SP matte
+        = miniMat->as<mini::Matte>())
+      return create(matte);
+    if (mini::Metal::SP metal
+        = miniMat->as<mini::Metal>())
+      return create(metal);
+    if (mini::Dielectric::SP dielectric
+        = miniMat->as<mini::Dielectric>())
+      return create(dielectric);
+    // if (mini::ThinGlass::SP thinGlass = miniMat->as<mini::ThinGlass>())
+    //   return create(thinGlass);
+    // throw std::runtime_error("could not create barney material for mini mat "
+    //                          +miniMat->toString());
+
+    std::cout << MINI_TERMINAL_RED
+              << "#warning: do not know how to realize mini material '"
+              << miniMat->toString() << "'; replacing with matte gray"
+              << MINI_TERMINAL_DEFAULT << std::endl;
+    
+    anari::Material material
+      = anari::newObject<anari::Material>(anari.device, "matte");
+    anari::setParameter(anari.device,material,"alphaMode","blend");
+    anari::math::float3 color(.7f,.7f,.7f);
+    anari::setParameter(anari.device,material,"color",color);
+    anari::commitParameters(anari.device, material);
+    return {material,"color"};
+  }
+  
   
 }

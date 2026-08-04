@@ -98,6 +98,18 @@ namespace hm {
     void createAndAdd(const mini::DirLight &ml);
     void createAndAdd(const mini::EnvMapLight &ml);
 
+    // ==================================================================
+    // materials
+    // ==================================================================
+    std::pair<anari::Material,std::string> create(mini::Metal::SP);
+    std::pair<anari::Material,std::string> create(mini::MetallicPaint::SP);
+    std::pair<anari::Material,std::string> create(mini::Matte::SP);
+    std::pair<anari::Material,std::string> create(mini::ANARIMaterial::SP);
+    std::pair<anari::Material,std::string> create(mini::DisneyMaterial::SP);
+    std::pair<anari::Material,std::string> create(mini::Dielectric::SP);
+    std::pair<anari::Material,std::string> create(mini::Plastic::SP);
+    std::pair<anari::Material,std::string> create(mini::Material::SP);
+
     // anari::Sampler createScalarMapper(const std::vector<float> &scalars);
     
 

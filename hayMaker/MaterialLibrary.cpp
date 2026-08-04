@@ -58,7 +58,7 @@ namespace hm {
     if (alreadyCreated.find(key) != alreadyCreated.end())
       return alreadyCreated[key];
 
-    auto matAndColorName = create(miniMat);
+    auto matAndColorName = renderer->create(miniMat);
     auto mat = matAndColorName.first;
     const std::string colorName = matAndColorName.second;
     if (hasColorAttribute)
