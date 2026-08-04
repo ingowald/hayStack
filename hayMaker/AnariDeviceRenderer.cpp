@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023-2026 Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hayMaker/SingleDeviceRenderer.h"
+#include "hayMaker/AnariDeviceRenderer.h"
 #include "hayMaker/HayMaker.h"
 #include "hayStack/ColorMap.h"
 
@@ -10,7 +10,7 @@ namespace hm {
 
   inline float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
   
-  SingleDeviceRenderer::SingleDeviceRenderer(int gpuID,
+  AnariDeviceRenderer::AnariDeviceRenderer(int gpuID,
                                              int tetherIndex,
                                              int tetherCount,
                                              HayMaker     *hayMaker,
@@ -94,7 +94,7 @@ namespace hm {
     anari::commitParameters(anari.device, anari.frame);
   }
   
-  void SingleDeviceRenderer::setTransferFunction(const TransferFunction &xf)
+  void AnariDeviceRenderer::setTransferFunction(const TransferFunction &xf)
   {
     currentXF = xf;
     if (rootInstances.groups.empty()) {
@@ -162,7 +162,7 @@ namespace hm {
     }
   }
   
-  anari::Group SingleDeviceRenderer
+  anari::Group AnariDeviceRenderer
   ::createGroup(const std::vector<anari::Surface> &geoms,
                 const std::vector<anari::Volume>  &volumes)
   {
@@ -176,7 +176,7 @@ namespace hm {
     return meshGroup;
   }
 
-  anari::Group SingleDeviceRenderer::render(const mini::Object::SP &object)
+  anari::Group AnariDeviceRenderer::render(const mini::Object::SP &object)
   {
     std::vector<anari::Surface> meshes;
     for (auto mesh : object->meshes) {
@@ -187,7 +187,7 @@ namespace hm {
   }
 
 
-  void SingleDeviceRenderer::renderInitialAnariWorld()
+  void AnariDeviceRenderer::renderInitialAnariWorld()
   {
     // ==================================================================
     // first, "render" all content in the sense that we create
@@ -303,7 +303,7 @@ namespace hm {
     setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
-  void SingleDeviceRenderer
+  void AnariDeviceRenderer
   ::setInstances(const std::vector<anari::Group> &groups,
                  const std::vector<affine3f> &xfms)
   {
@@ -349,7 +349,7 @@ namespace hm {
     anari::commitParameters(anari.device, anari.world);    
   }
 
-  void SingleDeviceRenderer
+  void AnariDeviceRenderer
   ::setLights(anari::Group rootGroup,
               const std::vector<anari::Light> &lights)
   {
@@ -362,7 +362,7 @@ namespace hm {
   }
 
   std::vector<anari::Surface>
-  SingleDeviceRenderer::create(const hs::Cylinders &content)
+  AnariDeviceRenderer::create(const hs::Cylinders &content)
   {
     bool hasColors = content.colors.size();
       
@@ -426,7 +426,7 @@ namespace hm {
   
   
   std::vector<anari::Surface>
-  SingleDeviceRenderer::create(const hs::SphereSet &content)
+  AnariDeviceRenderer::create(const hs::SphereSet &content)
   {
     bool hasColor = !content.colors.empty();
     anari::Material material
@@ -462,7 +462,7 @@ namespace hm {
     return { surface };
   }
 
-  void SingleDeviceRenderer::applyTransferFunction(const TransferFunction &xf)
+  void AnariDeviceRenderer::applyTransferFunction(const TransferFunction &xf)
   {
     if (rootVolumes.empty())
       return;
@@ -512,7 +512,7 @@ namespace hm {
     }
   }
   
-  void SingleDeviceRenderer::renderMiniScene(mini::Scene::SP mini)
+  void AnariDeviceRenderer::renderMiniScene(mini::Scene::SP mini)
   {
     // ------------------------------------------------------------------
     // set light(s) for given mini scene
@@ -539,10 +539,10 @@ namespace hm {
   }
 
   
-  void SingleDeviceRenderer::createAndAdd(const mini::QuadLight &ml)
+  void AnariDeviceRenderer::createAndAdd(const mini::QuadLight &ml)
   { return; }
   
-  void SingleDeviceRenderer::createAndAdd(const mini::DirLight &ml)
+  void AnariDeviceRenderer::createAndAdd(const mini::DirLight &ml)
   {
     anari::Light light = anari::newObject<anari::Light>
       (anari.device,"directional");
@@ -553,7 +553,7 @@ namespace hm {
     lights.push_back(light);
   }
         
-  void SingleDeviceRenderer::createAndAdd(const mini::EnvMapLight &ml)
+  void AnariDeviceRenderer::createAndAdd(const mini::EnvMapLight &ml)
   {
     std::cout << MINI_TERMINAL_YELLOW
               << "#hs: creating env-map light ..."
@@ -587,7 +587,7 @@ namespace hm {
     lights.push_back(light);
   }
 
-  anari::Volume SingleDeviceRenderer::create(const StructuredVolume &vol)
+  anari::Volume AnariDeviceRenderer::create(const StructuredVolume &vol)
   {
     anari::math::int3 volumeDims = (const anari::math::int3&)vol.dims;
       
@@ -630,7 +630,7 @@ namespace hm {
     return volume;
   }
 
-  void SingleDeviceRenderer
+  void AnariDeviceRenderer
   ::createDefaultColorMapper(const range1f &inputRange,
                                      const std::vector<vec4f> &colorMap)
   {
@@ -663,7 +663,7 @@ namespace hm {
   }
 
   anari::Surface
-  SingleDeviceRenderer::create(const mini::Mesh::SP &miniMesh)
+  AnariDeviceRenderer::create(const mini::Mesh::SP &miniMesh)
   {
     anari::Material material
       = materialLibrary.getOrCreate(miniMesh->material);
@@ -719,7 +719,7 @@ namespace hm {
   }
   
   std::vector<anari::Surface>
-  SingleDeviceRenderer::create(const hs::TriangleMesh &content)
+  AnariDeviceRenderer::create(const hs::TriangleMesh &content)
   {
     bool colorMapped = content.colors.size();
     
@@ -781,7 +781,7 @@ namespace hm {
   }
   
   std::vector<anari::Surface>
-  SingleDeviceRenderer::create(const hs::Capsules &caps)
+  AnariDeviceRenderer::create(const hs::Capsules &caps)
   {
     bool hasColorAttribute = caps.colors.size()>0;
     anari::Material material
@@ -831,14 +831,14 @@ namespace hm {
     return { surface };
   }
   
-  anari::Volume SingleDeviceRenderer
+  anari::Volume AnariDeviceRenderer
   ::create(const TAMRVolume &input)
   {
     std::cout << "skipping amr volume ..." << std::endl;
     return 0;
   }
   
-  anari::Volume SingleDeviceRenderer
+  anari::Volume AnariDeviceRenderer
   ::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
   {
     auto mesh = meshAndDomain.first;
@@ -925,7 +925,7 @@ namespace hm {
 
 
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::Metal::SP metal)
+  AnariDeviceRenderer::create(mini::Metal::SP metal)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "physicallyBased");
@@ -944,7 +944,7 @@ namespace hm {
   }
   
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::MetallicPaint::SP metal)
+  AnariDeviceRenderer::create(mini::MetallicPaint::SP metal)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "physicallyBased");
@@ -967,7 +967,7 @@ namespace hm {
 
   
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::Matte::SP matte)
+  AnariDeviceRenderer::create(mini::Matte::SP matte)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "matte");
@@ -981,7 +981,7 @@ namespace hm {
   }
   
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::ANARIMaterial::SP disney)
+  AnariDeviceRenderer::create(mini::ANARIMaterial::SP disney)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "physicallyBased");
@@ -1045,7 +1045,7 @@ namespace hm {
   }
   
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::DisneyMaterial::SP disney)
+  AnariDeviceRenderer::create(mini::DisneyMaterial::SP disney)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "physicallyBased");
@@ -1068,7 +1068,7 @@ namespace hm {
     return {material,"baseColor"};
   }
 
-  std::pair<anari::Material,std::string> SingleDeviceRenderer::create(mini::Dielectric::SP dielectric)
+  std::pair<anari::Material,std::string> AnariDeviceRenderer::create(mini::Dielectric::SP dielectric)
   {
     // auto device = device;
 
@@ -1086,7 +1086,7 @@ namespace hm {
     return {material,"baseColor"};
   }
 
-  std::pair<anari::Material,std::string> SingleDeviceRenderer::create(mini::Plastic::SP plastic)
+  std::pair<anari::Material,std::string> AnariDeviceRenderer::create(mini::Plastic::SP plastic)
   {
     anari::Material material
       = anari::newObject<anari::Material>(anari.device, "physicallyBased");
@@ -1109,7 +1109,7 @@ namespace hm {
   
   
   std::pair<anari::Material,std::string>
-  SingleDeviceRenderer::create(mini::Material::SP miniMat)
+  AnariDeviceRenderer::create(mini::Material::SP miniMat)
   {
     static std::set<std::string> typesCreated;
     if (typesCreated.find(miniMat->toString()) == typesCreated.end()) {

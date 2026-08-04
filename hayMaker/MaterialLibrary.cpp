@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayMaker/MaterialLibrary.h"
-#include "hayMaker/SingleDeviceRenderer.h"
-// #include "hayMaker/PerDevice.h"
+#include "hayMaker/AnariDeviceRenderer.h"
 
 namespace hm {
 
-  ColorMapper ColorMapper::create(SingleDeviceRenderer *renderer,
+  ColorMapper ColorMapper::create(AnariDeviceRenderer *renderer,
                                   const range1f &inputRange,
                                   const std::vector<vec3f> &colorMap)
   {
@@ -38,7 +37,7 @@ namespace hm {
     return { scalarMapper };
   }
   
-  MaterialLibrary::MaterialLibrary(SingleDeviceRenderer *renderer)
+  MaterialLibrary::MaterialLibrary(AnariDeviceRenderer *renderer)
     : renderer(renderer)
   {}
 

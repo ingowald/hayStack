@@ -20,9 +20,9 @@ namespace hm {
   
   /*! implements rendering operations for one logical partition, on
     one single device */
-  struct SingleDeviceRenderer {
+  struct AnariDeviceRenderer {
       
-    SingleDeviceRenderer(int gpuID,
+    AnariDeviceRenderer(int gpuID,
                          int tetherIndex,
                          int tetherCount,
                          HayMaker     *hayMaker,

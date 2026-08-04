@@ -6,10 +6,10 @@
 #include "hayMaker/common.h"
 
 namespace hm {
-  struct SingleDeviceRenderer;
+  struct AnariDeviceRenderer;
   
   struct ScalarMapper {
-    static ScalarMapper create(SingleDeviceRenderer *renderer,
+    static ScalarMapper create(AnariDeviceRenderer *renderer,
                                const range1f &inputRange,
                                const std::vector<vec3f> &colorMap);
     // void setOn(anari::Material material,
@@ -20,7 +20,7 @@ namespace hm {
   };
 
   struct ColorMapper {
-    static ColorMapper create(SingleDeviceRenderer *renderer,
+    static ColorMapper create(AnariDeviceRenderer *renderer,
                               const range1f &inputRange,
                               const std::vector<vec3f> &colorMap);
     // void setOn(anari::Material material,
@@ -39,7 +39,7 @@ namespace hm {
     yet the case */
   struct MaterialLibrary {
     
-    MaterialLibrary(SingleDeviceRenderer *renderer);
+    MaterialLibrary(AnariDeviceRenderer *renderer);
     ~MaterialLibrary();
     
     anari::Material getOrCreate(mini::Material::SP miniMat,
@@ -60,7 +60,7 @@ namespace hm {
       /* value */
       anari::Material> alreadyCreated;
     
-    SingleDeviceRenderer *const renderer;
+    AnariDeviceRenderer *const renderer;
   };
   
 }

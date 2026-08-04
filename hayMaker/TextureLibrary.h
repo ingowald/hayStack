@@ -7,7 +7,7 @@
 
 namespace hm {
 
-  struct SingleDeviceRenderer;
+  struct AnariDeviceRenderer;
   
   /*! keeps track of which frontend textures have already been
     created on the backend, and returns handle to already created
@@ -15,14 +15,14 @@ namespace hm {
     yet the case */
   struct TextureLibrary
   {
-    TextureLibrary(SingleDeviceRenderer *renderer);
+    TextureLibrary(AnariDeviceRenderer *renderer);
     anari::Sampler getOrCreate(mini::Texture::SP miniTex);
     
   private:
     anari::Sampler
     create(mini::Texture::SP miniTex);
     
-    SingleDeviceRenderer *const renderer;
+    AnariDeviceRenderer *const renderer;
     std::map<mini::Texture::SP,anari::Sampler> alreadyCreated;
   };
 

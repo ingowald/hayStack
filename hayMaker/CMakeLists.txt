@@ -4,8 +4,8 @@
 find_package(anari 0.13.0 REQUIRED)
 
 add_library(hayMaker
-  SingleDeviceRenderer.h
-  SingleDeviceRenderer.cpp
+  AnariDeviceRenderer.h
+  AnariDeviceRenderer.cpp
   HayMaker.h
   HayMaker.cpp
   TextureLibrary.h

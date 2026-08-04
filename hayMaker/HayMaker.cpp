@@ -4,7 +4,7 @@
 #include "hayStack/ColorMap.h"
 #include "hayStack/TransferFunction.h"
 #include "hayMaker/HayMaker.h"
-#include "hayMaker/SingleDeviceRenderer.h"
+#include "hayMaker/AnariDeviceRenderer.h"
 
 namespace hm {
 

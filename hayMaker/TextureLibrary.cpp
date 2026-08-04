@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayMaker/TextureLibrary.h"
-#include "hayMaker/SingleDeviceRenderer.h"
+#include "hayMaker/AnariDeviceRenderer.h"
 
 namespace hm {
 
-  TextureLibrary::TextureLibrary(SingleDeviceRenderer *renderer)
+  TextureLibrary::TextureLibrary(AnariDeviceRenderer *renderer)
     : renderer(renderer)
   {}
 

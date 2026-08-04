@@ -13,7 +13,7 @@
 
 namespace hm {
   /*! the actual anari renderer part for the a given gpu/device */
-  struct SingleDeviceRenderer;
+  struct AnariDeviceRenderer;
 
   struct GlobalRenderSettings {
     int   samplesPerPixel = 1;
@@ -69,7 +69,7 @@ namespace hm {
     /*! whether we have to re-commit the model next frame */
     bool          dirty = true;
 
-    std::vector<SingleDeviceRenderer *> perDevice;
+    std::vector<AnariDeviceRenderer *> perDevice;
 
     // the library used to create the device(s)
     anari::Library library;
