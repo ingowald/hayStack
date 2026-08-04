@@ -36,6 +36,8 @@ namespace hs {
       negative side effects on performance */
     void mergeUnstructuredMeshes();
 
+    OnePartition *get(int localPartitionIndex) const;
+
     /*! these are (only) the current rank's partitions; there might be
         more ranks with more data */
     std::vector<OnePartition *> myPartitions;

@@ -38,7 +38,14 @@ namespace hs {
   {
     return myPartitions.empty();
   }
-    
+
+  OnePartition *LocalPartitions::get(int localPartitionIndex) const
+  {
+    assert(localPartitionIndex >= 0);
+    assert(localPartitionIndex < myPartitions.size());
+    return myPartitions[localPartitionIndex];
+  }
+
   /*! returns the number of data groups *on this rank* */
   int LocalPartitions::numPartitionsOnThisRank() const
   {

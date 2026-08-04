@@ -39,7 +39,50 @@ namespace hm {
       globalRenderSettings(globalRenderSettings),
       localPartitions(localPartitions)
   {
+    // ------------------------------------------------------------------
+    // initialize anari *library* - need to load before we can even
+    // create device(s)
+    // ------------------------------------------------------------------
+    char *envlib = getenv("ANARI_LIBRARY");
+    std::string libname = envlib ? "environment" :
+#if HS_MPI
+      "barney_mpi"
+#else
+      "barney"
+#endif
+      ;
+    library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
+
+
+    // ------------------------------------------------------------------
+    // create anari *device(s)*
+    // ------------------------------------------------------------------
     assert(!deviceConfigs.empty());
+    for (int devIdx=0;devIdx<deviceConfigs.size();devIdx++) {
+      auto dc = deviceConfigs[devIdx];
+      // devicerender params:
+      //   int gpuID,
+      //   int tetherIndex,
+      //   int tetherCount,
+      //   HayMaker     *hayMaker,
+      //   OnePartition *myPartition
+      int gpuID       = dc.gpuID;
+      int tetherIndex = devIdx;
+      int tetherCount = deviceConfigs.size();
+      OnePartition *partition
+        = localPartitions->get(dc.localPartitionIndex);
+      perDevice.push_back(new AnariDeviceRenderer(gpuID,
+                                                  tetherIndex,
+                                                  tetherCount,
+                                                  this,
+                                                  partition));
+    }
+    
+    
+    // ------------------------------------------------------------------
+    // other global inits
+    // ------------------------------------------------------------------
+
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
       hs::ColorMap::init();
@@ -51,16 +94,6 @@ namespace hm {
         pd->createDefaultColorMapper(bb.mapped,
                                      hs::ColorMap::maps[cmID].second);
     }
-    
-    char *envlib = getenv("ANARI_LIBRARY");
-    std::string libname = envlib ? "environment" :
-#if HS_MPI
-      "barney_mpi"
-#else
-      "barney"
-#endif
-      ;
-    library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
   }
 
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRgba)

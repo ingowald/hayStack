@@ -23,10 +23,10 @@ namespace hm {
   struct AnariDeviceRenderer {
       
     AnariDeviceRenderer(int gpuID,
-                         int tetherIndex,
-                         int tetherCount,
-                         HayMaker     *hayMaker,
-                         OnePartition *myPartition);
+                        int tetherIndex,
+                        int tetherCount,
+                        HayMaker     *hayMaker,
+                        OnePartition *myPartition);
     void renderInitialAnariWorld();    
     void renderFrame();
 
