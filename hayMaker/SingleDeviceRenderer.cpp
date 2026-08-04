@@ -176,7 +176,17 @@ namespace hm {
     return meshGroup;
   }
 
-  
+  anari::Group SingleDeviceRenderer::render(const mini::Object::SP &object)
+  {
+    std::vector<anari::Surface> meshes;
+    for (auto mesh : object->meshes) {
+      auto handle = create(mesh);
+      if (handle) meshes.push_back(handle);
+    }
+    return this->createGroup(meshes,{});
+  }
+
+
   void SingleDeviceRenderer::renderInitialAnariWorld()
   {
     // ==================================================================
@@ -651,9 +661,65 @@ namespace hm {
     std::cout << "color mapper created" << std::endl;
     defaultColorMapper = scalarMapper;
   }
+
+  anari::Surface
+  SingleDeviceRenderer::create(const mini::Mesh::SP &miniMesh)
+  {
+    anari::Material material
+      = materialLibrary.getOrCreate(miniMesh->material);
+    anari::Geometry mesh
+      = anari::newObject<anari::Geometry>(anari.device, "triangle");
+    anari::setParameterArray1D(anari.device, mesh, "vertex.position",
+                               (const anari::math::float3*)miniMesh->vertices.data(),
+                               miniMesh->vertices.size());
+    anari::setParameterArray1D(anari.device, mesh, "primitive.index",
+                               (const anari::math::uint3*)miniMesh->indices.data(),
+                               miniMesh->indices.size());
+    if (!miniMesh->texcoords.empty())
+      if (miniMesh->texcoords.size() == miniMesh->vertices.size()) {
+        anari::setParameterArray1D(anari.device, mesh, "vertex.attribute0",
+                                   (const anari::math::float2*)miniMesh->texcoords.data(),
+                                   miniMesh->texcoords.size());
+      } else if (miniMesh->texcoords.size() == 3*miniMesh->indices.size()) {
+        anari::setParameterArray1D(anari.device, mesh, "faceVarying.attribute0",
+                                   (const anari::math::float2*)miniMesh->texcoords.data(),
+                                   miniMesh->texcoords.size());
+      } else  {
+        PING;
+        PRINT(miniMesh->texcoords.size());
+        PRINT(miniMesh->vertices.size());
+        PRINT(miniMesh->indices.size());
+      }
+#if 1
+    if (!miniMesh->normals.empty()) {
+      if (miniMesh->normals.size() == miniMesh->vertices.size()) {
+        anari::setParameterArray1D(anari.device, mesh, "vertex.normal",
+                                   (const anari::math::float3*)miniMesh->normals.data(),
+                                   miniMesh->normals.size());
+      } else if (miniMesh->normals.size() == 3*miniMesh->indices.size()) {
+        anari::setParameterArray1D(anari.device, mesh, "faceVarying.normal",
+                                   (const anari::math::float3*)miniMesh->normals.data(),
+                                   miniMesh->normals.size());
+      } else  {
+        PING;
+        PRINT(miniMesh->normals.size());
+        PRINT(miniMesh->vertices.size());
+        PRINT(miniMesh->indices.size());
+      }
+    }
+#endif
+    anari::commitParameters(anari.device, mesh);
+
+    anari::Surface  surface = anari::newObject<anari::Surface>(anari.device);
+    anari::setAndReleaseParameter(anari.device, surface, "geometry", mesh);
+    anari::setParameter(anari.device, surface, "material", material);
+    anari::commitParameters(anari.device, surface);
+
+    return surface;
+  }
   
   std::vector<anari::Surface>
-  SingleDeviceRenderer::create(const TriangleMesh &content)
+  SingleDeviceRenderer::create(const hs::TriangleMesh &content)
   {
     bool colorMapped = content.colors.size();
     

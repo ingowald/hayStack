@@ -91,6 +91,8 @@ namespace hm {
     Surfaces create(const hs::TriangleMesh &content);
     Surfaces create(const hs::Capsules &caps);
     Surfaces create(const hs::Cylinders &content);
+    
+    anari::Surface create(const mini::Mesh::SP &mesh);
 
     void createAndAdd(const mini::QuadLight &ml);
     void createAndAdd(const mini::DirLight &ml);
