@@ -83,6 +83,8 @@ namespace hs {
       std::pair<anari::Material,std::string>create(mini::ANARIMaterial::SP disney);
       
       anari::Volume create(const TAMRVolume::SP &v);
+      anari::Surface createAMRIsoSurface(const TAMRVolume::SP &v,
+                                         MaterialLibrary<AnariBackend> *materialLib);
       anari::Volume create(const StructuredVolume::SP &v);
 #if HS_USE_MULTI_SCATTERING
       anari::Volume create(const NanoVDBVolume::SP &v);

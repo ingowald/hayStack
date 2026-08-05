@@ -222,9 +222,15 @@ namespace hs {
       // render all *AMR* volumes
       // -----------------------------------------------------------------
       for (auto vol : myData.amr) {
-        VolumeHandle createdVolume = impl->create(vol);
-        if (createdVolume)
-          rootVolumes.push_back(createdVolume);
+        if (vol->wantsIsoSurface()) {
+          auto created = impl->createAMRIsoSurface(vol, &this->materialLibrary);
+          if (created)
+            rootGeoms.push_back(created);
+        } else {
+          VolumeHandle createdVolume = impl->create(vol);
+          if (createdVolume)
+            rootVolumes.push_back(createdVolume);
+        }
       }
       // ==================================================================
       // now that all light and instances have been _created_ and
