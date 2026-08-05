@@ -52,7 +52,8 @@ namespace hm {
 #endif
       ;
     library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
-
+    if (!library)
+      throw std::runtime_error("could not create anari library '"+libname+"' - bailing out");
 
     // ------------------------------------------------------------------
     // create anari *device(s)*
@@ -96,12 +97,11 @@ namespace hm {
     }
   }
 
-  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRgba)
+  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     this->fbSize = fbSize;
     this->hostRGBA = hostRGBA;
     for (auto dev : perDevice) {
-      dev->fbSize = fbSize;
       auto device = dev->anari.device;
       auto frame = dev->anari.frame;
       anari::setParameter(device, frame,
@@ -126,6 +126,10 @@ namespace hm {
 
   void HayMaker::renderFrame()
   {
+    assert(!perDevice.empty());
+    if (perDevice[0]->anari.world == 0)
+      renderInitialAnariWorld();
+    
     const char *channelName = "channel.color";
 #ifdef TEST_IDCHANNEL
     channelName = TEST_IDCHANNEL;
@@ -142,6 +146,7 @@ namespace hm {
     if (fb.width != fbSize.x || fb.height != fbSize.y)
       std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
+      PING; PRINT(hostRGBA);
       if (hostRGBA) {
 #ifdef TEST_IDCHANNEL
         const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
@@ -208,67 +213,10 @@ namespace hm {
 
   void HayMaker::renderInitialAnariWorld()
   {
+    PING;
     for (auto dev : perDevice)
       dev->renderInitialAnariWorld();
   }
-
-#if 0
-  //void init();
-  void terminate() override { global.terminate(); }
-    
-
-  void buildPartitions() override;
-    
-  void resize(const vec2i &fbSize, uint32_t *hostRGBA) override
-  { global.resize(fbSize,hostRGBA); }
-    
-  void setTransferFunction(const TransferFunction &xf) override
-  {
-    for (auto partition : perPartition)
-      partition->setTransferFunction(xf);
-  }
-#if HS_USE_MULTI_SCATTERING
-  void setVolumeScatterSettings(const VolumeScatterSettings &settings) override
-  {
-    for (auto partition : perPartition)
-      partition->setVolumeScatterSettings(settings);
-  }
-  VolumeScatterSettings getVolumeScatterSettings() const override
-  {
-    if (perPartition.empty())
-      return {};
-    return perPartition[0]->volumeScatterSettings;
-  }
-#endif
-  void renderFrame() override
-  {
-    buildPartitions();
-    global.renderFrame();
-  }
-    
-  void resetAccumulation() override
-  { global.resetAccumulation(); }
-    
-  void setCamera(const Camera &camera) override
-  { global.setCamera(camera); }
-
-  
-  // template<typename Backend>
-  // HayMakerT<Backend>::HayMakerT(Comm &world,
-  //                               Comm &workers,
-  //                               int pathsPerPixel,
-  //                               float ambientRadiance,
-  //                               vec4f bgColor,
-  //                               LocalPartitions &localPartitions,
-  //                               const std::vector<int> &gpuIDs,
-  //                               bool verbose)
-  //   : HayMaker(world,workers,pathsPerPixel,ambientRadiance,bgColor,localPartitions,gpuIDs,verbose),
-  //     global(this)
-  // {
-  // }
-
-
-#endif
   
 }
 

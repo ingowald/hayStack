@@ -208,6 +208,7 @@ namespace hm {
   
   void AnariDeviceRenderer::renderInitialAnariWorld()
   {
+    PING;
     // ==================================================================
     // first, "render" all content in the sense that we create
     // geometries, lights, instances, etc, and simply 'append' them to
@@ -318,7 +319,8 @@ namespace hm {
     // #endif
     //     if (!skipTfApply)
     applyTransferFunction(currentXF);
-    
+
+    PRINT(rootInstances.groups.size());
     setInstances(rootInstances.groups,rootInstances.xfms);
   }
 
@@ -326,6 +328,7 @@ namespace hm {
   ::setInstances(const std::vector<anari::Group> &groups,
                  const std::vector<affine3f> &xfms)
   {
+    PING;
     // auto device = device;
     // auto model  = global->model;
     std::vector<anari::Instance> instances;
