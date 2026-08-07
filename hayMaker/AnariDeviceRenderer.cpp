@@ -96,7 +96,6 @@ namespace hm {
   
   void AnariDeviceRenderer::renderFrame()
   {
-    PING; PRINT((int)dirty);
     if (dirty) {
       applyTransferFunction(currentXF);
       dirty = false;
@@ -217,7 +216,6 @@ namespace hm {
         colors[i] = vec3f(c.x,c.y,c.z);
         alphas[i] = c.w;
       }
-      PRINT(colors[N/2]);
       anariUnmapArray(anari.device,colorArray);
       anariUnmapArray(anari.device,alphaArray);
       anari::setAndReleaseParameter
@@ -226,8 +224,6 @@ namespace hm {
         (anari.device,vol,"opacity",alphaArray);
 
       float unitDist = powf(1.05f,xf.baseDensity - 100.f);
-      PRINT(xf.baseDensity);
-      PRINT(unitDist);
       anari::setParameter(anari.device, vol,
                           "unitDistance",
                           unitDist);

@@ -146,7 +146,6 @@ namespace hm {
     if (fb.width != fbSize.x || fb.height != fbSize.y)
       std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
-      PING; PRINT(hostRGBA);
       if (hostRGBA) {
 #ifdef TEST_IDCHANNEL
         const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
