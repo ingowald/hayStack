@@ -12,28 +12,11 @@
 #include "hayStack/Capsules.h"
 #include "hayStack/StructuredVolume.h"
 #include "hayStack/TAMRVolume.h"
-#if HS_USE_MULTI_SCATTERING
-# include "hayStack/NanoVDBVolume.h"
-#endif
+#include "hayStack/NanoVDBVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
 
 namespace hs {
-
-  // /*! the model data that each rank/device should see, no matter which
-  //   logical partition it has - in particular light sources, but also
-  //   render settings as far as the scene is setting those */
-  // struct GlobalModelData {
-  //   std::vector<mini::DirLight>     directional;
-    
-  //   /*! global data that _should_ remain the same across all ranks and
-  //     partitions */
-  //   struct  {
-  //     int   pixelSamples;
-  //     float ambientRadiance;
-  //     vec4f bgColor;
-  //   } renderSettings;
-  // };
 
   /*! one "partition" of a data-distributed scene. For data replicated
       rendering this is simply "the" scene (ie, there is but one

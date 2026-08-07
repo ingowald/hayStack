@@ -96,11 +96,89 @@ namespace hm {
   
   void AnariDeviceRenderer::renderFrame()
   {
+    PING; PRINT((int)dirty);
+    if (dirty) {
+      applyTransferFunction(currentXF);
+      dirty = false;
+    }
     anari::render(anari.device, anari.frame);
+  }
+
+  void AnariDeviceRenderer
+  ::applyPrincipledScatterParams(anari::Volume volume,
+                                 const VolumeScatterParams &scatter)
+  {
+    auto device = anari.device;
+    anari::setParameter(device, volume, "anisotropy", scatter.anisotropy);
+    anari::setParameter(device, volume, "scatteringAlbedo", scatter.scatteringAlbedo);
+    anari::setParameter(device, volume, "scatterColor",
+                        (const anari::math::float3 &)scatter.scatterColor);
+    anari::setParameter(device, volume, "absorptionColor",
+                        (const anari::math::float3 &)scatter.absorptionColor);
+    anari::setParameter(device, volume, "density", scatter.density);
+    anari::setParameter(device, volume, "densityThreshold", scatter.densityThreshold);
+    anari::setParameter(device, volume, "emissionStrength", scatter.emissionStrength);
+    anari::setParameter(device, volume, "emissionColor",
+                        (const anari::math::float3 &)scatter.emissionColor);
+    anari::setParameter(device, volume, "blackbodyIntensity", scatter.blackbodyIntensity);
+    anari::setParameter(device, volume, "blackbodyTint",
+                        (const anari::math::float3 &)scatter.blackbodyTint);
+    anari::setParameter(device, volume, "temperature", scatter.temperature);
+  }
+
+  void AnariDeviceRenderer
+  ::applyVolumeScatterSettings(const VolumeScatterSettings &settings)
+  {
+    if (anari.renderer) {
+      anari::setParameter(anari.device, anari.renderer, "volumeMultiScatter",
+                          (bool)settings.enabled);
+      anari::setParameter(anari.device, anari.renderer, "maxVolumeBounces",
+                          settings.maxVolumeBounces);
+      anari::commitParameters(anari.device, anari.renderer);
+    }
+
+    for (auto &entry : this->principledScatterByVolume) {
+      applyPrincipledScatterParams(entry.first, settings.medium);
+      entry.second = settings.medium;
+      anari::commitParameters(anari.device, entry.first);
+    }
+  }
+
+  void AnariDeviceRenderer
+  ::setVolumeScatterSettings(const VolumeScatterSettings &settings)
+  {
+    volumeScatterSettings = settings;
+    for (auto &entry : principledScatterByVolume)
+      entry.second = settings.medium;
+    this->applyVolumeScatterSettings(settings);
+  }
+
+  void AnariDeviceRenderer
+  ::applyDefaultPrincipledTransferFunction(anari::Volume volume)
+  {
+    auto device = anari.device;
+    
+    range1f valueRange = {0.f, 1.f};
+    anariSetParameter(device, volume, "valueRange",
+                      ANARI_FLOAT32_BOX1,
+                      &valueRange.lower);
+    anari::setParameter(device, volume, "unitDistance", 1.f);
+
+    vec3f colors[2] = {vec3f(1.f), vec3f(1.f)};
+    float alphas[2] = {0.f, 1.f};
+    auto colorArray = anari::newArray1D(device, ANARI_FLOAT32_VEC3, 2);
+    auto alphaArray = anari::newArray1D(device, ANARI_FLOAT32, 2);
+    memcpy(anariMapArray(device, colorArray), colors, sizeof(colors));
+    memcpy(anariMapArray(device, alphaArray), alphas, sizeof(alphas));
+    anariUnmapArray(device, colorArray);
+    anariUnmapArray(device, alphaArray);
+    anari::setAndReleaseParameter(device, volume, "color", colorArray);
+    anari::setAndReleaseParameter(device, volume, "opacity", alphaArray);
   }
   
   void AnariDeviceRenderer::setTransferFunction(const TransferFunction &xf)
   {
+    PING;
     currentXF = xf;
     if (rootInstances.groups.empty()) {
       dirty = true;
@@ -139,6 +217,7 @@ namespace hm {
         colors[i] = vec3f(c.x,c.y,c.z);
         alphas[i] = c.w;
       }
+      PRINT(colors[N/2]);
       anariUnmapArray(anari.device,colorArray);
       anariUnmapArray(anari.device,alphaArray);
       anari::setAndReleaseParameter
@@ -151,9 +230,7 @@ namespace hm {
       PRINT(unitDist);
       anari::setParameter(anari.device, vol,
                           "unitDistance",
-                          unitDist
-                          // xf.baseDensity
-                          );
+                          unitDist);
       range1f valueRange = xf.domain;
 #if HS_USE_MULTI_SCATTERING
       if (isPrincipled && isUnsetTransferFunctionDomain(valueRange))
@@ -486,6 +563,7 @@ namespace hm {
 
   void AnariDeviceRenderer::applyTransferFunction(const TransferFunction &xf)
   {
+    PING;
     if (rootVolumes.empty())
       return;
 

@@ -217,6 +217,25 @@ namespace hm {
     for (auto dev : perDevice)
       dev->renderInitialAnariWorld();
   }
+
+  void HayMaker::setTransferFunction(const hs::TransferFunction &xf)
+  {
+    for (auto dev : perDevice)
+      dev->setTransferFunction(xf);
+  }
+  
+  void HayMaker::setVolumeScatterSettings(const hs::VolumeScatterSettings &settings)
+  {
+    for (auto dev : perDevice)
+      dev->setVolumeScatterSettings(settings);
+  }
+  
+  hs::VolumeScatterSettings HayMaker::getVolumeScatterSettings() const
+  {
+    if (perDevice.empty())
+      return {};
+    return perDevice[0]->volumeScatterSettings;
+  }
   
 }
 

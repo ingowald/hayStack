@@ -15,6 +15,8 @@ namespace hs {
 namespace hm {
   using hs::OnePartition;
   using hs::TransferFunction;
+  using hs::VolumeScatterParams;
+  using hs::VolumeScatterSettings;
   
   struct HayMaker;
   
@@ -38,9 +40,7 @@ namespace hm {
 
     std::vector<anari::Volume>  rootVolumes;
     std::vector<anari::Surface> rootGeoms;
-#if HS_USE_MULTI_SCATTERING
     std::map<anari::Volume, VolumeScatterParams> principledScatterByVolume;
-#endif
       
     anari::Light envLight;
     std::vector<anari::Light> lights;
@@ -58,6 +58,12 @@ namespace hm {
     anari::Group render(const mini::Object::SP &miniObject);
 
     void applyTransferFunction(const TransferFunction &xf);
+    void applyDefaultPrincipledTransferFunction(anari::Volume volume);
+    void applyPrincipledScatterParams(anari::Volume volume,
+                                      const VolumeScatterParams &scatter);
+    void applyVolumeScatterSettings(const VolumeScatterSettings &settings);
+    VolumeScatterSettings volumeScatterSettings;
+    void setVolumeScatterSettings(const VolumeScatterSettings &settings);
 
     /*! creates *default* color mapper that maps from global scalar
         min/max (across all per-vertex arrays and scalarfield types),

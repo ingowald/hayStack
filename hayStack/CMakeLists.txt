@@ -4,7 +4,11 @@
 add_library(hs-config INTERFACE)
 target_include_directories(hs-config INTERFACE
   ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/3rdParty/nanovdb
 )
+
+#  target_compile_definitions(hayStack PUBLIC HS_USE_MULTI_SCATTERING=1)
+#  target_include_directories(hayStack PUBLIC ${NANOVDB_INCLUDE_DIR})
 # link to miniscene and umesh - we need those in either config
 target_link_libraries(hs-config
   INTERFACE
@@ -139,16 +143,6 @@ add_library(hayStack
 )
 
 target_link_libraries(hayStack PUBLIC hs-config)
-
-if (HS_USE_MULTI_SCATTERING)
-  if (NOT NANOVDB_INCLUDE_DIR)
-    message(FATAL_ERROR
-      "HS_USE_MULTI_SCATTERING=ON requires NANOVDB_INCLUDE_DIR "
-      "(directory containing nanovdb/NanoVDB.h)")
-  endif()
-  target_compile_definitions(hayStack PUBLIC HS_USE_MULTI_SCATTERING=1)
-  target_include_directories(hayStack PUBLIC ${NANOVDB_INCLUDE_DIR})
-endif()
 
 
 #target_link_libraries(hayStack PUBLIC)

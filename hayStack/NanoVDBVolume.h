@@ -6,7 +6,11 @@
 #include "hayStack/HayStack.h"
 
 namespace hs {
-
+  /*
+    \todo iw - this should be some global config setting across all of
+    haystack, that different volume types can use; not just nanovdb
+    volume. not clear how to best organize that yet but this needs cleanup
+  */
   struct VolumeScatterParams {
     float anisotropy = 0.6f;
     float scatteringAlbedo = 0.9f;
@@ -21,6 +25,12 @@ namespace hs {
     float temperature = 0.f;
   };
 
+  /*
+    \todo iw - this should be some global config setting across all of
+    haystack, similar to samples per pixel, enabling denoiser,
+    etc. not 100% sure that's part of hay-_stack_ (vs hay _maker_?),
+    but either way it shouldn't be in here
+  */
   struct VolumeScatterSettings {
     bool enabled = true;
     int maxVolumeBounces = 8;
