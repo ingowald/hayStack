@@ -9,9 +9,13 @@ namespace hs {
   namespace loader {
   
     TAMRContent::TAMRContent(const std::string &fileName,
-                             int thisPartID)
+                             int thisPartID,
+                             bool showBlockDebug,
+                             float isoValue)
       : fileName(fileName),
-        thisPartID(thisPartID)
+        thisPartID(thisPartID),
+        showBlockDebug(showBlockDebug),
+        isoValue(isoValue)
     {}
 
     void TAMRContent::create(DataLoader *loader,
@@ -21,8 +25,13 @@ namespace hs {
         throw std::runtime_error("on-demand splitting of TAMR files not yet supported");
       // std::string type = dataURL.get("type",dataURL.get("format",""));
     
+      const bool showBlockDebug = dataURL.has("dbg");
+      float isoValue = NAN;
+      const std::string isoString = dataURL.get("iso", dataURL.get("isoValue", ""));
+      if (!isoString.empty())
+        isoValue = std::stof(isoString);
       for (int i=0;i<dataURL.numParts;i++) {
-        loader->addContent(new TAMRContent(dataURL.where,i));
+        loader->addContent(new TAMRContent(dataURL.where, i, showBlockDebug, isoValue));
       }
     }
   
@@ -31,10 +40,12 @@ namespace hs {
       return getFileSize(fileName) * 10;
     }
   
-    void TAMRContent::executeLoad(OnePartition &dataGroup)
+    void TAMRContent::executeLoad(OnePartition &dataGroup) 
     {
       tamr::Model::SP model = tamr::Model::load(fileName);
-      dataGroup.amr.push_back(std::make_shared<TAMRVolume>(model));
+      dataGroup.amr.push_back(std::make_shared<TAMRVolume>(model, vec3f(0.f), vec3f(1.f), isoValue));
+      if (showBlockDebug)
+        dataGroup.cylinderSets.push_back(TAMRVolume::createBlockDebugCylinders(model));
     }
   
     std::string TAMRContent::toString() 

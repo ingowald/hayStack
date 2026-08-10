@@ -12,8 +12,10 @@ namespace hs {
     struct TAMRContent : public LoadableContent {
     
       TAMRContent(const std::string &fileName,
-                  int thisPartID);
-    
+                  int thisPartID,
+                  bool showBlockDebug = false,
+                  float isoValue = NAN);
+      
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
       size_t projectedSize() override;
@@ -23,6 +25,8 @@ namespace hs {
 
       const std::string   fileName;
       const int           thisPartID;
+      const bool          showBlockDebug;
+      const float         isoValue;
     };
 
   }

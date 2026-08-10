@@ -14,43 +14,32 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-/*! a hay-*stack* is a description of data-parallel data */
-
 #pragma once
 
-#include "hayStack/HayStack.h"
-#include "hayStack/Cylinders.h"
-#include <tinyAMR/Model.h>
+#include "viewer/DataLoader.h"
+#include "hayStack/StructuredVolume.h"
 
 namespace hs {
-
-  /*! wraps around a tiny-amr model, and adds getBoudn() and
-      getValueRange() */
-  struct TAMRVolume {
-    typedef std::shared_ptr<TAMRVolume> SP;
+  
+  /*! a file of 'TinyAMR' (tamr) AMR files */
+  struct TAMRContent : public LoadableContent {
     
-    TAMRVolume(tamr::Model::SP model,
-               const vec3f &gridOrigin=vec3f(0.f),
-               const vec3f &gridSpacing=vec3f(1.f),
-               float isoValue=NAN)
-      : model(model),
-        gridOrigin(gridOrigin),
-        gridSpacing(gridSpacing),
-        isoValue(isoValue)
-    {}
+    TAMRContent(const std::string &fileName,
+                int thisPartID,
+                bool showBlockDebug = false,
+                float isoValue = NAN);
+    
+    static void create(DataLoader *loader,
+                       const ResourceSpecifier &dataURL);
+    size_t projectedSize() override;
+    void   executeLoad(DataRank &dataGroup, bool verbose) override;
 
-    bool wantsIsoSurface() const { return !isnan(isoValue); }
+    std::string toString() override;
 
-    box3f getBounds() const;
-    range1f getValueRange() const;
-
-    /*! wireframe outline of each AMR block (for tamr://...:dbg) */
-    static Cylinders::SP createBlockDebugCylinders(const tamr::Model::SP &model);
-
-    tamr::Model::SP model;
-    const vec3f gridOrigin;
-    const vec3f gridSpacing;
-    const float isoValue;
+    const std::string   fileName;
+    const int           thisPartID;
+    const bool          showBlockDebug;
+    const float         isoValue;
   };
-
+  
 }
