@@ -1,0 +1,198 @@
+  template<typename Backend>
+  void HayMakerT<Backend>::Partition::renderAll()
+  {
+    auto impl = this->impl;
+    if (!dirty) return;
+
+    const bool building = rootInstances.groups.empty();
+    dirty = false;
+       
+    if (building) {
+
+      // ==================================================================
+      // first, "render" all content in the sense that we create
+      // geometries, lights, instances, etc, and simply 'append' them to
+      // two global lists for all lights and all instances, respectively
+      // ==================================================================
+
+      // ------------------------------------------------------------------
+      // render all mini::Scene formatted geometry - however many there
+      // may be; this also includes lights because those are currently
+      // stored in mini::Scene'
+      // -----------------------------------------------------------------
+      auto &myData = this->global->base->localModel.dataGroups[this->localDataPartitionWeWorkOn];
+      for (auto miniScene : myData.minis)
+        renderMiniScene(miniScene);
+
+      // ------------------------------------------------------------------
+      // render all spheres
+      // -----------------------------------------------------------------
+      for (auto content : myData.sphereSets)
+        for (auto created : this->createSpheres
+               (content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+      
+      for (auto content : myData.capsuleSets)
+        for (auto created : this->createCapsules
+               (content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+      
+      // ------------------------------------------------------------------
+      // render all cylinders
+      // -----------------------------------------------------------------
+      for (auto content : myData.cylinderSets)
+        for (auto created : impl->createCylinders(content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+    
+      // ------------------------------------------------------------------
+      // render all individual meshes
+      // -----------------------------------------------------------------
+      for (auto content : myData.triangleMeshes) {
+#if 1
+        auto created = impl->createTriangleMesh(content,&this->materialLibrary);
+        auto meshGroup = impl->createGroup(created,{});
+        rootInstances.groups.push_back(meshGroup);
+        affine3f xfm;
+        rootInstances.xfms.push_back((const affine3f&)xfm);
+#else
+        for (auto created : impl->createTriangleMesh(content,&this->materialLibrary))
+          rootGeoms.push_back(created);
+#endif
+      }
+    
+      // ------------------------------------------------------------------
+      // render all structured volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.structuredVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+#if HS_USE_MULTI_SCATTERING
+      for (auto vol : myData.nanovdbVolumes) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume) {
+          rootVolumes.push_back(createdVolume);
+          principledScatterByVolume[createdVolume] = vol->scatter;
+        }
+      }
+#endif
+      // ------------------------------------------------------------------
+      // render all *UN*-structured volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.unsts) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+      // ------------------------------------------------------------------
+      // render all *AMR* volumes
+      // -----------------------------------------------------------------
+      for (auto vol : myData.amr) {
+        VolumeHandle createdVolume = impl->create(vol);
+        if (createdVolume)
+          rootVolumes.push_back(createdVolume);
+      }
+      // ==================================================================
+      // now that all light and instances have been _created_ and
+      // appended to the respective arrays, add these to the model
+      // ==================================================================
+
+      rootGroup = impl->createGroup(rootGeoms,{});
+      rootInstances.groups.push_back(rootGroup);
+      rootInstances.xfms.push_back(affine3f{});
+
+    
+      // 'attach' the lights to the root group
+      impl->setLights(rootGroup,lights);
+
+      // attach volumes to instances
+      volumeGroup = impl->createGroup({},rootVolumes);
+      
+      rootInstances.groups.push_back(volumeGroup);
+      rootInstances.xfms.push_back(affine3f{});
+      
+      // ------------------------------------------------------------------
+      // finally - specify top-level instances for all the stuff we
+      // generated
+      // -----------------------------------------------------------------
+    }
+
+#if HS_USE_MULTI_SCATTERING
+    const bool skipTfApply =
+      isUnsetTransferFunctionDomain(currentXF.domain)
+      && !rootVolumes.empty()
+      && principledScatterByVolume.size() == rootVolumes.size();
+#else
+    const bool skipTfApply = false;
+#endif
+    if (!skipTfApply)
+      impl->applyTransferFunction(currentXF);
+    
+    if (building)
+      this->setInstances(rootInstances.groups,rootInstances.xfms);
+  }
+
+  template<typename Backend>
+  void HayMakerT<Backend>::Partition::render(const mini::QuadLight &ml)
+  {
+    auto light = this->create(ml);
+    if (light) lights.push_back(light);
+  }
+
+  template<typename Backend>
+  void HayMakerT<Backend>::Partition::render(const mini::DirLight &ml)
+  {
+    auto light = this->create(ml);
+    if (light) lights.push_back(light);
+  }
+
+  template<typename Backend>
+  void HayMakerT<Backend>::Partition::render(const mini::EnvMapLight::SP &ml)
+  {
+    if (!ml) return;
+    auto light = this->create(*ml);
+    if (light) lights.push_back(light);
+  }
+
+  template<typename Backend>
+  typename Backend::GroupHandle
+  HayMakerT<Backend>::Partition::render(const mini::Object::SP &object)
+  {
+    std::vector<typename Backend::GeomHandle> meshes;
+    for (auto mesh : object->meshes) {
+      auto handle = this->create(mesh,&this->materialLibrary);
+      if (handle) meshes.push_back(handle);
+    }
+    return this->createGroup(meshes,{});
+  }
+
+
+  template<typename Backend>
+  void HayMakerT<Backend>::Partition::renderMiniScene(mini::Scene::SP mini)
+  {
+    // ------------------------------------------------------------------
+    // set light(s) for given mini scene
+    // ------------------------------------------------------------------
+    for (auto ml : mini->quadLights)
+      render(ml);
+    for (auto dl : mini->dirLights)
+      render(dl);
+    if (mini->envMapLight)
+      render(mini->envMapLight);
+
+    // ------------------------------------------------------------------
+    // render all (possibly instanced) triangle meshes from mini format
+    // ------------------------------------------------------------------
+    std::map<mini::Object::SP, GroupHandle> miniGroups;
+    for (auto inst : mini->instances) {
+      if (!miniGroups[inst->object])
+        miniGroups[inst->object] = render(inst->object);
+      if (miniGroups[inst->object]) {
+        rootInstances.groups.push_back(miniGroups[inst->object]);
+        rootInstances.xfms.push_back((const affine3f&)inst->xfm);
+      }
+    }
+  }
+
+}

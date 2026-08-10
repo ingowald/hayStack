@@ -13,6 +13,21 @@ namespace hs {
   using namespace mini;
   using range1f = mini::common::interval<float>;
   
+  struct Camera {
+    vec3f vp, vi, vu;
+    float fovy;
+  };
+
+  struct DirLight {
+    vec3f direction;
+    vec3f radiance;
+  };
+
+  struct PointLight {
+    vec3f position;
+    vec3f power;
+  };
+  
   struct BoundsData {
     void extend(const BoundsData &other);
 
