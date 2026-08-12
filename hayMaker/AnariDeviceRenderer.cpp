@@ -11,10 +11,10 @@ namespace hm {
   inline float average(vec3f v) { return (v.x+v.y+v.z)/3.f; }
   
   AnariDeviceRenderer::AnariDeviceRenderer(int gpuID,
-                                             int tetherIndex,
-                                             int tetherCount,
-                                             HayMaker     *hayMaker,
-                                             OnePartition *myPartition)
+                                           int tetherIndex,
+                                           int tetherCount,
+                                           HayMaker     *hayMaker,
+                                           OnePartition *myPartition)
     : hayMaker(hayMaker),
       myPartition(myPartition),
       textureLibrary(this),
@@ -27,9 +27,19 @@ namespace hm {
               << myPartition->partitionsRank
               << "/" << myPartition->partitionsCount
               << std::endl;
-    
-    
-    anari.device = anari::newDevice(hayMaker->library, "default");
+
+    anari.device = 0;
+#if HS_MPI
+    if (hayMaker->world.size > 1) {
+      std::cout << "#hm: compiled with MPI support and running in MPI mode: trying to load anari mpi device" << std::endl;
+      anari.device = anari::newDevice(hayMaker->library, "mpi");//"default");
+      if (!anari.device) {
+        std::cout << "#hm: could not create ANARI 'mpi' device subtype... !?" << std::endl;
+      }
+    }
+#endif
+    if (!anari.device)
+      anari.device = anari::newDevice(hayMaker->library, "default");
     anari::setParameter(anari.device, anari.device,
                         "tetherIndex", (int)tetherIndex);
     anari::setParameter(anari.device, anari.device,

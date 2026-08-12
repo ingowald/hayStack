@@ -44,13 +44,7 @@ namespace hm {
     // create device(s)
     // ------------------------------------------------------------------
     char *envlib = getenv("ANARI_LIBRARY");
-    std::string libname = envlib ? "environment" :
-#if HS_MPI
-      "barney_mpi"
-#else
-      "barney"
-#endif
-      ;
+    std::string libname = envlib ? "environment" : "barney";
     library = anari::loadLibrary(libname.c_str(), anariStatusFunc);
     if (!library)
       throw std::runtime_error("could not create anari library '"+libname+"' - bailing out");
