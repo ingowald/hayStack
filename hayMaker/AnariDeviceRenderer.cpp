@@ -401,7 +401,6 @@ namespace hm {
     //     if (!skipTfApply)
     applyTransferFunction(currentXF);
 
-    PRINT(rootInstances.groups.size());
     setInstances(rootInstances.groups,rootInstances.xfms);
   }
 

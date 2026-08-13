@@ -490,14 +490,12 @@ int main(int ac, char **av)
   //     initailized before mpi even gets to run */
   // hs::initAllGPUs();
 
-  PING;
   hs::mpi::init(ac, av);
 #if HS_FAKE_MPI
   hs::mpi::Comm world;
 #else
   hs::mpi::Comm world(MPI_COMM_WORLD);
 #endif
-  PING;
   world.barrier();
   if (world.rank == 0) {
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);

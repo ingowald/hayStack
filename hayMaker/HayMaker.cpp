@@ -206,7 +206,6 @@ namespace hm {
 
   void HayMaker::renderInitialAnariWorld()
   {
-    PING;
     for (auto dev : perDevice)
       dev->renderInitialAnariWorld();
   }
