@@ -431,6 +431,10 @@ namespace hm {
       return result;
     }
 
+    if (localSize == 1) {
+      std::cout << "#hs: single data rank per process, no dedicated gpus specified in env -> selecting gpuIDs={-1} to indicate 'any you can'" << std::endl;
+      return { -1 };
+    }
     return { 0 };
   }
     
