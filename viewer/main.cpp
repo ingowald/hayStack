@@ -415,7 +415,7 @@ namespace hm {
 #ifdef __APPLE__
     return { -1 };
 #endif
-    std::cout << "#hs(" << world.rank << "): selecting GPUs ... " << std::endl;
+    std::cout << "#hs(" << world.rank << ":" << localRank << "/" << localSize << "): selecting GPUs ... " << std::endl;
     const char *hcd = getenv("HS_CUDA_DEVICES");
     if (hcd) {
       std::cout << "#hs(" << world.rank << "): found HS_CUDA_DEVICES, using this" << std::endl;
@@ -431,11 +431,17 @@ namespace hm {
       return result;
     }
 
+    if (world.size == 1) {
+      return { -1 };
+    }
+    
     if (localSize == 1) {
       std::cout << "#hs: single data rank per process, no dedicated gpus specified in env -> selecting gpuIDs={-1} to indicate 'any you can'" << std::endl;
       return { -1 };
     }
-    return { 0 };
+    
+    return { localRank % localSize };
+    // return { 0 };
   }
     
   inline float lerp_l(float f, float a, float b)
