@@ -884,7 +884,7 @@ namespace hm {
   std::vector<anari::Surface>
   AnariDeviceRenderer::create(const hs::Capsules &caps)
   {
-    bool hasColorAttribute = caps.colors.size()>0;
+    bool hasColorAttribute = (caps.colors.size()>0);
     anari::Material material
       = materialLibrary.getOrCreate(caps.material,hasColorAttribute);
     std::vector<vec3f> position;

@@ -60,12 +60,16 @@ namespace hm {
     auto matAndColorName = renderer->create(miniMat);
     auto mat = matAndColorName.first;
     const std::string colorName = matAndColorName.second;
-    if (hasColorAttribute)
+    if (hasColorAttribute) {
       anari::setParameter(renderer->anari.device,mat,
                           colorName.c_str(),"color");
-    if (colorSampler)
+      anari::commitParameters(renderer->anari.device,mat);
+    }
+    if (colorSampler) {
       anari::setParameter(renderer->anari.device,mat,
                           colorName.c_str(),colorSampler);
+      anari::commitParameters(renderer->anari.device,mat);
+    }
     alreadyCreated[key] = mat;
     return mat;
   }
