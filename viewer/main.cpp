@@ -5,6 +5,7 @@
 #include "hayStack/loader/DataLoader.h"
 #if HS_CUTEE
 # include "cutee/OWLViewer.h"
+# include <QCoreApplication>
 # include "cutee/XFEditor.h"
 # if HS_USE_MULTI_SCATTERING
 #  include "viewer/VolumeScatterPanel.h"
@@ -20,7 +21,6 @@
 #if HS_MPI
 #include <unistd.h>
 #endif
-
 namespace hm {
 
   double t_last_render;
@@ -748,6 +748,7 @@ int main(int ac, char **av)
 
 #if HS_CUTEE
   // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+
   QApplication app(ac,av);
   Viewer viewer(renderer,&world);
 

@@ -355,6 +355,8 @@ namespace hs {
         loader::VMDSpheres::create(this,addIfRequired("vmdspheres://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".vmdmesh")) {
         loader::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+      } else if (endsWith(contentDescriptor,".tri")) {
+        loader::TSTriContent::create(this,addIfRequired("vmdmesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".rgbtris")) {
         loader::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".mini")) {
