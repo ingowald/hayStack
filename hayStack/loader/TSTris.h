@@ -8,6 +8,21 @@
 namespace hs {
   namespace loader {
 
+    struct ColorMappingMetaContent : public LoadableContent {
+      static int currentIdx;
+      static vec2f currentDomain;
+      
+      static void create(DataLoader *loader,
+                         const ResourceSpecifier &dataURL)
+      {
+        currentIdx = dataURL.get_int("map",currentIdx);
+        currentDomain = dataURL.get_vec2f("domain",currentDomain);
+      }
+      void   executeLoad(OnePartition &dataGroup) { /* nothing */ }
+    
+      std::string toString() override;
+    };
+    
     /*! "Tim Sandstrom" type ".tri" files */
     struct TSTriContent : public LoadableContent {
       enum { vertices_only, vertex_and_scalar, vertex_and_color } Type;

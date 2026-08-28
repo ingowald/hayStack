@@ -27,6 +27,7 @@
 #if HS_USE_MULTI_SCATTERING
 # include "hayStack/loader/NVDBVolumeContent.h"
 #endif
+#include "hayStack/ColorMap.h"
 
 namespace hs {
   namespace loader {
@@ -235,6 +236,7 @@ namespace hs {
     LocalPartitions *DataLoader::loadData(int numDataRanks,
                                           int dataPerRank)
     {
+      ColorMap::init();
       if (dataPerRank == 0) {
         if (workers.size < numDataRanks) {
           dataPerRank = numDataRanks / workers.size;
@@ -361,6 +363,8 @@ namespace hs {
         loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tstrif")) {
         loader::TSTriContent::create(this,addIfRequired("ts.trif://",contentDescriptor),1);
+      } else if (endsWith(contentDescriptor,".tstri1")) {
+        loader::TSTriContent::create(this,addIfRequired("ts.trif://",contentDescriptor),1);
       } else if (endsWith(contentDescriptor,".tstrirgb")) {
         loader::TSTriContent::create(this,addIfRequired("ts.trirgb://",contentDescriptor),3);
       } else if (endsWith(contentDescriptor,".rgbtris")) {
@@ -379,7 +383,10 @@ namespace hs {
         TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
       } else {
         ResourceSpecifier url(contentDescriptor);
-        if (url.type == "spheres")
+        PRINT(url.type);
+        if (url.type == "mapping")
+          loader::ColorMappingMetaContent::create(this,url);
+        else if (url.type == "spheres")
           loader::SpheresFromFile::create(this,url);
         else if (url.type == "ts.tri") 
           TSTriContent::create(this,contentDescriptor);

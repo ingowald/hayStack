@@ -10,6 +10,9 @@ namespace hs {
   namespace loader {
     extern bool verbose;
 
+    int ColorMappingMetaContent::currentIdx = 0;
+    vec2f ColorMappingMetaContent::currentDomain = {0.f,0.f};
+
     TSTriContent::TSTriContent(const ResourceSpecifier &data,
                                size_t fileSize,
                                int thisPartID,
@@ -72,52 +75,11 @@ namespace hs {
 
       TriangleMesh::SP mesh = TriangleMesh::create();
       mesh->indices.resize(my_count);
-#if 0
-      std::vector<std::pair<vec3f,int>> vertices;
-      FILE *file = fopen(data.where.c_str(),"rb");
-      fseek(file,my_begin*sizeOfTri,SEEK_SET);
-      for (int i=0;i<my_count;i++) {
-        // vec3f tri[3];
-        // int rc = fread(tri,sizeOfTri,1,file);
-        // assert(rc == 1);
-        std::pair<vec3f,int> v;
-        for (int j=0;j<3;j++) {
-          v.second = vertices.size();
-          int rc = fread(&v.first,sizeof(vec3f),1,file);
-          assert(rc == 1);
-          if (mapped
-          // vertices.push_back({tri[j],(int)vertices.size()});
-          vertices.push_back(v);
-        }
-      }
-      std::sort(vertices.begin(),vertices.end());
-      std::cout.precision(15);
-      // for (int i=0;i<100;i++)
-      //   std::cout << " vtx " << i << " v " << vertices[i].first << " idx " << vertices[i].second << std::endl;
-      int currentVertexID = -1;
-      // PING;
-      for (int i=0;i<vertices.size();i++) {
-        if (i == 0 || vertices[i].first != vertices[i-1].first) {
-          currentVertexID = mesh->vertices.size();
-          mesh->vertices.push_back(vertices[i].first);
-        }
-        if (vertices[i].second >= mesh->indices.size()*3)
-          throw std::runtime_error("invalid index");
-        ((int*)mesh->indices.data())[vertices[i].second] = currentVertexID;
-      }
-      // for (int i=0;i<10;i++)
-      //   PRINT(mesh->indices[i]);
-      // for (int i=0;i<10;i++)
-      //   PRINT(mesh->indices[mesh->indices.size()-1-i]);
-      // PING;
-      // PRINT(mesh->vertices.size());
-      // PRINT(mesh->indices.size());
-      vertices.clear();
-#else
       std::vector<vec4f> xf;
-      vec2f domain = data.get_vec2f("map_domain",vec2f(0.f,0.f));
+      vec2f domain = data.get_vec2f("map_domain",ColorMappingMetaContent::currentDomain);
       if (mappedScalars > 0) {
-        int mapIdx = data.get_int("map",0);
+        ColorMap::init();
+        int mapIdx = data.get_int("map",ColorMappingMetaContent::currentIdx);
         xf = ColorMap::get(mapIdx);
       }
       const auto &mapScalar = [&](float s)
@@ -137,6 +99,7 @@ namespace hs {
         return (const vec3f&)mapped;
       };
 
+      if (my_count == 0) return;
       
       mesh->vertices.resize(3*my_count);
       if (mappedScalars > 0)
@@ -146,18 +109,19 @@ namespace hs {
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
       for (int i=0;i<my_count;i++) {
         for (int j=0;j<3;j++) {
-          fread(&mesh->vertices[3*i+j],sizeof(vec3f),my_count,file);
+          fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
           switch(mappedScalars) {
+          case 0:
+            break;
           case 1: {
             float scalar;
-            fread(&scalar,sizeof(float),my_count,file);
+            fread(&scalar,sizeof(float),1,file);
             mesh->colors[3*i+j] = mapScalar(scalar);
           } break;
           case 3:
-            fread(&mesh->colors[3*i+j],sizeof(vec3f),my_count,file);
+            fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
             break;
           default: throw std::runtime_error("invalid num mapped scalars");
-              
           }
         }
       }
@@ -168,7 +132,6 @@ namespace hs {
       mesh->indices.resize(my_count);
       for (int i=0;i<my_count;i++)
         mesh->indices[i] = 3*i + vec3i(0,1,2);
-#endif
 
       if (verbose) {
         std::cout << "   ... done loading " << prettyNumber(my_count)
@@ -176,19 +139,10 @@ namespace hs {
         fflush(0);
       }
 
-// #if 0
-//       mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();;
-//       mat->metallic = .1f;
-//       mat->ior = 1.f;
-//       mat->roughness = .25f;
-//       mat->baseColor = .5f;
-// #else
-//       mini::Matte::SP mat = mini::Matte::create();
-//       mat->reflectance = 3.14f * vec3f(.8f);
-// #endif
-//       mesh->material = mat;
+      mini::Matte::SP mat = mini::Matte::create();
+      mat->reflectance = 3.14f * vec3f(.8f);
+      mesh->material = mat;
     
-
       // mini::Object::SP object = mini::Object::create({mesh});
       // mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
       // dataGroup.minis.push_back(scene);
