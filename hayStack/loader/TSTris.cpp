@@ -3,6 +3,8 @@
 
 #include "hayStack/loader/DataLoader.h"
 #include "hayStack/loader/TSTris.h"
+#include "hayStack/ColorMap.h"
+#include "hayStack/TriangleMesh.h"
 
 namespace hs {
   namespace loader {
@@ -10,10 +12,12 @@ namespace hs {
 
     TSTriContent::TSTriContent(const ResourceSpecifier &data,
                                size_t fileSize,
-                               int thisPartID)
+                               int thisPartID,
+                               int default_mappedValues)
       : data(data),
         fileSize(fileSize),
-        thisPartID(thisPartID)
+        thisPartID(thisPartID),
+        default_mappedValues(default_mappedValues)
     {}
 
     std::string TSTriContent::toString() 
@@ -28,16 +32,19 @@ namespace hs {
     }
     
     void TSTriContent::create(DataLoader *loader,
-                              const ResourceSpecifier &data)
+                              const ResourceSpecifier &data,
+                              int default_mappedValues)
     {
       for (int i=0;i<data.numParts;i++)
         loader->addContent
-          (new TSTriContent(data,getFileSize(data.where),i));
+          (new TSTriContent(data,getFileSize(data.where),i,
+                            default_mappedValues));
     }
     
     size_t TSTriContent::projectedSize() 
     {
-      size_t sizeOfTri = 3*sizeof(vec3f);
+      int mappedScalars = data.get_size("mapped",default_mappedValues);
+      size_t sizeOfTri = 3*(sizeof(vec3f)+mappedScalars*sizeof(float));
     
       size_t numTrisTotal = fileSize / sizeOfTri;
       numTrisTotal = data.get_size("count",numTrisTotal);
@@ -53,7 +60,8 @@ namespace hs {
     
     void   TSTriContent::executeLoad(OnePartition &dataGroup) 
     {
-      size_t sizeOfTri = 3*sizeof(vec3f);
+      int mappedScalars = data.get_size("mapped",default_mappedValues);
+      size_t sizeOfTri = 3*(sizeof(vec3f)+mappedScalars*sizeof(float));
       size_t numTrisTotal = fileSize / sizeOfTri;
 
       int numPartsToSplitInto = data.numParts;
@@ -62,9 +70,9 @@ namespace hs {
       size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
       size_t my_count = my_end - my_begin;
 
-      mini::Mesh::SP mesh = mini::Mesh::create();
+      TriangleMesh::SP mesh = TriangleMesh::create();
       mesh->indices.resize(my_count);
-#if 1
+#if 0
       std::vector<std::pair<vec3f,int>> vertices;
       FILE *file = fopen(data.where.c_str(),"rb");
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
@@ -77,6 +85,7 @@ namespace hs {
           v.second = vertices.size();
           int rc = fread(&v.first,sizeof(vec3f),1,file);
           assert(rc == 1);
+          if (mapped
           // vertices.push_back({tri[j],(int)vertices.size()});
           vertices.push_back(v);
         }
@@ -105,10 +114,53 @@ namespace hs {
       // PRINT(mesh->indices.size());
       vertices.clear();
 #else
+      std::vector<vec4f> xf;
+      vec2f domain = data.get_vec2f("map_domain",vec2f(0.f,0.f));
+      if (mappedScalars > 0) {
+        int mapIdx = data.get_int("map",0);
+        xf = ColorMap::get(mapIdx);
+      }
+      const auto &mapScalar = [&](float s)
+      {
+        if (domain.x != domain.y) {
+          s = std::max(s,domain.x);
+          s = std::min(s,domain.y);
+          s = (s - domain.x) / (domain.y-domain.x);
+        }
+        s = std::max(0.f,s);
+        s = std::min(1.f,s);
+        s = s * (xf.size()-1);
+        int idx = int(s);
+        float f = s - idx;
+        idx = std::max(0,std::min(int(xf.size()-2),idx));
+        vec4f mapped = (1.f-f)*xf[idx]+f*xf[idx+1];
+        return (const vec3f&)mapped;
+      };
+
+      
       mesh->vertices.resize(3*my_count);
-    
+      if (mappedScalars > 0)
+        mesh->colors.resize(3*my_count);
+      
       FILE *file = fopen(data.where.c_str(),"rb");
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
+      for (int i=0;i<my_count;i++) {
+        for (int j=0;j<3;j++) {
+          fread(&mesh->vertices[3*i+j],sizeof(vec3f),my_count,file);
+          switch(mappedScalars) {
+          case 1: {
+            float scalar;
+            fread(&scalar,sizeof(float),my_count,file);
+            mesh->colors[3*i+j] = mapScalar(scalar);
+          } break;
+          case 3:
+            fread(&mesh->colors[3*i+j],sizeof(vec3f),my_count,file);
+            break;
+          default: throw std::runtime_error("invalid num mapped scalars");
+              
+          }
+        }
+      }
       size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
       assert(numRead == my_count);
       fclose(file);
@@ -124,22 +176,23 @@ namespace hs {
         fflush(0);
       }
 
-#if 0
-      mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();;
-      mat->metallic = .1f;
-      mat->ior = 1.f;
-      mat->roughness = .25f;
-      mat->baseColor = .5f;
-#else
-      mini::Matte::SP mat = mini::Matte::create();
-      mat->reflectance = 3.14f * vec3f(.8f);
-#endif
-      mesh->material = mat;
+// #if 0
+//       mini::DisneyMaterial::SP mat = std::make_shared<mini::DisneyMaterial>();;
+//       mat->metallic = .1f;
+//       mat->ior = 1.f;
+//       mat->roughness = .25f;
+//       mat->baseColor = .5f;
+// #else
+//       mini::Matte::SP mat = mini::Matte::create();
+//       mat->reflectance = 3.14f * vec3f(.8f);
+// #endif
+//       mesh->material = mat;
     
 
-      mini::Object::SP object = mini::Object::create({mesh});
-      mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
-      dataGroup.minis.push_back(scene);
+      // mini::Object::SP object = mini::Object::create({mesh});
+      // mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
+      // dataGroup.minis.push_back(scene);
+      dataGroup.triangleMeshes.push_back(mesh);
     }
   
   }

@@ -357,6 +357,12 @@ namespace hs {
         loader::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tri")) {
         loader::TSTriContent::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+      } else if (endsWith(contentDescriptor,".tstri")) {
+        loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
+      } else if (endsWith(contentDescriptor,".tstrif")) {
+        loader::TSTriContent::create(this,addIfRequired("ts.trif://",contentDescriptor),1);
+      } else if (endsWith(contentDescriptor,".tstrirgb")) {
+        loader::TSTriContent::create(this,addIfRequired("ts.trirgb://",contentDescriptor),3);
       } else if (endsWith(contentDescriptor,".rgbtris")) {
         loader::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".mini")) {
