@@ -19,7 +19,9 @@ To build *haystack* with MPI support, make sure to use `-DHS_MPI=ON` when config
 
 ## Colored Iso-surface of Mars Lander
 
-- download from google drive using this link https://drive.google.com/file/d/1E7QEQ1H-JjPAIjCnCryv2yAqQ2egMiKq/view?usp=sharing
+![](jpg/lander-iso.jpg)
+
+y- download from google drive using this link https://drive.google.com/file/d/1E7QEQ1H-JjPAIjCnCryv2yAqQ2egMiKq/view?usp=sharing
 - unpack `tar xavf lander-iso_vortMag_2.4_mapped_w.tgz`
 - load `.tstri1` files with haystack:
 
