@@ -21,7 +21,7 @@ To build *haystack* with MPI support, make sure to use `-DHS_MPI=ON` when config
 
 ![](jpg/lander-iso.jpg)
 
-y- download from google drive using this link https://drive.google.com/file/d/1E7QEQ1H-JjPAIjCnCryv2yAqQ2egMiKq/view?usp=sharing
+- download from google drive using this link https://drive.google.com/file/d/1E7QEQ1H-JjPAIjCnCryv2yAqQ2egMiKq/view?usp=sharing
 - unpack `tar xavf lander-iso_vortMag_2.4_mapped_w.tgz`
 - load `.tstri1` files with haystack:
 
@@ -42,11 +42,11 @@ File format for this data: `.tstri1` is
 ![](jpg/collage-quicktests.jpg)
 
 ``` bash
-./hsViewer ~/mini/ls.mini 
+./hsViewerQT ~/mini/ls.mini 
 
-BARNEY_RENDER=pt ./hsViewer ~/mini/ls.mini `cat data/ls.cam`
+./hsViewerQT ~/mini/ls.mini `cat data/ls.cam`
 
-BARNEY_RENDER=pt ./hsViewer ~/mini/rungholt.mini `cat data/rungholt.cam`
+./hsViewerQT ~/mini/rungholt.mini `cat data/rungholt.cam`
 
 ./hsViewerQT raw:///cluster/kingsnake_1024x1024x795_uint8.raw:format=uint8:dims=1024,1024,795 `cat data/kingsnake.cam` -xf data/kingsnake.xf
 ```
