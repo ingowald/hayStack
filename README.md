@@ -17,6 +17,24 @@ To build *haystack* with MPI support, make sure to use `-DHS_MPI=ON` when config
 
 # Example Data Sets and How to Run Them
 
+## Colored Iso-surface of Mars Lander
+
+- download from google drive using this link https://drive.google.com/file/d/1E7QEQ1H-JjPAIjCnCryv2yAqQ2egMiKq/view?usp=sharing
+- unpack `tar xavf lander-iso_vortMag_2.4_mapped_w.tgz`
+- load `.tstri1` files with haystack:
+
+```
+hsOffline lander-iso_vortMag_2.4_mapped_w/*tstri1 \
+	-os 1600 1200
+	-o lander-iso_vortMag_2.4_mapped_w.png
+```
+File format for this data: `.tstri1` is 
+- all binary file, one triangle after another
+- each triangle is three vertices, no connectivity
+- each vertex is three floats position, plus one float scalar
+ (scalar to color mapping currently happens in loader, tstri1 files
+  do not specify how this mapping happens)
+
 ## Quick-Tests, for raw (structured) and mini (triangle meshes) files:
 
 ![](jpg/collage-quicktests.jpg)
