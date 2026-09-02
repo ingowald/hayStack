@@ -358,7 +358,7 @@ namespace hs {
       } else if (endsWith(contentDescriptor,".vmdmesh")) {
         loader::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tri")) {
-        loader::TSTriContent::create(this,addIfRequired("vmdmesh://",contentDescriptor));
+        loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tstri")) {
         loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tstrif")) {

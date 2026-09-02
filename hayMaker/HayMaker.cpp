@@ -98,6 +98,7 @@ namespace hm {
     for (auto dev : perDevice) {
       auto device = dev->anari.device;
       auto frame = dev->anari.frame;
+      dev->fbSize = fbSize;
       anari::setParameter(device, frame,
                           "size",
                           (const anari::math::uint2&)fbSize);

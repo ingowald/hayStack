@@ -101,6 +101,7 @@ namespace hm {
     anari.camera = anari::newObject<anari::Camera>(anari.device, "perspective");
 
     anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+    PING;
     anari::commitParameters(anari.device, anari.frame);
   }
   
@@ -276,8 +277,9 @@ namespace hm {
 
   void AnariDeviceRenderer::setCamera(const hs::Camera &camera)
   {
+    float aspect = fbSize.x / (float)fbSize.y;
     anari::setParameter(anari.device, anari.camera,
-                        "aspect",    fbSize.x / (float)fbSize.y);
+                        "aspect",    aspect);
     anari::setParameter(anari.device, anari.camera,
                         "position",  (const anari::math::float3&)camera.vp);
     vec3f camera_dir = normalize(camera.vi - camera.vp);
@@ -935,8 +937,70 @@ namespace hm {
   anari::Volume AnariDeviceRenderer
   ::create(const TAMRVolume &input)
   {
+#if 1
+    auto field = anari::newObject<anari::SpatialField>(anari.device, "blockStructured");
+    if (!field)
+      return 0;
+
+    
+    // one per block:
+    std::vector<box3i> boxes;
+    std::vector<int>   blockLevels;
+
+    int maxLevel = 0;
+    for (auto &grid : input.model->grids) {
+      box3i box;
+      box.lower = (const vec3i&)grid.origin;
+      box.upper = (const vec3i&)grid.origin + (const vec3i&)grid.dims;
+      boxes.push_back(box);
+      maxLevel = std::max(maxLevel,grid.level);
+      blockLevels.push_back(grid.level);
+    }
+    PRINT(maxLevel);
+    PRINT(input.model->refinementOfLevel.size());
+    // one per level:
+    std::vector<uint32_t> refinementRatio(input.model->refinementOfLevel.size());
+    refinementRatio[0] = 1;
+    for (int i=1;i<input.model->refinementOfLevel.size();i++)
+      refinementRatio[i]
+        = input.model->refinementOfLevel[i]
+        / input.model->refinementOfLevel[i-1];
+
+    using anari_box3i = anari::math::int3x2;
+
+    anari::setParameter(anari.device, field, "origin",
+                        (const anari::math::float3&)input.gridOrigin);
+    anari::setParameter(anari.device, field, "spacing",
+                        (const anari::math::float3&)input.gridSpacing);
+    anari::setParameterArray1D
+      (anari.device, field, "block.bounds",
+       (const anari_box3i *)boxes.data(),
+       boxes.size());
+    anari::setParameterArray1D
+      (anari.device, field, "block.level",
+       (const int *)blockLevels.data(),
+       blockLevels.size());
+    anari::setParameterArray1D
+      (anari.device, field, "refinementRatio",
+       (const uint32_t *)refinementRatio.data(),
+       refinementRatio.size());
+    anari::setParameterArray1D
+      (anari.device, field, "data",
+       (const float *)input.model->scalars.data(),
+       input.model->numCellsAcrossAllGrids);
+
+    anari::commitParameters(anari.device, field);
+    
+    auto volume = anari::newObject<anari::Volume>(anari.device, "transferFunction1D");
+    anari::setAndReleaseParameter(anari.device, volume, "value", field);
+    anari::commitParameters(anari.device, volume);
+
+    PING;
+    return volume;
+#else
     std::cout << "skipping amr volume ..." << std::endl;
     return 0;
+#endif
   }
   
   anari::Volume AnariDeviceRenderer
