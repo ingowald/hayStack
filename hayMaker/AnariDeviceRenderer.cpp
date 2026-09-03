@@ -1210,7 +1210,11 @@ namespace hm {
     anari::setParameter(anari.device,material,"metallic",disney->metallic);
     anari::setParameter(anari.device,material,"opacity",1.f-disney->transmission);
     anari::setParameter(anari.device,material,"roughness",disney->roughness);
-    anari::setParameter(anari.device,material,"specular",.0f);
+    // Disney implicit specular 0.5 → F0=0.04 ≡ ANARI specular=1 at ior 1.5.
+    // Old Barney ignored this parameter and always used NVisii's 0.5.
+    anari::setParameter(anari.device,material,"specular",1.f);
+    anari::setParameter(anari.device,material,"specularColor",
+                        anari::math::float3(1.f, 1.f, 1.f));
     anari::setParameter(anari.device,material,"clearcoat",.0f);
     anari::setParameter(anari.device,material,"ior",disney->ior);
     if (disney->colorTexture) {
@@ -1233,7 +1237,9 @@ namespace hm {
     anari::setParameter(anari.device,material,"ior",dielectric->etaInside);
     anari::setParameter(anari.device,material,"transmission",1.f);
     anari::setParameter(anari.device,material,"metallic",0.f);
-    anari::setParameter(anari.device,material,"specular",0.f);
+    anari::setParameter(anari.device,material,"specular",1.f);
+    anari::setParameter(anari.device,material,"specularColor",
+                        anari::math::float3(1.f, 1.f, 1.f));
     anari::setParameter(anari.device,material,"roughness",0.f);
 
     anari::commitParameters(anari.device, material);
@@ -1254,7 +1260,9 @@ namespace hm {
     anari::setParameter(anari.device,material,"baseColor",(const anari::math::float3&)base);
     anari::setParameter(anari.device,material,"transmission",0.f);
     anari::setParameter(anari.device,material,"metallic",0.f);
-    anari::setParameter(anari.device,material,"specular",0.f);
+    anari::setParameter(anari.device,material,"specular",1.f);
+    anari::setParameter(anari.device,material,"specularColor",
+                        anari::math::float3(1.f, 1.f, 1.f));
     anari::setParameter(anari.device,material,"roughness",plastic->roughness);
 
     anari::commitParameters(anari.device, material);
