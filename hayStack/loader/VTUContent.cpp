@@ -35,7 +35,7 @@ namespace hs {
     size_t VTUContent::projectedSize()
     { return 2 * fileSize; }
 
-    void VTUContent::executeLoad(DataRank &dataRank, bool verbose)
+    void VTUContent::executeLoad(OnePartition &dataRank)
     {
       std::cout << "#hs.vtu: loading " << fileName << std::endl;
 

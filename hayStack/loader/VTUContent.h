@@ -15,7 +15,7 @@ namespace hs {
                          const std::string &dataURL);
       std::string toString() override;
       size_t projectedSize() override;
-      void   executeLoad(DataRank &dataGroup, bool verbose) override;
+      void   executeLoad(OnePartition &dataGroup) override;
 
       const std::string fileName;
       const size_t      fileSize;
