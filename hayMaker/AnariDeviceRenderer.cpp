@@ -101,7 +101,6 @@ namespace hm {
     anari.camera = anari::newObject<anari::Camera>(anari.device, "perspective");
 
     anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
-    PING;
     anari::commitParameters(anari.device, anari.frame);
   }
   
@@ -942,50 +941,41 @@ namespace hm {
     if (!field)
       return 0;
 
-    
     // one per block:
-    std::vector<box3i> boxes;
+    std::vector<vec3i> blockOrigins;
+    std::vector<vec3i> blockDims;
     std::vector<int>   blockLevels;
 
-    int maxLevel = 0;
+    for (int i=0;i<input.model->refinementOfLevel.size();i++)
+      if (input.model->refinementOfLevel[i] != (1<<i))
+        throw std::runtime_error("un-supported non-binary refinement");
     for (auto &grid : input.model->grids) {
-      box3i box;
-      box.lower = (const vec3i&)grid.origin;
-      box.upper = (const vec3i&)grid.origin + (const vec3i&)grid.dims;
-      boxes.push_back(box);
-      maxLevel = std::max(maxLevel,grid.level);
+      blockOrigins.push_back((const vec3i&)grid.origin);
+      blockDims.push_back((const vec3i&)grid.dims);
       blockLevels.push_back(grid.level);
     }
-    PRINT(maxLevel);
-    PRINT(input.model->refinementOfLevel.size());
-    // one per level:
-    std::vector<uint32_t> refinementRatio(input.model->refinementOfLevel.size());
-    refinementRatio[0] = 1;
-    for (int i=1;i<input.model->refinementOfLevel.size();i++)
-      refinementRatio[i]
-        = input.model->refinementOfLevel[i]
-        / input.model->refinementOfLevel[i-1];
-
-    using anari_box3i = anari::math::int3x2;
-
+          
     anari::setParameter(anari.device, field, "origin",
                         (const anari::math::float3&)input.gridOrigin);
     anari::setParameter(anari.device, field, "spacing",
                         (const anari::math::float3&)input.gridSpacing);
     anari::setParameterArray1D
-      (anari.device, field, "block.bounds",
-       (const anari_box3i *)boxes.data(),
-       boxes.size());
-    anari::setParameterArray1D
       (anari.device, field, "block.level",
        (const int *)blockLevels.data(),
        blockLevels.size());
     anari::setParameterArray1D
-      (anari.device, field, "refinementRatio",
-       (const uint32_t *)refinementRatio.data(),
-       refinementRatio.size());
+      (anari.device, field, "block.origin",
+       ANARI_INT32_VEC3,
+       (const anari::math::int3 *)blockOrigins.data(),
+       blockOrigins.size());
+    anari::setParameterArray1D
+      (anari.device, field, "block.dimensions",
+       ANARI_INT32_VEC3,
+       (const anari::math::int3 *)blockDims.data(),
+       blockDims.size());
     anari::setParameterArray1D
       (anari.device, field, "data",
+       ANARI_FLOAT32,
        (const float *)input.model->scalars.data(),
        input.model->numCellsAcrossAllGrids);
 
@@ -995,7 +985,6 @@ namespace hm {
     anari::setAndReleaseParameter(anari.device, volume, "value", field);
     anari::commitParameters(anari.device, volume);
 
-    PING;
     return volume;
 #else
     std::cout << "skipping amr volume ..." << std::endl;
