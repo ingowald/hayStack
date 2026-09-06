@@ -89,7 +89,8 @@ namespace hm {
                              const std::vector<anari::Volume>  &volumes);
     anari::Volume create(const hs::StructuredVolume &vol);
     anari::Volume create(const hs::NanoVDBVolume &vol);
-    anari::Volume create(const hs::TAMRVolume &input);
+    std::pair<anari::Volume,std::vector<anari::Surface>>
+    create(const hs::TAMRVolume &input);
     
     anari::Volume
     create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain);

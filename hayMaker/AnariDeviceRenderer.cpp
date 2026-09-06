@@ -364,9 +364,12 @@ namespace hm {
     // render all *AMR* volumes
     // -----------------------------------------------------------------
     for (auto vol : myData.amr) {
-      anari::Volume createdVolume = create(*vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      std::pair<anari::Volume,std::vector<anari::Surface>>
+        created = create(*vol);
+      if (created.first)
+        rootVolumes.push_back(created.first);
+      for (auto surf : created.second)
+        rootGeoms.push_back(surf);
     }
     // ==================================================================
     // now that all light and instances have been _created_ and
@@ -933,13 +936,12 @@ namespace hm {
     return { surface };
   }
   
-  anari::Volume AnariDeviceRenderer
-  ::create(const TAMRVolume &input)
+  std::pair<anari::Volume,std::vector<anari::Surface>>
+  AnariDeviceRenderer::create(const TAMRVolume &input)
   {
-#if 1
     auto field = anari::newObject<anari::SpatialField>(anari.device, "blockStructured");
     if (!field)
-      return 0;
+      return {};
 
     // one per block:
     std::vector<vec3i> blockOrigins;
@@ -980,16 +982,44 @@ namespace hm {
        input.model->numCellsAcrossAllGrids);
 
     anari::commitParameters(anari.device, field);
-    
-    auto volume = anari::newObject<anari::Volume>(anari.device, "transferFunction1D");
-    anari::setAndReleaseParameter(anari.device, volume, "value", field);
-    anari::commitParameters(anari.device, volume);
 
-    return volume;
-#else
-    std::cout << "skipping amr volume ..." << std::endl;
-    return 0;
-#endif
+    // ------------------------------------------------------------------
+    // now we have the field, create volume and iso-surface(s)
+    // ------------------------------------------------------------------
+    anari::Volume volume = {};
+    if (input.showVolume) {
+      volume = anari::newObject<anari::Volume>(anari.device, "transferFunction1D");
+      anari::setAndReleaseParameter(anari.device, volume, "value", field);
+      anari::commitParameters(anari.device, volume);
+    }
+    std::vector<anari::Surface> isoSurfaces;
+    auto createIso = [&](float isoValue, vec4f color) {
+      if (isnan(isoValue)) return;
+      anari::Geometry geom
+        = anari::newObject<anari::Geometry>(anari.device,"isosurface");
+      anari::setParameter(anari.device,geom,"isovalue",isoValue);
+      anari::setParameter(anari.device,geom,"field",field);
+      anari::commitParameters(anari.device, geom);
+
+      anari::Material  material = anari::newObject<anari::Material>(anari.device, "matte");
+      anari::setParameter(anari.device, material,
+                          "color", (const anari::math::float4 &)color);
+      anari::commitParameters(anari.device, material);
+      
+      anari::Surface  surface = anari::newObject<anari::Surface>(anari.device);
+      anari::setAndReleaseParameter(anari.device, surface, "geometry", geom);
+      anari::setParameter(anari.device, surface, "material", material);
+      anari::commitParameters(anari.device, surface);
+
+      isoSurfaces.push_back(surface);
+    };
+    createIso(input.iso0,input.color0);
+    createIso(input.iso1,input.color1);
+    createIso(input.iso2,input.color2);
+    createIso(input.iso3,input.color3);
+    PRINT(isoSurfaces.size());
+    
+    return { volume, isoSurfaces };
   }
   
   anari::Volume AnariDeviceRenderer

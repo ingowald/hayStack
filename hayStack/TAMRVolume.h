@@ -30,16 +30,30 @@ namespace hs {
     typedef std::shared_ptr<TAMRVolume> SP;
     
     TAMRVolume(tamr::Model::SP model,
+               float iso0,
+               float iso1,
+               float iso2,
+               float iso3,
+               vec4f color0,
+               vec4f color1,
+               vec4f color2,
+               vec4f color3,
+               bool showVolume,
                const vec3f &gridOrigin=vec3f(0.f),
-               const vec3f &gridSpacing=vec3f(1.f),
-               float isoValue=NAN)
+               const vec3f &gridSpacing=vec3f(1.f))
       : model(model),
+        iso0(iso0),
+        iso1(iso1),
+        iso2(iso2),
+        iso3(iso3),
+        color0(color0),
+        color1(color1),
+        color2(color2),
+        color3(color3),
+        showVolume(showVolume),
         gridOrigin(gridOrigin),
-        gridSpacing(gridSpacing),
-        isoValue(isoValue)
+        gridSpacing(gridSpacing)
     {}
-
-    bool wantsIsoSurface() const { return !isnan(isoValue); }
 
     box3f getBounds() const;
     range1f getValueRange() const;
@@ -50,7 +64,15 @@ namespace hs {
     tamr::Model::SP model;
     const vec3f gridOrigin;
     const vec3f gridSpacing;
-    const float isoValue;
+    const float iso0;
+    const float iso1;
+    const float iso2;
+    const float iso3;
+    const vec4f color0;
+    const vec4f color1;
+    const vec4f color2;
+    const vec4f color3;
+    const bool showVolume;
   };
 
 }

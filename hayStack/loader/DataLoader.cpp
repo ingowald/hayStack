@@ -120,6 +120,23 @@ namespace hs {
       return v;
     }
   
+    vec4f ResourceSpecifier::get_vec4f(const std::string &key,
+                                       vec4f defaultValue) const
+    {
+      if (!has(key)) return defaultValue;
+      vec4f v;
+      std::string value = keyValuePairs.find(key)->second;
+      int n = 0;
+      if (strstr(value.c_str(),","))
+        n = sscanf(value.c_str(),"%f,%f,%f,%f",&v.x,&v.y,&v.z,&v.w);
+      else
+        n = sscanf(value.c_str(),"%f %f %f %f",&v.x,&v.y,&v.z,&v.w);
+      if (n != 4)
+        throw std::runtime_error
+          ("could not parse '"+value+"' for key '"+key+"'");
+      return v;
+    }
+  
     vec2f ResourceSpecifier::get_vec2f(const std::string &key,
                                        vec2f defaultValue) const
     {
