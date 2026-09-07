@@ -162,6 +162,9 @@ namespace hm {
     void key(char key, const owl::common::vec2i &where) override
     {
       switch(key) {
+      case 'u':
+        uiIsOn = !uiIsOn;
+        break;
       case '!':
         screenShot();
         break;

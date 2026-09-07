@@ -23,7 +23,7 @@ namespace hs {
     = { mini::common::vec4f(1.f), mini::common::vec4f(1.f) };
 
     range1f absDomain = { +1.f, -1.f };
-    range1f relDomain = { 0.f, 1.f };
+    range1f relDomain = { 0.f, 100.f };
     
     float   baseDensity = 100.f;
   };
