@@ -3,21 +3,15 @@
 
 #include "hayMaker/HayMaker.h"
 #include "hayStack/loader/DataLoader.h"
-#if HS_CUTEE
-# include "cutee/OWLViewer.h"
-# include <QCoreApplication>
-# include "cutee/XFEditor.h"
-# if HS_USE_MULTI_SCATTERING
-#  include "viewer/VolumeScatterPanel.h"
-# endif
-# include <QVBoxLayout>
-# include "stb/stb_image_write.h"
+#if HS_IMGUI
+# include "owlViewer/OWLViewer.h"
+# include "owlViewer/XFEditor.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
 # define STB_IMAGE_IMPLEMENTATION 1
-# include "stb/stb_image.h"
-# include "stb/stb_image_write.h"
 #endif
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 #if HS_MPI
 #include <unistd.h>
 #endif
@@ -92,28 +86,69 @@ namespace hm {
     exit(0);
   }
 
-#if HS_CUTEE
-  using namespace cutee; //cutee::OWLViewer
-#endif
-  
-#if HS_CUTEE
-  struct Viewer : public OWLViewer
+#if HS_IMGUI
+  struct Viewer : public owl::viewer::OWLViewer
   {
-    Viewer(RenderEngineInterface *const renderer,
+    Viewer(BoundsData worldBounds,
+           RenderEngineInterface *const renderer,
            hs::mpi::Comm *world)
       : renderer(renderer),
-        world(world)
-    {}
+        world(world),
+        worldBounds(worldBounds)
+    {
+      xf.absDomain = worldBounds.scalars;
+    }
 
-  public slots:
-    void colorMapChanged(cutee::XFEditor *xf);
-    void rangeChanged(cutee::common::interval<float> r);
-    void opacityScaleChanged(double scale);
+    const BoundsData worldBounds;
+    
+    bool uiIsOn = true;
+    
+    void runImgui() override
+    {
+      if (!uiIsOn) return;
+      
+      ImGui::Begin("HayStack/Imgui");
+      
+      if (worldBounds.scalars.empty()) {
+        ImGui::Text("(no volume data)");
+      } else {
+        ImGui::Text("scalar range [%f .. %f]",
+                    worldBounds.scalars.lower,
+                    worldBounds.scalars.upper);
+        if (xfEditor.run_ui())
+          xfDirty = true;
+        
+        ImGui::Text("scalar range [%f .. %f]",
+                    worldBounds.scalars.lower,
+                    worldBounds.scalars.upper);
+        if (ImGui::SliderFloat("xfDomain(abs).x", &xf.absDomain.lower,
+                               worldBounds.scalars.lower,
+                               worldBounds.scalars.upper))
+          xfDirty = true;
+        if (ImGui::SliderFloat("xfDomain(abs).y", &xf.absDomain.upper, 
+                               worldBounds.scalars.lower,
+                               worldBounds.scalars.upper))
+          xfDirty = true;
+        if (ImGui::SliderFloat("xfDomain(rel).x", &xf.relDomain.lower,
+                               0.f, 100.f))
+          xfDirty = true;
+        if (ImGui::SliderFloat("xfDomain(rel).y", &xf.relDomain.upper,
+                               0.f, 100.f))
+          xfDirty = true;
+        if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
+                               0.f,200.f))
+          xfDirty = true;
+      }
+      ImGui::End();
+    }
+
+    // void colorMapChanged();
+    // void rangeChanged();
+    // void opacityScaleChanged();
 #if HS_USE_MULTI_SCATTERING
     void scatterSettingsChanged(const VolumeScatterSettings &settings);
 #endif
 
-  public:
     void screenShot()
     {
       std::string fileName = fromCL.outFileName;
@@ -124,7 +159,7 @@ namespace hm {
     }
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const cutee::common::vec2i &where) override
+    void key(char key, const owl::common::vec2i &where) override
     {
       switch(key) {
       case '!':
@@ -133,11 +168,10 @@ namespace hm {
       case '*': {
         hs::Camera camera;
         OWLViewer::getCameraOrientation
-          ((cutee::common::vec3f&)camera.vp,
-           (cutee::common::vec3f&)camera.vi,
-           (cutee::common::vec3f&)camera.vu,
+          ((owl::common::vec3f&)camera.vp,
+           (owl::common::vec3f&)camera.vi,
+           (owl::common::vec3f&)camera.vu,
            camera.fovy);
-        PRINT(normalize(camera.vi - camera.vp));
       } break;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
@@ -181,10 +215,7 @@ namespace hm {
 
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
-#if HS_CUTEE
-        if (xfEditor)
-          xfEditor->saveTo("hayThere.xf");
-#endif
+        xf.save("hayThere.xf");
         break;
 
       default: OWLViewer::key(key,where);
@@ -194,7 +225,7 @@ namespace hm {
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const cutee::common::vec2i &newSize) override
+    void resize(const owl::common::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
       renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
@@ -204,8 +235,14 @@ namespace hm {
     void render() override
     {
       double _t0 = mini::common::getCurrentTime();
-
+      
       if (xfDirty) {
+        PING;
+        auto cm = xfEditor.getColorMap();
+        xf.set((const mini::vec4f*)cm.data(),
+                        cm.size());
+        
+        
         renderer->setTransferFunction(xf);
         xfDirty = false;
         accumDirty = true;
@@ -275,15 +312,15 @@ namespace hm {
     {  
       hs::Camera camera;
       OWLViewer::getCameraOrientation
-        ((cutee::common::vec3f&)camera.vp,
-         (cutee::common::vec3f&)camera.vi,
-         (cutee::common::vec3f&)camera.vu,
+        ((owl::common::vec3f&)camera.vp,
+         (owl::common::vec3f&)camera.vi,
+         (owl::common::vec3f&)camera.vu,
          camera.fovy);
       renderer->setCamera(camera);
       accumDirty = true;
     }
 
-    TransferFunction xf;
+    //    TransferFunction xf;
     bool xfDirty = true;
 #if HS_USE_MULTI_SCATTERING
     VolumeScatterSettings scatterSettings;
@@ -293,35 +330,28 @@ namespace hm {
     bool accumDirty = true;
     RenderEngineInterface *const renderer;
     hs::mpi::Comm *world;
-    XFEditor *xfEditor = 0;
+
+    // the ui editor, that edits the color and alpha map (and nothing else)
+    owl::viewer::XFEditor xfEditor;
+    // the ui elements to edit abs/rel domains
+    // range1f xfDomainAbs{0.f,1.f};
+    // range1f xfDomainRel{0.f,100.f};
+    float xfDensity = 1.f;
+    // the objec that stores the _haystack_ idea of what a xf is (with
+    // domain, color, and alpha)
+    hs::TransferFunction xf;
+    
+    void loadXF() {
+      xf.load(fromCL.xfFileName);
+      xfEditor.setColorAndAlpha((const owl::common::vec4f*)xf.colorMap.data(),
+                                xf.colorMap.size());
+      xfDirty = true;
+    }
+    
   };
 #endif
 
-#if HS_CUTEE
-  void Viewer::colorMapChanged(cutee::XFEditor *xfEditor)
-  {
-    xf.colorMap = (const std::vector<mini::common::vec4f>&)xfEditor->getColorMap();
-    xfDirty = true;
-  }
-  
-  void Viewer::rangeChanged(cutee::common::interval<float> r)
-  {
-    xf.domain.lower = r.lower;
-    xf.domain.upper = r.upper;
-    xfDirty = true;
-  }
-  
-  void Viewer::opacityScaleChanged(double scale)
-  {
-    // xf.baseDensity = powf(scale > 100 ? 1.03 : 1.08,scale - 100.f);
-    // xf.baseDensity
-    //   = scale >= 100
-    //   ? 1.f/(scale-100)
-    //   : powf(1.03,100.f-scale);
-    xf.baseDensity = scale;
-    xfDirty = true;
-  }
-
+#if HS_IMGUI
 #if HS_USE_MULTI_SCATTERING
   void Viewer::scatterSettingsChanged(const VolumeScatterSettings &settings)
   {
@@ -746,61 +776,61 @@ int main(int ac, char **av)
     exit(0);
   }
 
-#if HS_CUTEE
-  // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#if HS_IMGUI
+  Viewer viewer(worldBounds,renderer,&world);
 
-  QApplication app(ac,av);
-  Viewer viewer(renderer,&world);
-
-  viewer.show();
+  // viewer.show();
   viewer.enableFlyMode();
   viewer.enableInspectMode();
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const cutee::common::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const cutee::common::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const cutee::common::vec3f &)fromCL.camera.vu,
+    (/*origin   */(const owl::common::vec3f &)fromCL.camera.vp,
+     /*lookat   */(const owl::common::vec3f &)fromCL.camera.vi,
+     /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
      /*fovy(deg)*/fromCL.camera.fovy);
 
-  QMainWindow secondWindow;
-  if (modelHasVolumeData) {
-    XFEditor *xfEditor = new XFEditor
-      ((cutee::common::interval<float>&)worldBounds.scalars);
-    viewer.xfEditor = xfEditor;
+  // QMainWindow secondWindow;
+  // if (modelHasVolumeData) {
+  //   XFEditor *xfEditor = new XFEditor
+  //     ((cutee::common::interval<float>&)worldBounds.scalars);
+  //   viewer.xfEditor = xfEditor;
 
-    QWidget *sidePanel = new QWidget;
-    auto *sideLayout = new QVBoxLayout(sidePanel);
-    sideLayout->addWidget(xfEditor);
-
-    QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
-                     &viewer, &Viewer::colorMapChanged);
-    QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
-                     &viewer, &Viewer::rangeChanged);
-    QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
-                     &viewer, &Viewer::opacityScaleChanged);
-
-    if (!fromCL.xfFileName.empty())
-      viewer.xfEditor->loadFrom(fromCL.xfFileName);
-
-#if HS_USE_MULTI_SCATTERING
-    {
-      VolumeScatterPanel *scatterPanel = new VolumeScatterPanel;
-      viewer.scatterPanel = scatterPanel;
-      scatterPanel->setSettings(VolumeScatterSettings{});
-      viewer.scatterSettings = scatterPanel->getSettings();
-      sideLayout->addWidget(scatterPanel);
-      QObject::connect(scatterPanel, &VolumeScatterPanel::settingsChanged,
-                       &viewer, &Viewer::scatterSettingsChanged);
-    }
-#endif
-
-    secondWindow.setWindowTitle("Transfer function");
-    secondWindow.setCentralWidget(sidePanel);
-    secondWindow.resize(420, 900);
-    secondWindow.show();
-  }
+  //   QWidget *sidePanel = new QWidget;
+  //   auto *sideLayout = new QVBoxLayout(sidePanel);
+  //   sideLayout->addWidget(xfEditor);
   
-  app.exec();
+    // QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
+    //                  &viewer, &Viewer::colorMapChanged);
+    // QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
+    //                  &viewer, &Viewer::rangeChanged);
+    // QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
+    //                  &viewer, &Viewer::opacityScaleChanged);
+  
+  if (!fromCL.xfFileName.empty())
+    viewer.xf.load(fromCL.xfFileName);
+      // viewer.xfEditor.setColorAndAlpha(loadCM(fromCL.xfFileName));
+
+// #if HS_USE_MULTI_SCATTERING
+//     {
+//       VolumeScatterPanel *scatterPanel = new VolumeScatterPanel;
+//       viewer.scatterPanel = scatterPanel;
+//       scatterPanel->setSettings(VolumeScatterSettings{});
+//       viewer.scatterSettings = scatterPanel->getSettings();
+//       sideLayout->addWidget(scatterPanel);
+//       QObject::connect(scatterPanel, &VolumeScatterPanel::settingsChanged,
+//                        &viewer, &Viewer::scatterSettingsChanged);
+//     }
+// #endif
+
+    // secondWindow.setWindowTitle("Transfer function");
+    // secondWindow.setCentralWidget(sidePanel);
+    // secondWindow.resize(420, 900);
+    // secondWindow.show();
+  // }
+  
+  // app.exec();
+  PING;
+  viewer.showAndRun();
 #else
 
   auto &fbSize = fromCL.fbSize;

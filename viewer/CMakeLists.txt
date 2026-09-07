@@ -7,20 +7,20 @@ set(SOURCES
   main.cpp
 )
 
-set(TFE_SOURCES
-  external/imgui/imgui.cpp
-  external/imgui/imgui_draw.cpp
-  external/imgui/imgui_tables.cpp
-  external/imgui/imgui_widgets.cpp
-  imgui_tfe/imgui_impl_glfw_gl3.h
-  imgui_tfe/imgui_impl_glfw_gl3.cpp
-  imgui_tfe/ColorMaps.h
-  imgui_tfe/ColorMaps.cpp
-  imgui_tfe/RGBAEditor.h
-  imgui_tfe/RGBAEditor.cpp
-  imgui_tfe/TFEditor.h
-  imgui_tfe/TFEditor.cpp
-)
+# set(TFE_SOURCES
+#   external/imgui/imgui.cpp
+#   external/imgui/imgui_draw.cpp
+#   external/imgui/imgui_tables.cpp
+#   external/imgui/imgui_widgets.cpp
+#   imgui_tfe/imgui_impl_glfw_gl3.h
+#   imgui_tfe/imgui_impl_glfw_gl3.cpp
+#   imgui_tfe/ColorMaps.h
+#   imgui_tfe/ColorMaps.cpp
+#   imgui_tfe/RGBAEditor.h
+#   imgui_tfe/RGBAEditor.cpp
+#   imgui_tfe/TFEditor.h
+#   imgui_tfe/TFEditor.cpp
+# )
 
 if(WIN32)
   set(GLAD_SOURCES
@@ -43,7 +43,6 @@ target_link_libraries(hsOffline
   )
 
 # ------------------------------------------------------------------
-
 if (HS_CUTEE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   set(CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC")
@@ -83,11 +82,19 @@ if (HS_CUTEE)
   
 endif()
 
+
+
 # ------------------------------------------------------------------
-#add_executable(hsDLAFtoPCR
-#  content/dlafToPCR.cpp
-#  )
-#target_link_libraries(hsDLAFtoPCR
-#  PUBLIC
-#  hayStack
-#  )
+if (HS_IMGUI)
+  add_executable(hsViewer ${SOURCES})
+  target_link_libraries(hsViewer
+    PUBLIC
+    hayStack
+    hayStackDataLoader
+    hayMaker
+    owlGLFWViewer
+    viewer-config
+    )
+  target_compile_definitions(hsViewer PUBLIC -DHS_IMGUI=1)
+  
+endif()

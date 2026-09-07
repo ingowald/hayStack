@@ -236,7 +236,7 @@ namespace hm {
       anari::setParameter(anari.device, vol,
                           "unitDistance",
                           unitDist);
-      range1f valueRange = xf.domain;
+      range1f valueRange = xf.getDomain();
 #if HS_USE_MULTI_SCATTERING
       if (isPrincipled && isUnsetTransferFunctionDomain(valueRange))
         valueRange = {0.f, 1.f};
@@ -606,7 +606,7 @@ namespace hm {
                           unitDist
                           // xf.baseDensity
                           );
-      range1f valueRange = xf.domain;
+      range1f valueRange = xf.getDomain();
       if (isPrincipled && isUnsetTransferFunctionDomain(valueRange))
         valueRange = {0.f, 1.f};
       anariSetParameter(anari.device, vol, "valueRange",

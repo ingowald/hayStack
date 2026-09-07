@@ -380,7 +380,8 @@ namespace hm {
     // ------------------------------------------------------------------
     int cmd = SET_XF;
     sendToWorkers(cmd);
-    sendToWorkers(xf.domain);
+    sendToWorkers(xf.absDomain);
+    sendToWorkers(xf.relDomain);
     sendToWorkers(xf.baseDensity);
     sendToWorkers(xf.colorMap);
     sendEndOfMessage();
@@ -397,7 +398,8 @@ namespace hm {
     // get args....
     // ------------------------------------------------------------------
     TransferFunction xf;
-    fromMaster(xf.domain);
+    fromMaster(xf.absDomain);
+    fromMaster(xf.relDomain);
     fromMaster(xf.baseDensity);
     fromMaster(xf.colorMap);
     checkEndOfMessage();

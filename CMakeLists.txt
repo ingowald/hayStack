@@ -14,12 +14,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(HS_MPI    "Enable MPI support in haystack" OFF)
 
-if (WIN32)
+#if (WIN32)
   option(HS_CUTEE "Use QT Viewer and XFEditor" OFF)
-else()
-  option(HS_CUTEE "Use QT Viewer and XFEditor" ON)
-endif()
-option(HS_USE_IMGUI "Use Imgui in Non-QT viewer?" OFF)
+#else()
+#  option(HS_CUTEE "Use QT Viewer and XFEditor" ON)
+#endif()
+option(HS_IMGUI "Use Imgui in Non-QT viewer?" ON)
 option(HS_USE_MULTI_SCATTERING "NanoVDB volumes for Barney multi-scattering" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
@@ -37,6 +37,10 @@ endif()
 
 if (HS_CUTEE)
   add_subdirectory(submodules/cuteeOWL     EXCLUDE_FROM_ALL)
+endif()
+if (HS_IMGUI)
+  add_subdirectory(submodules/owl   EXCLUDE_FROM_ALL)
+  add_subdirectory(submodules/glfwViewer   EXCLUDE_FROM_ALL)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
