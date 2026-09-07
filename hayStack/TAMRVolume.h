@@ -30,6 +30,7 @@ namespace hs {
     typedef std::shared_ptr<TAMRVolume> SP;
     
     TAMRVolume(tamr::Model::SP model,
+               int fieldID,
                float iso0,
                float iso1,
                float iso2,
@@ -42,6 +43,7 @@ namespace hs {
                const vec3f &gridOrigin=vec3f(0.f),
                const vec3f &gridSpacing=vec3f(1.f))
       : model(model),
+        fieldID(fieldID),
         iso0(iso0),
         iso1(iso1),
         iso2(iso2),
@@ -73,6 +75,7 @@ namespace hs {
     const vec4f color2;
     const vec4f color3;
     const bool showVolume;
+    const int fieldID;
   };
 
 }

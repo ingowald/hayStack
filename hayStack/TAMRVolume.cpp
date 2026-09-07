@@ -107,7 +107,7 @@ namespace hs {
   {
     range1f r;
     for (int i=0;i<model->numCellsAcrossAllGrids;i++)
-      r.extend(model->scalars[i]);
+      r.extend(model->scalars[model->fieldMetas[fieldID].offset+i]);
     return r;
   }
 

@@ -948,13 +948,16 @@ namespace hm {
     std::vector<vec3i> blockDims;
     std::vector<int>   blockLevels;
 
-    for (int i=0;i<input.model->refinementOfLevel.size();i++)
-      if (input.model->refinementOfLevel[i] != (1<<i))
-        throw std::runtime_error("un-supported non-binary refinement");
+    // for (int i=0;i<input.model->refinementOfLevel.size();i++)
+    //   if (input.model->refinementOfLevel[i] != (1<<i))
+    //     throw std::runtime_error("un-supported non-binary refinement");
+    bool hasGhosts = 0;
     for (auto &grid : input.model->grids) {
       blockOrigins.push_back((const vec3i&)grid.origin);
       blockDims.push_back((const vec3i&)grid.dims);
       blockLevels.push_back(grid.level);
+      if (grid.numGhostCells > 0)
+        hasGhosts = true;
     }
           
     anari::setParameter(anari.device, field, "origin",
@@ -975,11 +978,54 @@ namespace hm {
        ANARI_INT32_VEC3,
        (const anari::math::int3 *)blockDims.data(),
        blockDims.size());
-    anari::setParameterArray1D
-      (anari.device, field, "data",
-       ANARI_FLOAT32,
-       (const float *)input.model->scalars.data(),
-       input.model->numCellsAcrossAllGrids);
+    if (hasGhosts) {
+      throw std::runtime_error("model has ghost cells, anari can't do that yet; use tamrStripGhosts to remove those");
+      // std::cout << "model has ghost cells, need to extract non-ghosted grids... " << std::endl;
+      // size_t numCellsNoGhosts = 0;
+      // for (auto grid : input.model->grids)
+      //   numCellsNoGhosts += grid.numInnerCells();
+      // std::vector<float> extracted(numCellsNoGhosts);
+      // const float *in
+      //   = input.model->scalars.data()
+      //   + input.model->fieldMetas[input.fieldID].offset;
+      // float *out = extracted.data();
+      // for (auto grid : input.model->grids) {
+      //   int Ng = grid.numGhostCells;
+      //   vec3i N = (const vec3i&)grid.dims + Ng;
+      //   for (int iz=0;iz<N.z;iz++)
+      //     for (int iy=0;iy<N.y;iy++)
+      //       for (int ix=0;ix<N.x;ix++) {
+      //         float f_in = *in++;
+      //         if (ix < Ng) continue;
+      //         if (iy < Ng) continue;
+      //         if (iz < Ng) continue;
+      //         if (ix-Ng >= grid.dims.x) continue;
+      //         if (iy-Ng >= grid.dims.y) continue;
+      //         if (iz-Ng >= grid.dims.z) continue;
+      //         *out++ = f_in;
+      //       }
+      // }
+      // anari::setParameterArray1D
+      //   (anari.device, field, "data",
+      //    ANARI_FLOAT32,
+      //    (const float *)extracted.data(),
+      //    extracted.size());
+    } else {
+      PING;
+      PRINT(input.fieldID);
+      PRINT(input.model->fieldMetas[input.fieldID].offset);
+      range1f range;
+      const float *data = (const float *)input.model->scalars.data()
+        + input.model->fieldMetas[input.fieldID].offset;
+      for (int i=0;i<input.model->numCellsAcrossAllGrids;i++)
+        range.extend(data[i]);
+      PRINT(range);
+      anari::setParameterArray1D
+        (anari.device, field, "data",
+         ANARI_FLOAT32,
+         data,
+         input.model->numCellsAcrossAllGrids);
+    }
 
     anari::commitParameters(anari.device, field);
 

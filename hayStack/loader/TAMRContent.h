@@ -24,6 +24,7 @@ namespace hs {
       const std::string fileName;
       const int         thisPartID;
       bool              showBlockDebug = false;
+      std::string       fieldName;
       float             iso0 = NAN;
       float             iso1 = NAN;
       float             iso2 = NAN;

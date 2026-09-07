@@ -24,6 +24,9 @@ namespace hs {
       color1 = dataURL.get_vec4f("color1",color1);
       color2 = dataURL.get_vec4f("color2",color2);
       color3 = dataURL.get_vec4f("color3",color3);
+
+      fieldName = dataURL.get("field","");
+      PING; PRINT(fieldName);
       
       showVolume = isnan(iso0) || dataURL.has("showVolume");
       showBlockDebug = dataURL.has("dbg");
@@ -47,8 +50,24 @@ namespace hs {
     void TAMRContent::executeLoad(OnePartition &dataGroup) 
     {
       tamr::Model::SP model = tamr::Model::load(fileName);
+
+      int fieldID=-1;
+      PING; PRINT(fieldName);
+      if (fieldName == "")
+        fieldID = 0;
+      else {
+        for (int i=0;i<model->fieldMetas.size();i++)
+          if (model->fieldMetas[i].name == fieldName) {
+            fieldID = i; break;
+          }
+        if (fieldID == -1)
+          throw std::runtime_error("field '"+fieldName+"' not found in this tamr file");
+      }
+      PING; PRINT(fieldID);
+
       TAMRVolume::SP content
         = std::make_shared<TAMRVolume>(model,
+                                       fieldID,
                                        iso0,iso1,iso2,iso3,
                                        color0,color1,color2,color3,
                                        showVolume);
