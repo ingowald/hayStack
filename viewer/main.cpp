@@ -240,7 +240,6 @@ namespace hm {
       double _t0 = mini::common::getCurrentTime();
       
       if (xfDirty) {
-        PING;
         auto cm = xfEditor.getColorMap();
         xf.set((const mini::vec4f*)cm.data(),
                         cm.size());
@@ -825,14 +824,6 @@ int main(int ac, char **av)
 //     }
 // #endif
 
-    // secondWindow.setWindowTitle("Transfer function");
-    // secondWindow.setCentralWidget(sidePanel);
-    // secondWindow.resize(420, 900);
-    // secondWindow.show();
-  // }
-  
-  // app.exec();
-  PING;
   viewer.showAndRun();
 #else
 
