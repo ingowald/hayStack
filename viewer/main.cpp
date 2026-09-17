@@ -809,7 +809,8 @@ int main(int ac, char **av)
     //                  &viewer, &Viewer::opacityScaleChanged);
   
   if (!fromCL.xfFileName.empty())
-    viewer.xf.load(fromCL.xfFileName);
+    viewer.loadXF();//fromCL.xfFileName);
+    // viewer.xf.load(fromCL.xfFileName);
       // viewer.xfEditor.setColorAndAlpha(loadCM(fromCL.xfFileName));
 
 // #if HS_USE_MULTI_SCATTERING
