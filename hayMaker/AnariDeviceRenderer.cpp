@@ -772,8 +772,18 @@ namespace hm {
   {
     anari::Material material
       = materialLibrary.getOrCreate(miniMesh->material);
+
+#if 1
+    static bool testBarneyPlugins = (std::getenv("BARNEY_PLUGINS_TEST") != "");
+    anari::Geometry mesh
+      = anari::newObject<anari::Geometry>(anari.device,
+                                          testBarneyPlugins
+                                          ? "triangle@awt"
+                                          : "triangle");
+#else
     anari::Geometry mesh
       = anari::newObject<anari::Geometry>(anari.device, "triangle");
+#endif
     anari::setParameterArray1D(anari.device, mesh, "vertex.position",
                                (const anari::math::float3*)miniMesh->vertices.data(),
                                miniMesh->vertices.size());
