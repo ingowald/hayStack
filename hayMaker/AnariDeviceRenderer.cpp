@@ -774,7 +774,7 @@ namespace hm {
       = materialLibrary.getOrCreate(miniMesh->material);
 
 #if 1
-    static bool testBarneyPlugins = (std::getenv("BARNEY_PLUGINS_TEST") != "");
+    static bool testBarneyPlugins = (std::getenv("BARNEY_PLUGINS_TEST") != nullptr);
     anari::Geometry mesh
       = anari::newObject<anari::Geometry>(anari.device,
                                           testBarneyPlugins
@@ -1084,7 +1084,16 @@ namespace hm {
     auto mesh = meshAndDomain.first;
     assert(mesh);
 
-    auto field = anari::newObject<anari::SpatialField>(anari.device, "unstructured");
+#if 1
+    static bool testBarneyPlugins = (std::getenv("BARNEY_PLUGINS_TEST") != nullptr);
+    auto field  
+      = anari::newObject<anari::SpatialField>(anari.device,
+                                          testBarneyPlugins
+                                          ? "unstructured@awt"
+                                          : "unstructured");
+#else
+    auto field = anari::newObject<anari::SpatialField>(anari.device, "tnstructured");
+#endif
 
     anari::setParameterArray1D
       (anari.device, field, "vertex.position",
