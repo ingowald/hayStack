@@ -34,23 +34,16 @@ namespace hs {
         + std::to_string(data.numParts)+", proj size "
         +prettyNumber(projectedSize())+"B}";
     }
+    
     void Capsules::create(DataLoader *loader,
                           const ResourceSpecifier &data)
     {
-      // const std::string fileName = data.where;
-      // const size_t fileSize
-      //   = (fileName == "<test>"
-      //      ? 100000
-      //      : getFileSize(data.where));
       for (int i=0;i<data.numParts;i++)
         loader->addContent(new Capsules(data,i));
-      // data.where,
-      //                                   fileSize,i,
-      //                                   data.numParts));
     }
   
     size_t Capsules::projectedSize() 
-    { return fileSize*40; }
+    { return (fileSize*40) / data.numParts; }
   
     void   Capsules::executeLoad(OnePartition &dataGroup) 
     {
@@ -307,7 +300,6 @@ namespace hs {
       std::ifstream in(data.where.c_str(),std::ios::binary);
       in.seekg(begin*sizeof(FatCapsule),in.beg);
       in.read((char *)fatCapsules.data(),count*sizeof(FatCapsule));
-
       std::map<std::pair<vec4f,vec3f>,int> knownVertices;
       bool hadNanColors = false;
       for (auto fc : fatCapsules) {
@@ -331,6 +323,11 @@ namespace hs {
           segmentIndices[i] = knownVertices[key];
         }
         cs->indices.push_back(vec2i(segmentIndices[0],segmentIndices[1]));
+      }
+      for (int i=0;i<4;i++) {
+        std::cout << "link " << i << " " << cs->indices[i]
+                  << " = " << cs->vertices[cs->indices[i].x]
+                  << " ... " << cs->vertices[cs->indices[i].y] << std::endl;
       }
       if (hadNanColors)
         cs->colors.clear();
