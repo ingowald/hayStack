@@ -16,9 +16,9 @@ namespace hm {
                                            HayMaker     *hayMaker,
                                            OnePartition *myPartition)
     : hayMaker(hayMaker),
-      myPartition(myPartition),
       textureLibrary(this),
-      materialLibrary(this)
+      materialLibrary(this),
+      myPartition(myPartition)
   {
     std::cout << "#hanari: creating tethered device #"
               << tetherIndex << "/" << tetherCount
@@ -51,14 +51,39 @@ namespace hm {
     if (tetherIndex > 0) {
       anari::setParameter(anari.device, anari.device,
                           "tetherDevice",
-                          // (uint64_t)
                           hayMaker->perDevice[0]->anari.device);
     }
     anari::commitParameters(anari.device, anari.device);
-    
+    /* iw - do NOT do anything else with this device at this point -
+       if there is more than one device we first need to create all
+       others and tether them befroe creating any anari objects */
+  }
+
+    /*! due to device tethering we have to split set-up into initial
+        device creation and tethering (in constructor), and
+        creation/initializion of all other partition-related fields
+        like anari world, etc (which is only allowed to happen after
+        all devices are created and thethered). Constructor does the
+        former, this does the latter */
+  void AnariDeviceRenderer::initAnariGlobals()
+  {
+    assert(myPartition);
+    assert(!anari.frame);
+
+    // ------------------------------------------------------------------
+    // camera
+    // ------------------------------------------------------------------
+    anari.camera = anari::newObject<anari::Camera>(anari.device, "perspective");
+
+    // ------------------------------------------------------------------
+    // world
+    // ------------------------------------------------------------------    
     anari.world = anari::newObject<anari::World>(anari.device);
     anari::commitParameters(anari.device, anari.world);
   
+    // ------------------------------------------------------------------
+    // renderer
+    // ------------------------------------------------------------------
     anari.renderer = anari::newObject<anari::Renderer>(anari.device, "default");
 
     anari::setParameter(anari.device, anari.renderer,
@@ -91,16 +116,17 @@ namespace hm {
         (anari.device, anari.renderer,"background",
          (const anari::math::float4 &)bgColor);
     }
+    anari::setParameter(anari.device, anari.renderer, "denoise",  (bool)true);
     anari::commitParameters(anari.device, anari.renderer);
 
+    // ------------------------------------------------------------------
+    // frame
+    // ------------------------------------------------------------------
     anari.frame = anari::newObject<anari::Frame>(anari.device);
+
     anari::setParameter(anari.device, anari.frame, "world",    anari.world);
-    anari::setParameter(anari.device, anari.frame, "renderer", anari.renderer);
-    anari::setParameter(anari.device, anari.frame, "denoise",  (bool)true);
-
-    anari.camera = anari::newObject<anari::Camera>(anari.device, "perspective");
-
     anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+    anari::setParameter(anari.device, anari.frame, "renderer", anari.renderer);
     anari::commitParameters(anari.device, anari.frame);
   }
   

@@ -28,7 +28,15 @@ namespace hm {
                         int tetherIndex,
                         int tetherCount,
                         HayMaker     *hayMaker,
-                        OnePartition *myPartition);
+                        OnePartition *_myPartition);
+    /*! due to device tethering we have to split set-up into initial
+        device creation and tethering (in constructor), and
+        creation/initializion of all other partition-related fields
+        like anari world, etc (which is only allowed to happen after
+        all devices are created and thethered). Constructor does the
+        former, this does the latter */
+    void initAnariGlobals();
+    
     void renderInitialAnariWorld();    
     void renderFrame();
 
@@ -148,11 +156,11 @@ namespace hm {
     vec2i fbSize { -1,-1 };
 
     struct {
-      anari::Device device;
-      anari::World  world;
-      anari::Renderer renderer;
-      anari::Frame    frame;
-      anari::Camera   camera;
+      anari::Device   device   = 0;
+      anari::World    world    = 0;
+      anari::Renderer renderer = 0;
+      anari::Frame    frame    = 0;
+      anari::Camera   camera   = 0;
     } anari;
   };
     

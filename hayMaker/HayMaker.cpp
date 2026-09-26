@@ -50,17 +50,13 @@ namespace hm {
       throw std::runtime_error("could not create anari library '"+libname+"' - bailing out");
 
     // ------------------------------------------------------------------
-    // create anari *device(s)*
+    // create anari *device(s)*, and tether them - do NOT yet set the
+    // partition, this is only allowed after all devices are fully
+    // tethered
     // ------------------------------------------------------------------
     assert(!deviceConfigs.empty());
     for (int devIdx=0;devIdx<deviceConfigs.size();devIdx++) {
       auto dc = deviceConfigs[devIdx];
-      // devicerender params:
-      //   int gpuID,
-      //   int tetherIndex,
-      //   int tetherCount,
-      //   HayMaker     *hayMaker,
-      //   OnePartition *myPartition
       int gpuID       = dc.gpuID;
       int tetherIndex = devIdx;
       int tetherCount = deviceConfigs.size();
@@ -73,6 +69,12 @@ namespace hm {
                                                   partition));
     }
     
+    // ------------------------------------------------------------------
+    // all device(s) created and thethered; can now set their
+    // partition data and let them create their world etc.
+    // ------------------------------------------------------------------
+    for (auto dev : perDevice)
+      dev->initAnariGlobals();
     
     // ------------------------------------------------------------------
     // other global inits
