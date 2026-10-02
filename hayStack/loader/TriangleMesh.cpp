@@ -128,9 +128,43 @@ namespace hs {
     {
       TriangleMesh::SP mesh = std::make_shared<TriangleMesh>();//data.where);
       mini::Matte::SP mat = std::make_shared<mini::Matte>();
+      mat->reflectance = M_PI*.6f;
       mesh->material = mat;
       if (data.numParts > 1)
         throw std::runtime_error("cannot split meshes yet");
+
+      size_t N;
+      std::ifstream in(data.where.c_str(),std::ios::binary);
+      in.read((char*)&N,sizeof(N));
+      PRINT(N);
+      mesh->vertices.resize(N);
+      in.read((char *)mesh->vertices.data(),N*sizeof(mesh->vertices[0]));
+      PRINT(mesh->vertices[0]);
+      PRINT(mesh->vertices[1]);
+      PRINT(mesh->vertices[2]);
+      
+      in.read((char*)&N,sizeof(N));
+      PRINT(N);
+      mesh->normals.resize(N);
+      in.read((char *)mesh->normals.data(),N*sizeof(mesh->normals[0]));
+
+      in.read((char*)&N,sizeof(N));
+      PRINT(N);
+      mesh->colors.resize(N);
+      in.read((char *)mesh->colors.data(),N*sizeof(mesh->colors[0]));
+      
+      in.read((char*)&N,sizeof(N));
+      PRINT(N);
+      mesh->indices.resize(N);
+      in.read((char *)mesh->indices.data(),N*sizeof(mesh->indices[0]));
+      PRINT(mesh->indices[0]);
+      PRINT(mesh->indices[1]);
+      PRINT(mesh->indices[2]);
+      mesh->indices.resize(60000000);
+      
+      PRINT(mesh->vertices.size());
+      PRINT(mesh->indices.size());
+      
       dataGroup.triangleMeshes.push_back(mesh);
     }
     

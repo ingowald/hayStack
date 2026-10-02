@@ -55,9 +55,7 @@ namespace hs {
     /*! abstraction for an entity that can load one or more pieces of
       renderable data (i.e., "content") from a file */
     struct DataLoader {
-      DataLoader(hs::mpi::Comm &workers)
-        : workers(workers)
-      {}
+      DataLoader(hs::mpi::Comm &workers);
 
       /*! returns rank of process loading the data */
       int myRank() const { return workers.rank; }

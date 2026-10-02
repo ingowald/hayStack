@@ -18,6 +18,16 @@
 
 namespace hs {
 
+  struct IndexAndCount {
+    int index;
+    int count;
+  };
+  struct PartitionsIndex {
+    IndexAndCount local;
+    IndexAndCount global;
+  };
+  
+  
   /*! one "partition" of a data-distributed scene. For data replicated
       rendering this is simply "the" scene (ie, there is but one
       parition of the entire scene); for distributed rendering this is
@@ -57,8 +67,7 @@ namespace hs {
         negative side effects on performance */
     void mergeUnstructuredMeshes();
 
-    OnePartition(int partitionsRank,
-                 int partitionsCount);
+    OnePartition(const PartitionsIndex &partitionsIndex);
     BoundsData getBounds() const;
     
     mini::Material::SP                defaultMaterial;
@@ -75,8 +84,11 @@ namespace hs {
 #endif
     std::vector<TAMRVolume::SP>       amr;
     
-    const int partitionsRank;
-    const int partitionsCount;
+    const PartitionsIndex partitionsIndex;
+    // const int localPartitionsRank;
+    // const int localPartitionsCount;
+    // const int globalPartitionsRank;
+    // const int globalPartitionsCount;
   };
 
 } // ::hs

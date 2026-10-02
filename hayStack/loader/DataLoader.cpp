@@ -37,6 +37,12 @@ namespace hs {
     /*! default radius to use for spheres that do not have a radius specified */
     float DataLoader::defaultRadius = .1f;
 
+    DataLoader::DataLoader(hs::mpi::Comm &workers)
+      : workers(workers)
+    {
+      PING; PRINT(workers.rank); PRINT(workers.size);
+    }
+
     ResourceSpecifier::ResourceSpecifier(std::string resource)
     {
       int pos = resource.find("://");
@@ -276,7 +282,7 @@ namespace hs {
 
       for (int i=0;i<dataPerRank;i++) {
         int dataGroupID = (workers.rank*dataPerRank+i) % numDataRanks;
-        if (verbose) {
+        if (1 || verbose) {
           std::stringstream ss;
           ss << "#hv: worker #" << workers.rank
              << " loading global data group ID " << dataGroupID
@@ -473,7 +479,7 @@ namespace hs {
     
     void DynamicDataLoader::loadPartition(OnePartition *partition)
     {
-      int dataGroupID = partition->partitionsRank;
+      int dataGroupID = partition->partitionsIndex.global.index;
       if (contentOfGroup[dataGroupID].empty())
         std::cout << MINI_TERMINAL_RED
                   << "#hs: WARNING: data group "
