@@ -39,9 +39,7 @@ namespace hs {
 
     DataLoader::DataLoader(hs::mpi::Comm &workers)
       : workers(workers)
-    {
-      PING; PRINT(workers.rank); PRINT(workers.size);
-    }
+    {}
 
     ResourceSpecifier::ResourceSpecifier(std::string resource)
     {
@@ -406,7 +404,6 @@ namespace hs {
         TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
       } else {
         ResourceSpecifier url(contentDescriptor);
-        PRINT(url.type);
         if (url.type == "mapping")
           loader::ColorMappingMetaContent::create(this,url);
         else if (url.type == "spheres")

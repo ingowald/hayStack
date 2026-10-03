@@ -19,7 +19,6 @@ namespace hs {
     for (int i=0;i<localDataRanks.size();i++) {
       PartitionsIndex pi;
       pi.global.index = localDataRanks[i];
-      PING; PRINT(pi.global.index);
       pi.global.count = numPartitionsGlobally;
       pi.local.index = i;
       pi.local.count = localDataRanks.size();
