@@ -627,8 +627,6 @@ namespace hm {
         (anari.device,vol,"opacity",alphaArray);
 
       float unitDist = powf(1.05f,xf.baseDensity - 100.f);
-      PRINT(xf.baseDensity);
-      PRINT(unitDist);
       anari::setParameter(anari.device, vol,
                           "unitDistance",
                           unitDist
@@ -923,8 +921,6 @@ namespace hm {
     anari::setParameter(anari.device, surface, "material", material);
     anari::commitParameters(anari.device, surface);
 
-    PING;
-    PRINT(surface);
     return {surface};
   }
   
@@ -1054,15 +1050,12 @@ namespace hm {
       //    (const float *)extracted.data(),
       //    extracted.size());
     } else {
-      PING;
-      PRINT(input.fieldID);
       PRINT(input.model->fieldMetas[input.fieldID].offset);
       range1f range;
       const float *data = (const float *)input.model->scalars.data()
         + input.model->fieldMetas[input.fieldID].offset;
       for (int i=0;i<input.model->numCellsAcrossAllGrids;i++)
         range.extend(data[i]);
-      PRINT(range);
       anari::setParameterArray1D
         (anari.device, field, "data",
          ANARI_FLOAT32,
