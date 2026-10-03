@@ -354,7 +354,6 @@ namespace hm {
     // ------------------------------------------------------------------
     // render all individual meshes
     // -----------------------------------------------------------------
-    PING; PRINT(myData.triangleMeshes.size());
     for (auto content : myData.triangleMeshes) {
       auto created = create(*content);
       auto meshGroup = createGroup(created,{});
