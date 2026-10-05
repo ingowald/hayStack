@@ -50,6 +50,9 @@ namespace hs {
         bounds.scalars.extend((const range1f&)sr);
       }
     }
+    for (auto &triangleMesh : triangleMeshes)
+      if (triangleMesh)
+        bounds.extend(triangleMesh->getBounds());
     for (auto &sphereSet : sphereSets)
       if (sphereSet)
         bounds.spatial.extend(sphereSet->getBounds());

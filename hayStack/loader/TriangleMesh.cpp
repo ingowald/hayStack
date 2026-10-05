@@ -131,6 +131,26 @@ namespace hs {
       mesh->material = mat;
       if (data.numParts > 1)
         throw std::runtime_error("cannot split meshes yet");
+
+      size_t N;
+      std::ifstream in(data.where.c_str(),std::ios::binary);
+      
+      in.read((char *)&N,sizeof(N));
+      mesh->vertices.resize(N);
+      in.read((char*)mesh->vertices.data(),N*sizeof(mesh->vertices[0]));
+      
+      in.read((char *)&N,sizeof(N));
+      mesh->normals.resize(N);
+      in.read((char*)mesh->normals.data(),N*sizeof(mesh->normals[0]));
+      
+      in.read((char *)&N,sizeof(N));
+      mesh->colors.resize(N);
+      in.read((char*)mesh->colors.data(),N*sizeof(mesh->colors[0]));
+      
+      in.read((char *)&N,sizeof(N));
+      mesh->indices.resize(N);
+      in.read((char*)mesh->indices.data(),N*sizeof(mesh->indices[0]));
+      
       dataGroup.triangleMeshes.push_back(mesh);
     }
     
