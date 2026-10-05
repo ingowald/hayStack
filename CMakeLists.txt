@@ -25,6 +25,7 @@ endif()
 if (NOT (TARGET tinyAMR))
   add_subdirectory(submodules/tinyAMR      EXCLUDE_FROM_ALL)
 endif()
+add_subdirectory(3rdParty/tsd_tinyexr build-tinyexr)
 
 if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)

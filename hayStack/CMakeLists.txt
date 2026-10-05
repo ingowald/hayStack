@@ -95,7 +95,6 @@ endif()
 option(HS_USD "build usd loader" OFF)
 if (HS_USD)
   list(APPEND LOADER_SOURCES loader/USD.cpp)
-  
   find_package(OpenGL)
   find_package(X11)
   find_package(pxr REQUIRED usd usdGeom tf gf usdShade usdLux)

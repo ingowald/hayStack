@@ -1270,7 +1270,7 @@ namespace hs {
       return scene.miniScene;
     }
   
-    void   USDContent::executeLoad(DataRank &dataGroup)
+    void   USDContent::executeLoad(OnePartition &dataGroup)
     {
       mini::Scene::SP scene = loadUSD(fileName);
       if (scene)

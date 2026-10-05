@@ -15,14 +15,14 @@ namespace hs {
           fileSize(getFileSize(fileName))
       {}
 
-      std::string toString() override
+      std::string toString() override;
       static void create(DataLoader *loader,
                          const std::string &dataURL);
 
       size_t projectedSize() override
       { return 2 * fileSize; }
     
-      void   executeLoad(DataRank &dataGroup) override;
+      void   executeLoad(OnePartition &dataGroup) override;
 
       const std::string fileName;
       const size_t      fileSize;
