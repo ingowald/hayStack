@@ -24,8 +24,8 @@ namespace hm {
               << tetherIndex << "/" << tetherCount
               << " on gpu ID #" << gpuID
               << " and w/ data rank "
-              << myPartition->partitionsRank
-              << "/" << myPartition->partitionsCount
+              << myPartition->partitionsIndex.global.index
+              << "/" << myPartition->partitionsIndex.global.count
               << std::endl;
 
     anari.device = 0;
@@ -47,7 +47,8 @@ namespace hm {
     anari::setParameter(anari.device, anari.device,
                         "cudaDevice", (int)gpuID);
     anari::setParameter(anari.device, anari.device,
-                        "dataGroupID", (int)myPartition->partitionsRank);
+                        "dataGroupID", (int)myPartition->partitionsIndex.global.index);
+    PRINT(myPartition->partitionsIndex.global.index);
     if (tetherIndex > 0) {
       anari::setParameter(anari.device, anari.device,
                           "tetherDevice",
@@ -625,8 +626,6 @@ namespace hm {
         (anari.device,vol,"opacity",alphaArray);
 
       float unitDist = powf(1.05f,xf.baseDensity - 100.f);
-      PRINT(xf.baseDensity);
-      PRINT(unitDist);
       anari::setParameter(anari.device, vol,
                           "unitDistance",
                           unitDist
@@ -876,6 +875,7 @@ namespace hm {
       (anari.device, geom, "vertex.position",
        (const anari::math::float3*)content.vertices.data(),
        content.vertices.size());
+    PRINT(content.vertices.size());
     if (!content.normals.empty()) {
       if (content.normals.size() == content.vertices.size()) {
         anari::setParameterArray1D
@@ -894,10 +894,12 @@ namespace hm {
         PRINT(content.indices.size());
       }
     }
+    PING;
     anari::setParameterArray1D
       (anari.device, geom, "primitive.index",
        (const anari::math::uint3*)content.indices.data(),
        content.indices.size());
+    PRINT(content.indices.size());
     if (!content.colors.empty()) {
       anari::setParameterArray1D
         (anari.device, geom, "vertex.color",
@@ -1047,15 +1049,12 @@ namespace hm {
       //    (const float *)extracted.data(),
       //    extracted.size());
     } else {
-      PING;
-      PRINT(input.fieldID);
       PRINT(input.model->fieldMetas[input.fieldID].offset);
       range1f range;
       const float *data = (const float *)input.model->scalars.data()
         + input.model->fieldMetas[input.fieldID].offset;
       for (int i=0;i<input.model->numCellsAcrossAllGrids;i++)
         range.extend(data[i]);
-      PRINT(range);
       anari::setParameterArray1D
         (anari.device, field, "data",
          ANARI_FLOAT32,

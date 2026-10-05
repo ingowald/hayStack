@@ -128,6 +128,7 @@ namespace hs {
     {
       TriangleMesh::SP mesh = std::make_shared<TriangleMesh>();//data.where);
       mini::Matte::SP mat = std::make_shared<mini::Matte>();
+      mat->reflectance = M_PI*.6f;
       mesh->material = mat;
       if (data.numParts > 1)
         throw std::runtime_error("cannot split meshes yet");

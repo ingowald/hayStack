@@ -5,10 +5,8 @@
 
 namespace hs {
 
-  OnePartition::OnePartition(int partitionsRank,
-                             int partitionsCount)
-    : partitionsRank(partitionsRank),
-      partitionsCount(partitionsCount)
+  OnePartition::OnePartition(const PartitionsIndex &partitionsIndex)
+    : partitionsIndex(partitionsIndex)
   {
     defaultMaterial = mini::DisneyMaterial::create();
   }

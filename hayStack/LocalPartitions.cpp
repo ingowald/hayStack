@@ -17,8 +17,12 @@ namespace hs {
   {
     assert(!localDataRanks.empty());
     for (int i=0;i<localDataRanks.size();i++) {
-      auto p = new OnePartition(localDataRanks[i],
-                                numPartitionsGlobally);
+      PartitionsIndex pi;
+      pi.global.index = localDataRanks[i];
+      pi.global.count = numPartitionsGlobally;
+      pi.local.index = i;
+      pi.local.count = localDataRanks.size();
+      auto p = new OnePartition(pi);
       myPartitions.push_back(p);
     }
     assert(!myPartitions.empty());
