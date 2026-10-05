@@ -186,6 +186,12 @@ namespace hs {
 
     Texture::SP doLoadTexture(const std::string &fileName)
     {
+#if 1
+      std::cout << "SKIPPING textures" << std::endl;
+      return {};
+#endif
+
+      
       Texture::SP texture;
       vec2i res;
       int   comp;
@@ -324,7 +330,7 @@ namespace hs {
                                  1.0, 0.0, 0.0, 0.0,
                                  0.0, 0.0, 0.0, 1.0
                                  // clang-format on
-                                 );
+                                );
       xfm *= usdXform;
       pxr::GfVec3d dirVec = xfm.TransformDir(pxr::GfVec3d(0, 0, -1));
       pxr::GfVec3d upVec = xfm.TransformDir(pxr::GfVec3d(0, 1, 0));
@@ -779,7 +785,7 @@ namespace hs {
           scene.pushTransform(miniXform);
           import_usd_prim_recursive(scene,
                                     prototype,
-                                    // xformNode,
+                       // xformNode,
                                     xformCache,
                                     thisWorldXform);
           scene.popTransform();
@@ -1110,7 +1116,7 @@ namespace hs {
         vec3f finalEmissive(emissiveColor[0] * emissiveIntensity,
                             emissiveColor[1] * emissiveIntensity,
                             emissiveColor[2] * emissiveIntensity
-                            );
+                           );
         mat->emissive = finalEmissive;
       }
 
@@ -1196,7 +1202,10 @@ namespace hs {
       // std::string basePath = pathOf(filepath);
       pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(scene.fileName.c_str());
       // pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(fileName.c_str());
+      PING;
       for (pxr::UsdPrim const &prim : stage->Traverse()) {
+        PING;
+        if (!prim) continue;
         if (prim.IsA<pxr::UsdShadeMaterial>()) {
           std::string materialPath = prim.GetPath().GetString();
           printf("[import_USD2] Found material: %s\n", materialPath.c_str());
@@ -1207,6 +1216,8 @@ namespace hs {
 
           // MaterialRef mat;
 
+          if (!surfaceOutput) continue;
+          
           for (auto &connectionSourceInfo : surfaceOutput.GetConnectedSources()) {
             UsdShadeShader shader(connectionSourceInfo.source);
             TfToken subIdentifier;
@@ -1223,7 +1234,6 @@ namespace hs {
               printf("Don't know how to process %s\n", subIdentifier.GetText());
             }
           }
-          
         }
       }
     }
@@ -1260,7 +1270,7 @@ namespace hs {
         if (prim.GetParent() && prim.GetParent().IsPseudoRoot()) {
           import_usd_prim_recursive(scene,
                                     prim,
-                                    // usd_root,
+                        // usd_root,
                                     xformCache);
         }
       }
@@ -1284,9 +1294,9 @@ namespace hs {
     }
     
     std::string USDContent::toString() 
-      {
-        return "USD{fileName="+fileName+", proj size "
-          +prettyNumber(projectedSize())+"B}";
-      }
+    {
+      return "USD{fileName="+fileName+", proj size "
+        +prettyNumber(projectedSize())+"B}";
+    }
   } 
 } 
