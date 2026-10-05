@@ -21,8 +21,6 @@ namespace hm {
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
     virtual void resetAccumulation() {}
     virtual void setCamera(const hs::Camera &camera) {}
-    // virtual void setXF(const range1f &domain,
-    //                    const std::vector<vec4f> &colors) {}
     virtual void screenShot() {}
     virtual void terminate() {}
     virtual void setLights(float ambient,

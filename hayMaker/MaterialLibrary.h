@@ -12,9 +12,6 @@ namespace hm {
     static ScalarMapper create(AnariDeviceRenderer *renderer,
                                const range1f &inputRange,
                                const std::vector<vec3f> &colorMap);
-    // void setOn(anari::Material material,
-    //            const std::string &colorName)
-    // { anari::setParameter(device,mat,colorName.c_str(),sampler); }
     
     anari::Sampler sampler;
   };
@@ -23,12 +20,6 @@ namespace hm {
     static ColorMapper create(AnariDeviceRenderer *renderer,
                               const range1f &inputRange,
                               const std::vector<vec3f> &colorMap);
-    // void setOn(anari::Material material,
-    //            const std::string &colorName)
-    // {
-    //   anari::setParameter(device,mat,colorName.c_str(),"color");
-    //   anari::setParameter(device,mat,colorName.c_str(),sampler);
-    // }
     
     anari::Sampler sampler;
   };

@@ -44,10 +44,6 @@ namespace hm {
     }
 
     std::string wrapMode   = "mirrorRepeat";
-    // BNTextureData texData = bnTextureData2DCreate(global->model,this->slot,
-    //                                               texelFormat,
-    //                                               miniTex->size.x,miniTex->size.y,
-    //                                               miniTex->data.data());
 
     anari::Array2D image;
     switch (miniTex->format) {
