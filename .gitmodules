@@ -4,9 +4,6 @@
 [submodule "submodules/miniScene"]
 	path = submodules/miniScene
 	url = https://github.com/ingowald/miniScene
-[submodule "submodules/cuteeOWL"]
-	path = submodules/cuteeOWL
-	url = https://github.com/owl-project/cuteeOWL
 [submodule "submodules/tinyAMR"]
 	path = submodules/tinyAMR
 	url = https://github.com/ingowald/tinyAMR
