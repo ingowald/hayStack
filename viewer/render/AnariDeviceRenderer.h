@@ -4,9 +4,9 @@
 #pragma once
 
 #include "hayStack/OnePartition.h"
-#include "hayMaker/TextureLibrary.h"
-#include "hayMaker/MaterialLibrary.h"
 #include "hayStack/TransferFunction.h"
+#include "viewer/render/TextureLibrary.h"
+#include "viewer/render/MaterialLibrary.h"
 
 namespace hs {
   struct NanoVDBVolume;
@@ -21,7 +21,9 @@ namespace hm {
   struct HayMaker;
   
   /*! implements rendering operations for one logical partition, on
-    one single device */
+    one single device. this is seprate from _Rank_Renderer because the
+    latter is for a full rank/node, and may have multiple tethered
+    devices */
   struct AnariDeviceRenderer {
       
     AnariDeviceRenderer(int gpuID,

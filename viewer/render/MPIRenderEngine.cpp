@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hayMaker/MPIRenderEngine.h"
+#include "viewer/render/MPIRenderEngine.h"
 
 // #define LOGGING 1
 #if LOGGING
@@ -12,6 +12,7 @@
 
 /* parallel renderer abstraction */
 namespace hm {
+  using namespace hs;
   
   const int endOfMessageConstant = 0x12345;
   
@@ -433,55 +434,9 @@ namespace hm {
 #endif
   
   // ==================================================================
-
-  // void MPIRenderEngine::setISO(int numActive,
-  //                           const std::vector<int> &active,
-  //                           const std::vector<float> &values,
-  //                           const std::vector<vec3f> &colors)
-  // {
-  //   // ------------------------------------------------------------------
-  //   // send request....
-  //   // ------------------------------------------------------------------
-  //   int cmd = SET_ISO;
-  //   sendToWorkers(cmd);
-  //   sendToWorkers(active);
-  //   sendToWorkers(values);
-  //   sendToWorkers(colors);
-  //   sendEndOfMessage();
-  //   // ------------------------------------------------------------------
-  //   // and do our own....
-  //   // ------------------------------------------------------------------
-  //   // std::cout << "skipping iso for now; not yet implemented in renderer ... " << std::endl;
-  //   // if (passThrough) passThrough->setISO(numActive,active,values,colors);
-  // }
-
-  // void WorkerLoop::cmd_setISO()
-  // {
-  //   // ------------------------------------------------------------------
-  //   // get args....
-  //   // ------------------------------------------------------------------
-  //   int count;
-  //   int numActive;
-  //   std::vector<int> active;
-  //   std::vector<float> values;
-  //   std::vector<vec3f> colors;
-  //   fromMaster(active);
-  //   fromMaster(values);
-  //   fromMaster(colors);
-  //   checkEndOfMessage();
-
-  //   // ------------------------------------------------------------------
-  //   // and execute
-  //   // ------------------------------------------------------------------
-  //   // std::cout << "skipping iso for now; not yet implemented in renderer ... " << std::endl;
-  //   // renderer->setISO(numActive,active,values,colors);
-  // }
-
-  // ==================================================================
-  
   void MPIRenderEngine::setLights(float ambient,
-                              const std::vector<PointLight> &pointLights,
-                              const std::vector<DirLight> &dirLights)
+                                  const std::vector<hs::PointLight> &pointLights,
+                                  const std::vector<hs::DirLight> &dirLights)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -507,10 +462,10 @@ namespace hm {
     float ambient;
     fromMaster(ambient);
     
-    std::vector<PointLight> pointLights;
+    std::vector<hs::PointLight> pointLights;
     fromMaster(pointLights);
     
-    std::vector<DirLight> dirLights;
+    std::vector<hs::DirLight> dirLights;
     fromMaster(dirLights);
     
     checkEndOfMessage();

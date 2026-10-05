@@ -6,7 +6,7 @@
 #include "hayStack/HayStack.h"
 // current rank's parition(s) of distributed: model
 #include "hayStack/LocalPartitions.h"
-#include "hayMaker/MPIRenderEngine.h"
+#include "viewer/render/MPIRenderEngine.h"
 
 #include <anari/anari_cpp.hpp>
 #include <anari/anari_cpp/ext/linalg.h>

@@ -8,6 +8,7 @@
 
 /* parallel renderer abstraction */
 namespace hm {
+  using namespace hs;
   
   /*! base abstraction for any renderer - no matter whether it's a
       single node or multiple workers on the back */

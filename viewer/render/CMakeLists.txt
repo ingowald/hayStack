@@ -12,8 +12,6 @@ add_library(hayMaker
   TextureLibrary.cpp
   MaterialLibrary.h
   MaterialLibrary.cpp
-#  AnariBackend.h
-#  AnariBackend.cpp
 
   MPIRenderEngine.h
   MPIRenderEngine.cpp

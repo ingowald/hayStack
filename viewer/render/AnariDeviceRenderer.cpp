@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023-2026 Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hayMaker/AnariDeviceRenderer.h"
-#include "hayMaker/HayMaker.h"
+#include "viewer/render/AnariDeviceRenderer.h"
+#include "viewer/render/HayMaker.h"
 #include "hayStack/ColorMap.h"
 
 namespace hm {

@@ -3,8 +3,8 @@
 
 #include "hayStack/ColorMap.h"
 #include "hayStack/TransferFunction.h"
-#include "hayMaker/HayMaker.h"
-#include "hayMaker/AnariDeviceRenderer.h"
+#include "viewer/render/HayMaker.h"
+#include "viewer/render/AnariDeviceRenderer.h"
 
 namespace hm {
 

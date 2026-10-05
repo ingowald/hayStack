@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023++ Ingo Wald
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hayMaker/HayMaker.h"
+#include "viewer/render/HayMaker.h"
 #include "hayStack/loader/DataLoader.h"
 #if HS_IMGUI
 # include "owlViewer/OWLViewer.h"
@@ -723,14 +723,6 @@ int main(int ac, char **av)
                    
                    deviceConfigs);
                    
-    // = HayMaker::createAnariImplementation(world,
-    //                                       /* the workers */workers,
-    //                                       fromCL.spp,
-    //                                        fromCL.ambientRadiance,
-    //                                       fromCL.bgColor,
-    //                                       thisRankData,
-    //                                       gpuIDs,verbose());
-  
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
   bool modelHasVolumeData = !worldBounds.scalars.empty();

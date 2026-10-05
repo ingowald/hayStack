@@ -3,7 +3,9 @@
 
 #pragma once
 
-#include "hayMaker/common.h"
+#include "hayStack/HayStack.h"
+#include <anari/anari_cpp.hpp>
+#include <anari/anari_cpp/ext/linalg.h>
 
 namespace hm {
 

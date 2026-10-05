@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include "hayMaker/common.h"
 #include "hayStack/MPIWrappers.h"
-#include "hayMaker/RenderEngineInterface.h"
+#include "viewer/render/RenderEngineInterface.h"
 
 /* parallel renderer abstraction */
 namespace hm {
