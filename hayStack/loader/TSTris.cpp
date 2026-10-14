@@ -168,6 +168,7 @@ namespace hs {
       mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f,.7f,.7f));
       mat->metallic = data.get_float("metallic",0.f);
       mat->roughness = data.get_float("roughness",.5f);
+      mat->opacity = data.get_float("opacity",1.f);
 #else
       mini::Matte::SP mat = mini::Matte::create();
       mat->reflectance = 3.14f * vec3f(.8f);
