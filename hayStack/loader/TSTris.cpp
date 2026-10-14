@@ -120,15 +120,18 @@ namespace hs {
 #endif 
       FILE *file = fopen(data.where.c_str(),"rb");
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
+      int rc;
       for (int i=0;i<my_count;i++) {
         for (int j=0;j<3;j++) {
-          fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
+          rc = fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
+          assert(rc);
           switch(mappedScalars) {
           case 0:
             break;
           case 1: {
             float scalar;
-            fread(&scalar,sizeof(float),1,file);
+            rc = fread(&scalar,sizeof(float),1,file);
+            assert(rc);
 #if NEW_CM
             mesh->colors[3*i+j] = colorMapper.map3f(scalar);
 #else
@@ -136,7 +139,8 @@ namespace hs {
 #endif
           } break;
           case 3:
-            fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
+            rc = fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
+            assert(rc);
             break;
           default: throw std::runtime_error("invalid num mapped scalars");
           }
@@ -156,8 +160,18 @@ namespace hs {
         fflush(0);
       }
 
+#if 1
+      mini::ANARIMaterial::SP mat =
+        std::make_shared<mini::ANARIMaterial>();;
+      mat->metallic = 0.f;
+      mat->ior = 1.f;
+      mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f,.7f,.7f));
+      mat->metallic = data.get_float("metallic",0.f);
+      mat->roughness = data.get_float("roughness",.5f);
+#else
       mini::Matte::SP mat = mini::Matte::create();
       mat->reflectance = 3.14f * vec3f(.8f);
+#endif
       mesh->material = mat;
     
       // mini::Object::SP object = mini::Object::create({mesh});
