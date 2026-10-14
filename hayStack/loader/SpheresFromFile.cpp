@@ -55,7 +55,21 @@ namespace hs {
       float h = K - K * t;
       float v = .5f + 0.5f * t;    return v * hue_to_rgb(h);
     }
- 
+
+    inline vec3f lerp3f(float f, const std::vector<vec4f> &xf)
+    {
+      int N = xf.size();
+      assert(!xf.empty());
+      f = saturate(f);
+      if (N == 1) return (const vec3f &)xf[0];
+
+      float Nf = f * (N-1);
+      int i0 = std::min(N-2,int(Nf));
+      float ff = Nf - i0;
+      vec4f v = (1.f-ff)*xf[i0] + f*xf[i0+1];
+      return (const vec3f&)v;
+    }
+    
   
     void   SpheresFromFile::executeLoad(OnePartition &dataGroup) 
     {
@@ -209,6 +223,24 @@ namespace hs {
       range1f inputRange;
       if (format =="xyzf") {
         vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
+        std::string mapColorsFile = data.get("map-colors","");
+        std::vector<vec4f> mapColors;
+        if (!mapColorsFile.empty()) {
+          FILE *file = fopen(mapColorsFile.c_str(),"r");
+          if (!file) throw std::runtime_error
+                       ("could not open color mapping file "+mapColorsFile);
+          vec4f v;
+          char line[10000];
+          while (!feof(file) && fgets(line,10000,file)) {
+            if (sscanf(line,"%f %f %f %f",&v.x,&v.y,&v.z,&v.w) == 4)
+              mapColors.push_back(v);
+            else
+              throw std::runtime_error("cannot parse map-colors line '"
+                                       +std::string(line)+"'");
+          }
+          PING; PRINT(mapColors.size());
+          fclose(file);
+        }
         vec4f v;
         for (size_t i=0;i<my_count;i++) {
           int rc = fread((char*)&v,sizeof(v),1,file);
@@ -219,7 +251,12 @@ namespace hs {
             float f = v.w;
             scalarRange.extend(f);
             f = saturate((f-colorMapRange.x)/(colorMapRange.y-colorMapRange.x));
-            vec3f color = .6f*temperature_to_rgb(f);
+            vec3f color;
+            if (mapColors.empty()) {
+              color = .6f*temperature_to_rgb(f);
+            } else {
+              color = lerp3f(f,mapColors);
+            }
             spheres->colors.push_back(color);
           }
         }
