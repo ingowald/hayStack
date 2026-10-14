@@ -15,6 +15,7 @@
 #include "hayStack/loader/UMeshContent.h"
 #include "hayStack/loader/OBJContent.h"
 #include "hayStack/loader/DGEFContent.h"
+#include "hayStack/loader/ColorMapper.h"
 #if HS_VTK
 #include "hayStack/loader/VTUContent.h"
 #endif

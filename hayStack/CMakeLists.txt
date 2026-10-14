@@ -25,6 +25,8 @@ else()
 endif()
 
 set(LOADER_SOURCES
+  loader/ColorMapper.h
+  loader/ColorMapper.cpp
   loader/DataLoader.h
   loader/DataLoader.cpp
   loader/MiniContent.h

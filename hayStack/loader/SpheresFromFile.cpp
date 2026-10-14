@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/SpheresFromFile.h"
+#include "hayStack/loader/ColorMapper.h"
 
 namespace hs {
   namespace loader {
@@ -219,9 +220,13 @@ namespace hs {
       size_t my_count = my_end - my_begin;
       // spheres->origins.resize(my_count);
       fseek(file,skipBytes+my_begin*sizeOfSphere,SEEK_SET);
-      range1f scalarRange;
+      // range1f scalarRange;
       range1f inputRange;
       if (format =="xyzf") {
+#define NEW_CM 1
+#if NEW_CM
+        ColorMapper colorMapper(data);
+#else
         vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
         std::string mapColorsFile = data.get("map-colors","");
         std::vector<vec4f> mapColors;
@@ -240,15 +245,20 @@ namespace hs {
           }
           fclose(file);
         }
+#endif
         vec4f v;
         for (size_t i=0;i<my_count;i++) {
           int rc = fread((char*)&v,sizeof(v),1,file);
           assert(rc);
           spheres->origins.push_back(vec3f{v.x,v.y,v.z});
           inputRange.extend(v.w);
+#if NEW_CM
+          // scalarRange.extend(f);
+          if (colorMapper.valid())
+            spheres->colors.push_back(colorMapper.map3f(v.w));
+#else
           if (colorMapRange.x != colorMapRange.y) {
             float f = v.w;
-            scalarRange.extend(f);
             f = saturate((f-colorMapRange.x)/(colorMapRange.y-colorMapRange.x));
             vec3f color;
             if (mapColors.empty()) {
@@ -258,6 +268,7 @@ namespace hs {
             }
             spheres->colors.push_back(color);
           }
+#endif
         }
         std::cout << "range of input scalar values was " << inputRange << std::endl;
       } else if (format =="xyzi") {
@@ -329,8 +340,8 @@ namespace hs {
       if (verbose) {
         std::cout << "   ... done loading " << prettyNumber(my_count)
                   << " spheres from " << data.where << std::endl << std::flush;
-        if (!scalarRange.empty())
-          std::cout << "  (scalar range was " << scalarRange << ")" << std::endl;
+        if (!inputRange.empty())
+          std::cout << "  (scalar range was " << inputRange << ")" << std::endl;
         fflush(0);
       }
       fclose(file);

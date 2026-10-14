@@ -3,15 +3,13 @@
 
 #include "hayStack/loader/DataLoader.h"
 #include "hayStack/loader/TSTris.h"
+#include "hayStack/loader/ColorMapper.h"
 #include "hayStack/ColorMap.h"
 #include "hayStack/TriangleMesh.h"
 
 namespace hs {
   namespace loader {
     extern bool verbose;
-
-    int ColorMappingMetaContent::currentIdx = 0;
-    vec2f ColorMappingMetaContent::currentDomain = {0.f,0.f};
 
     TSTriContent::TSTriContent(const ResourceSpecifier &data,
                                size_t fileSize,
@@ -75,6 +73,11 @@ namespace hs {
 
       TriangleMesh::SP mesh = TriangleMesh::create();
       mesh->indices.resize(my_count);
+      #define NEW_CM 1
+
+#if NEW_CM
+      ColorMapper colorMapper(data);
+#else
       std::vector<vec4f> xf;
       vec2f domain = data.get_vec2f("map_domain",ColorMappingMetaContent::currentDomain);
       if (mappedScalars > 0) {
@@ -98,28 +101,36 @@ namespace hs {
         vec4f mapped = (1.f-f)*xf[idx]+f*xf[idx+1];
         return (const vec3f&)mapped;
       };
-
+#endif
       if (my_count == 0) return;
       
       mesh->vertices.resize(3*my_count);
+#if NEW_CM
+      if (colorMapper.valid())
+        mesh->colors.resize(3*my_count);
+#else
       if (mappedScalars > 0)
         mesh->colors.resize(3*my_count);
-      
+#endif 
       FILE *file = fopen(data.where.c_str(),"rb");
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
       for (int i=0;i<my_count;i++) {
         for (int j=0;j<3;j++) {
-          fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
+          assert(fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file));
           switch(mappedScalars) {
           case 0:
             break;
           case 1: {
             float scalar;
-            fread(&scalar,sizeof(float),1,file);
+            assert(fread(&scalar,sizeof(float),1,file));
+#if NEW_CM
+            mesh->colors[3*i+j] = colorMapper.map3f(scalar);
+#else
             mesh->colors[3*i+j] = mapScalar(scalar);
+#endif
           } break;
           case 3:
-            fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
+            assert(fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file));
             break;
           default: throw std::runtime_error("invalid num mapped scalars");
           }
