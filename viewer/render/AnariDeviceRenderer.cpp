@@ -300,7 +300,11 @@ namespace hm {
     return this->createGroup(meshes,{});
   }
 
-
+  float radians(float deg)
+  {
+    return deg * M_PI / 180.f;
+  }
+  
   void AnariDeviceRenderer::setCamera(const hs::Camera &camera)
   {
     float aspect = fbSize.x / (float)fbSize.y;
@@ -313,6 +317,8 @@ namespace hm {
                         "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(anari.device, anari.camera,
                         "up",        (const anari::math::float3&)camera.vu);
+    anari::setParameter(anari.device, anari.camera,
+                        "fovy",       radians(camera.fovy));
     anari::commitParameters(anari.device, anari.camera);
   }
   
