@@ -238,7 +238,6 @@ namespace hs {
               throw std::runtime_error("cannot parse map-colors line '"
                                        +std::string(line)+"'");
           }
-          PING; PRINT(mapColors.size());
           fclose(file);
         }
         vec4f v;
