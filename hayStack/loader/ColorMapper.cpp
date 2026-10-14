@@ -39,7 +39,7 @@ namespace hs {
       float Nf = f * (N-1);
       int i0 = std::min(N-2,int(Nf));
       float ff = Nf - i0;
-      vec4f v = (1.f-ff)*xf[i0] + f*xf[i0+1];
+      vec4f v = (1.f-ff)*xf[i0] + ff*xf[i0+1];
       return v;
     }
     
@@ -47,7 +47,7 @@ namespace hs {
     ColorMapper::ColorMapper(const ResourceSpecifier &data)
     {
       cmIndex = data.get_int("map-index",ColorMappingMetaContent::currentIdx);
-      vec2f colorMapRange = data.get("map",vec2f(+1.f,-1.f));
+      vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
       inputRange = {colorMapRange.x,colorMapRange.y};
       std::string mapColorsFile = data.get("map-colors","");
       if (!mapColorsFile.empty()) {
@@ -71,7 +71,7 @@ namespace hs {
     }
     
     bool ColorMapper::valid() const
-    { return inputRange.lower < inputRange.upper; }
+    { return inputRange.lower <= inputRange.upper; }
 
     vec3f ColorMapper::map3f(float f)
     { vec4f v = map4f(f); return (const vec3f&)v; }

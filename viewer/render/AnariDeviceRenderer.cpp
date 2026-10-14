@@ -48,7 +48,6 @@ namespace hm {
                         "cudaDevice", (int)gpuID);
     anari::setParameter(anari.device, anari.device,
                         "dataGroupID", (int)myPartition->partitionsIndex.global.index);
-    PRINT(myPartition->partitionsIndex.global.index);
     if (tetherIndex > 0) {
       anari::setParameter(anari.device, anari.device,
                           "tetherDevice",
@@ -900,12 +899,10 @@ namespace hm {
         PRINT(content.indices.size());
       }
     }
-    PING;
     anari::setParameterArray1D
       (anari.device, geom, "primitive.index",
        (const anari::math::uint3*)content.indices.data(),
        content.indices.size());
-    PRINT(content.indices.size());
     if (!content.colors.empty()) {
       anari::setParameterArray1D
         (anari.device, geom, "vertex.color",
@@ -1055,7 +1052,6 @@ namespace hm {
       //    (const float *)extracted.data(),
       //    extracted.size());
     } else {
-      PRINT(input.model->fieldMetas[input.fieldID].offset);
       range1f range;
       const float *data = (const float *)input.model->scalars.data()
         + input.model->fieldMetas[input.fieldID].offset;

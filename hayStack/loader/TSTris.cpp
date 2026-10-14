@@ -61,10 +61,14 @@ namespace hs {
     
     void   TSTriContent::executeLoad(OnePartition &dataGroup) 
     {
+      PING;
       int mappedScalars = data.get_size("mapped",default_mappedValues);
+      PRINT(mappedScalars);
       size_t sizeOfTri = 3*(sizeof(vec3f)+mappedScalars*sizeof(float));
       size_t numTrisTotal = fileSize / sizeOfTri;
 
+      PRINT(numTrisTotal);
+      
       int numPartsToSplitInto = data.numParts;
       numTrisTotal = data.get_size("count",numTrisTotal);
       size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
@@ -73,7 +77,8 @@ namespace hs {
 
       TriangleMesh::SP mesh = TriangleMesh::create();
       mesh->indices.resize(my_count);
-      #define NEW_CM 1
+      
+#define NEW_CM 1
 
 #if NEW_CM
       ColorMapper colorMapper(data);
@@ -106,8 +111,9 @@ namespace hs {
       
       mesh->vertices.resize(3*my_count);
 #if NEW_CM
-      if (colorMapper.valid())
+      if (colorMapper.valid()) {
         mesh->colors.resize(3*my_count);
+      }
 #else
       if (mappedScalars > 0)
         mesh->colors.resize(3*my_count);
@@ -116,13 +122,13 @@ namespace hs {
       fseek(file,my_begin*sizeOfTri,SEEK_SET);
       for (int i=0;i<my_count;i++) {
         for (int j=0;j<3;j++) {
-          assert(fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file));
+          fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
           switch(mappedScalars) {
           case 0:
             break;
           case 1: {
             float scalar;
-            assert(fread(&scalar,sizeof(float),1,file));
+            fread(&scalar,sizeof(float),1,file);
 #if NEW_CM
             mesh->colors[3*i+j] = colorMapper.map3f(scalar);
 #else
@@ -130,14 +136,14 @@ namespace hs {
 #endif
           } break;
           case 3:
-            assert(fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file));
+            fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
             break;
           default: throw std::runtime_error("invalid num mapped scalars");
           }
         }
       }
-      size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
-      assert(numRead == my_count);
+      // size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
+      // assert(numRead == my_count);
       fclose(file);
 
       mesh->indices.resize(my_count);
