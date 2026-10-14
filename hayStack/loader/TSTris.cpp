@@ -111,7 +111,7 @@ namespace hs {
       
       mesh->vertices.resize(3*my_count);
 #if NEW_CM
-      if (colorMapper.valid()) {
+      if (colorMapper.valid() && mappedScalars > 0) {
         mesh->colors.resize(3*my_count);
       }
 #else
