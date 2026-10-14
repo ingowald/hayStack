@@ -1314,6 +1314,7 @@ namespace hm {
     SET_FLOAT1(iridescenceThickness);
     SET_TEXTURE(iridescenceThickness);
 
+    anari::setParameter(anari.device,material,"alphaMode","blend");
     anari::commitParameters(anari.device, material);
     return {material,"baseColor"};
   }

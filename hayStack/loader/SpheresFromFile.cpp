@@ -60,15 +60,24 @@ namespace hs {
     void   SpheresFromFile::executeLoad(OnePartition &dataGroup) 
     {
       SphereSet::SP spheres = SphereSet::create();
-#if 1
+#if 0
       mini::Matte::SP mat =
         std::make_shared<mini::Matte>();;
       mat->reflectance = .5f;
+#elif 1
+      mini::ANARIMaterial::SP mat =
+        std::make_shared<mini::ANARIMaterial>();;
+      mat->metallic = 0.f;
+      mat->ior = 1.f;
+      mat->opacity = data.get_float("opacity",1.f);
+      // mat->baseColor.w = mat->opacity;
+      PRINT(mat->opacity);
 #else
       mini::DisneyMaterial::SP mat =
         std::make_shared<mini::DisneyMaterial>();;
       mat->metallic = 0.f;
       mat->ior = 1.f;
+      mat->opacity = data.get_float("opacity",1.f);
 #endif
       spheres->material = mat;
 
@@ -171,6 +180,8 @@ namespace hs {
       size_t begin = data.get_size("begin",0);
       size_t count = std::min(data.get_size("count",0),
                               numSpheresInFile-begin);
+      PRINT(numSpheresInFile);
+        PRINT(count);
       int64_t end = std::min(numSpheresInFile,
                              data.get_size("end",
                                            count

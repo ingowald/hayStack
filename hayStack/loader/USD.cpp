@@ -186,7 +186,7 @@ namespace hs {
 
     Texture::SP doLoadTexture(const std::string &fileName)
     {
-#if 1
+#if 0
       std::cout << "SKIPPING textures" << std::endl;
       return {};
 #endif
@@ -597,6 +597,18 @@ namespace hs {
                          const pxr::UsdPrim &prim,
                          const pxr::GfMatrix4d &usdXform)
     {
+
+#if 0
+        static int primID = 0;
+        if (primID++ % 20) {
+          std::cout << " - SKIPPING " << prim.GetName().GetText() << std::endl;
+          return;;
+        }
+        
+        std::cout << "- DOING " << prim.GetName().GetText() << std::endl;
+#endif     
+          
+      
       pxr::UsdGeomMesh mesh(prim);
     
       // Get vertex positions
@@ -769,6 +781,7 @@ namespace hs {
       if (prim.IsInstance()) {
         pxr::UsdPrim prototype = prim.GetPrototype();
         if (prototype) {
+
           bool resetsXformStack = false;
           pxr::GfMatrix4d usdLocalXform =
             xformCache.GetLocalTransformation(prim, &resetsXformStack);
@@ -1202,9 +1215,7 @@ namespace hs {
       // std::string basePath = pathOf(filepath);
       pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(scene.fileName.c_str());
       // pxr::UsdStageRefPtr stage = pxr::UsdStage::Open(fileName.c_str());
-      PING;
       for (pxr::UsdPrim const &prim : stage->Traverse()) {
-        PING;
         if (!prim) continue;
         if (prim.IsA<pxr::UsdShadeMaterial>()) {
           std::string materialPath = prim.GetPath().GetString();
@@ -1267,6 +1278,7 @@ namespace hs {
       // Traverse all prims in the USD file, but only import top-level prims
       for (pxr::UsdPrim const &prim : stage->Traverse()) {
         // if (prim.IsPrototype()) continue;
+
         if (prim.GetParent() && prim.GetParent().IsPseudoRoot()) {
           import_usd_prim_recursive(scene,
                                     prim,
