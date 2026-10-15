@@ -1291,7 +1291,8 @@ namespace hm {
       anari::Sampler tex = textureLibrary.getOrCreate(disney->name##_texture); \
       if (tex) anari::setParameter(anari.device,material,STRINGIFY(name),tex);\
     }
-    
+
+    PRINT(disney->baseColor);
     SET_FLOAT3(baseColor);
     SET_TEXTURE(baseColor);
     SET_FLOAT1(opacity);

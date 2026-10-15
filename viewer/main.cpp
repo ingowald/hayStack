@@ -592,6 +592,21 @@ int main(int ac, char **av)
       light.direction = get3f(av,i);
       light.radiance  = get3f(av,i);
       loader.sharedLights.directional.push_back(light);
+    } else if (arg == "--quad-light") {
+      mini::QuadLight light;
+      light.corner   = get3f(av,i);
+      light.edge0    = get3f(av,i);
+      light.edge1    = get3f(av,i);
+      light.emission = get3f(av,i);
+      loader.sharedLights.quad.push_back(light);
+    } else if (arg == "--quad-light-centered") {
+      mini::QuadLight light;
+      vec3f center   = get3f(av,i);
+      light.edge0    = get3f(av,i);
+      light.edge1    = get3f(av,i);
+      light.corner   = center - 0.5f*(light.edge0+light.edge1);
+      light.emission = get3f(av,i);
+      loader.sharedLights.quad.push_back(light);
     } else if (arg == "--lights") {
       std::string lightsFileName = av[++i];
       std::cout << "#hs: importing lights from " << lightsFileName << std::endl;

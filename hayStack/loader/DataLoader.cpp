@@ -349,8 +349,7 @@ namespace hs {
       mini::ANARIMaterial::SP mat      
         = std::make_shared<mini::ANARIMaterial>();
       mat->opacity   = data.get_float("opacity",1.f);
-      (vec3f&)mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f));
-      mat->baseColor.w = 1.f;
+      mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f));
       mat->metallic  = data.get_float("metallic",0.f);
       mat->roughness = data.get_float("roughness",.1f);
       mat->emissive  = data.get("emissive",vec3f(0.f));

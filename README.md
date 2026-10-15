@@ -4,16 +4,70 @@
 
 ### linux package dependencies
 
-    sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev qtbase5-dev libucx-dev libpmix-dev libgtk-3-dev
+    sudo apt install libtbb-dev cmake-curses-gui libglfw3-dev build-essential libopenmpi-dev libucx-dev libpmix-dev libgtk-3-dev
 
 ### MPI
 
-For data parallel work you need to have mpi installed with cuda
-support. for openmpi 4.1.6, build with
-
-    ./configure --enable-cxx-exceptions --with-cuda=/usr/local/cuda --with-cuda-libdir=/usr/lib/x86_64-linux-gnu/ --prefix=/mnt/nfs/opt
-
 To build *haystack* with MPI support, make sure to use `-DHS_MPI=ON` when configuring the project.
+
+# Command Line Options
+
+Though haystack has an interactive viewer it is still largely driven
+my command line paramters. In no particular order:
+
+### Camera related:
+
+- `--camera pv py pz cx cv cz ux uy uz`: specifies position
+  (px,py,pz), center of what the camera is aiming at (cx, cy, cz) and
+  upvector (ux,uy,uz) of the camera
+- `-fovy deg`: camera field of view, in y direction, in degrees.
+
+### Lights related:
+
+- `--dir-light  dx dy dz  rx ry rz`: direction (d) and radiance (r) of a
+  directional ("distant") light source
+- `--quad-light cx cy cz e0x e0y e0z e1x e1y e1z Ex Ey Ez`: a directed
+  (one-sided) quadrangular light soure, specified through corner (c),
+  and its two edge vectors (e0 and e1), as well as emission (E)
+- `--quad-light-centered cx cy cz e0x e0y e0z e1x e1y e1z Ex Ey Ez`:
+  same as `--auad-light` except `c` specifies the *center* of the
+  light source
+- `--lights miniFileWithLights.mini`: given a scene of light sources
+  in miniScene format, this loads all the lights sources from this
+  model and makes sure they are on all ranks. This will *not* load the
+  geometry from this model, only the light sources - but it will
+  replicate them across all ranks.
+
+# Loadable Content Specifiers
+
+Every command line argument passed to haystack that is not in itself a
+`-arg` or `--argument` style paramter will be interpreted as a
+"content specifier" that specifies some kind of renderable content
+that haystack is to render. This is typically a filename, optionally
+with some 'type specifier' that specifies what kind of loader to use
+for that, plus optionally some arguments for this particular
+loader. In some cases the specific content can also be procedural, not
+a file, but otherwise the same logic applies.
+
+Any content specifier looks like this:
+`[contentType://][N@]contentDescriptor[:arg=value]*`
+
+In this, 
+
+- `contentDescriptor` is typically a filename, such as `truck.mini` or
+  `~/models/truck.obj`. In some cases it can also be a prodcedural
+  content generator.
+- `contentType://` specifies the type of content loader to use for
+this content descriptor/content file. E.g., `obj://` would request an
+obj loader, `spheres://` describes a flexible type of binary files
+with spheres in them, etc. A list of supported content specifiers is
+given below. `contentType://` is optional if the type can be inferred
+from the file ame extension, but is required if either `N@` or any
+parameters are being used even if type could otherwise be derived from
+file name.
+
+
+- 
 
 # Example Data Sets and How to Run Them
 

@@ -153,7 +153,7 @@ namespace hs {
             ;
         }
       }
-
+      
       if (my_count >= (1ull<<31))
         throw std::runtime_error
           ("triangles: index overrun - too many triangles in a single file");
@@ -162,9 +162,7 @@ namespace hs {
       for (int i=0;i<(int)my_count;i++)
         mesh->indices[i] = 3*i + vec3i(0,1,2);
 
-      // mini::Object::SP object = mini::Object::create({mesh});
-      // mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
-      // dataGroup.minis.push_back(scene);
+      mini::ANARIMaterial *mm = (mini::ANARIMaterial *)mesh->material.get();
       dataGroup.triangleMeshes.push_back(mesh);
     }
   
