@@ -26,11 +26,11 @@ my command line paramters. In no particular order:
 
 - `--dir-light  dx dy dz  rx ry rz`: direction (d) and radiance (r) of a
   directional ("distant") light source
-- `--quad-light cx cy cz e0x e0y e0z e1x e1y e1z Ex Ey Ez`: a directed
+- `--quad-light cx cy cz  e0x e0y e0z e1x e1y e1z  Ex Ey Ez`: a directed
   (one-sided) quadrangular light soure, specified through corner (c),
   and its two edge vectors (e0 and e1), as well as emission (E)
-- `--quad-light-centered cx cy cz e0x e0y e0z e1x e1y e1z Ex Ey Ez`:
-  same as `--auad-light` except `c` specifies the *center* of the
+- `--quad-light-centered  cx cy cz  e0x e0y e0z  e1x e1y e1z  Ex Ey Ez`:
+  same as `--quad-light` except c specifies the *center* of the
   light source
 - `--lights miniFileWithLights.mini`: given a scene of light sources
   in miniScene format, this loads all the lights sources from this
@@ -117,7 +117,7 @@ triangles. Each triangle is three vertices, where each vertex is made
 up of 'stride' floats, the first three of which are x,y,z position,
 and others can be used for color mapping. Supported parameters:
   
-- `begin=int64': first triangle to read from this file. first 'begin' tris will simply get ignored.
+- `begin=int64`: first triangle to read from this file. first 'begin' tris will simply get ignored.
 - `count=int64`: number of triangles to read from this, starting at begin.
 - `stride=int`: number of floats per vertex. first three are always x,y,z.
 - `sidx=int`: index in per-vertex floats to use for as a scalar for
@@ -137,7 +137,7 @@ Content descriptor is a (binary) file made up of floats that form
 spheres. Each sphere is made up of 'stride' floats, the first three of which are x,y,z position,
 and others can be used for color mapping. Supported parameters:
   
-- `begin=int64': first triangle to read from this file. first 'begin' tris will simply get ignored.
+- `begin=int64`: first triangle to read from this file. first 'begin' tris will simply get ignored.
 - `count=int64`: number of triangles to read from this, starting at begin.
 - `stride=int`: number of floats per vertex. first three are always x,y,z.
 - `sidx=int`: index in per-vertex floats to use for as a scalar for
