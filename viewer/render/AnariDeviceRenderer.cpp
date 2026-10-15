@@ -318,6 +318,8 @@ namespace hm {
                         "up",        (const anari::math::float3&)camera.vu);
     anari::setParameter(anari.device, anari.camera,
                         "fovy",       radians(camera.fovy));
+    anari::setParameter(anari.device, anari.camera,
+                        "nearClip",   camera.nearClip);
     anari::commitParameters(anari.device, anari.camera);
   }
   
@@ -899,7 +901,6 @@ namespace hm {
       (anari.device, geom, "vertex.position",
        (const anari::math::float3*)content.vertices.data(),
        content.vertices.size());
-    PRINT(content.vertices.size());
     if (!content.normals.empty()) {
       if (content.normals.size() == content.vertices.size()) {
         anari::setParameterArray1D
@@ -1119,7 +1120,6 @@ namespace hm {
     createIso(input.iso1,input.color1);
     createIso(input.iso2,input.color2);
     createIso(input.iso3,input.color3);
-    PRINT(isoSurfaces.size());
     
     return { volume, isoSurfaces };
   }

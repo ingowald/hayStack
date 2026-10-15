@@ -430,6 +430,8 @@ namespace hs {
         loader::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tri")) {
         loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
+      } else if (endsWith(contentDescriptor,".tstri1")) {
+        loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor)+":stride=4:sidx=3");
       } else if (endsWith(contentDescriptor,".rgbtris")) {
         loader::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".mini")) {

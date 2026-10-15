@@ -28,6 +28,7 @@ namespace hm {
     vec3f vi   = vec3f(0.f);
     vec3f vu   = vec3f(0.f,1.f,0.f);
     float fovy = 60.f;
+    float nearClip = 0.f;
   };
   
   struct FromCL {
@@ -318,6 +319,7 @@ namespace hm {
          (owl::common::vec3f&)camera.vi,
          (owl::common::vec3f&)camera.vu,
          camera.fovy);
+      camera.nearClip = fromCL.camera.nearClip;
       renderer->setCamera(camera);
       accumDirty = true;
     }
@@ -620,6 +622,8 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = fromCL.camera.vp + get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
+    } else if (arg == "--camera-near-clip") {
+      fromCL.camera.nearClip = std::stof(av[++i]);
     } else if (arg == "--camera") {
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
@@ -853,6 +857,7 @@ int main(int ac, char **av)
   camera.vu = fromCL.camera.vu;
   camera.vi = fromCL.camera.vi;
   camera.fovy = fromCL.camera.fovy;
+  camera.nearClip = fromCL.camera.nearClip;
   renderer->setCamera(camera);
   
   if (fromCL.xfFileName.length() > 0) {

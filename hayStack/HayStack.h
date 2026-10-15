@@ -16,6 +16,7 @@ namespace hs {
   struct Camera {
     vec3f vp, vi, vu;
     float fovy;
+    float nearClip = 0.f;
   };
 
   struct DirLight {

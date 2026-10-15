@@ -21,6 +21,9 @@ my command line paramters. In no particular order:
   (px,py,pz), center of what the camera is aiming at (cx, cy, cz) and
   upvector (ux,uy,uz) of the camera
 - `-fovy deg`: camera field of view, in y direction, in degrees.
+- `--camera-near-clip float` : offsets all primary rays by this
+  distance from their camera origin, allowing for some near-clipping
+  plane like behavior.
 
 ### Lights related:
 
