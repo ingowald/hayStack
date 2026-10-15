@@ -35,7 +35,55 @@ namespace hs {
     }
     
     size_t SpheresFromFile::projectedSize() 
-    { return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts); }
+    {
+
+      /* number of scalar values for each sphere, first three are
+         always x,y,z position */
+      int stride = data.get_int("stride",3);
+      
+      /* index of scalar to be used for color mapping; '-1' means 'no
+         color mapping' */
+      int sidx   = data.get_int("sidx",-1);
+      assert(idx < stride);
+
+      /* index of scalar to be used for storing radius; '-1' means 'no
+         radius' */
+      int ridx   = data.get_int("ridx",-1);
+
+      /* index of rgb 'c'olor to be used for color mapping; '-1' means 'no
+         color in particle' */
+      int cidx   = data.get_int("cidx",-1);
+
+      /*! old-time format description */
+      std::string format = data.get("format","");
+      if (format == "xyz")    { stride=3; ridx=-1; sidx=-1; cidx=-1; }
+      if (format == "xyzr")   { stride=4; ridx= 3; sidx=-1; cidx=-1; }
+      if (format == "xyzf")   { stride=4; ridx=-1; sidx= 3; cidx=-1; }
+      if (format == "xyzrgb") { stride=4; ridx= 3; sidx=-1; cidx= 3; }
+
+      ColorMapper colorMapper(data);
+      if (sidx >= 0 && !colorMapper.valid())
+        throw std::runtime_error
+          ("spheres: requested scalar mapping, but no 'map' range specified");
+
+      size_t sizeOfSphere = stride * sizeof(float);
+      size_t skipBytes = data.get_size("skip",0);
+      size_t numSpheresInFile = (fileSize-skipBytes) / sizeOfSphere;
+      // ------------------------------------------------------------------
+      // compute *full* [begin,end] range of all particles in the file
+      // that *all* parts of this loader together are supposed to read
+      // ------------------------------------------------------------------
+      size_t begin = data.get_size("begin",0);
+      size_t count = std::min(data.get_size("count",0),
+                              numSpheresInFile-begin);
+      int64_t end = std::min(numSpheresInFile,
+                             data.get_size("end",
+                                           count
+                                           ? begin+count
+                                           : numSpheresInFile));
+      return (end-begin)*/* guesstimate for mem cost of sphere...*/50;
+      // return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts);
+    }
 
 
 
@@ -73,8 +121,8 @@ namespace hs {
 
     void   SpheresFromFile::executeLoad(OnePartition &dataGroup) 
     {
-      PING;
       SphereSet::SP spheres = SphereSet::create();
+      // in dataloader.cpp, in case we need to add more material params:
       spheres->material = parseAnariMaterial(data);
 
       /* number of scalar values for each sphere, first three are
@@ -186,7 +234,9 @@ namespace hs {
     }
     
     size_t VMDSpheres::projectedSize()
-    { return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts); }
+    {
+      return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts);
+    }
 
     
     void   VMDSpheres::executeLoad(OnePartition &dataGroup)

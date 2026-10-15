@@ -86,6 +86,9 @@ namespace hs {
         where = where.substr(pos+1);
       }
 
+      if (where[0] == '~')
+        where = std::string(std::getenv("HOME"))+where.substr(1);
+      
 #ifdef _WIN32
       // the name of drive
       pos = where.find("$"); // Find the position of "$"
@@ -428,14 +431,6 @@ namespace hs {
         loader::VMDMesh::create(this,addIfRequired("vmdmesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".tri")) {
         loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
-      } else if (endsWith(contentDescriptor,".tstri")) {
-        loader::TSTriContent::create(this,addIfRequired("ts.tri://",contentDescriptor));
-      } else if (endsWith(contentDescriptor,".tstrif")) {
-        loader::TSTriContent::create(this,addIfRequired("ts.trif://",contentDescriptor),1);
-      } else if (endsWith(contentDescriptor,".tstri1")) {
-        loader::TSTriContent::create(this,addIfRequired("ts.trif://",contentDescriptor),1);
-      } else if (endsWith(contentDescriptor,".tstrirgb")) {
-        loader::TSTriContent::create(this,addIfRequired("ts.trirgb://",contentDescriptor),3);
       } else if (endsWith(contentDescriptor,".rgbtris")) {
         loader::RGBTris::create(this,addIfRequired("rgbtris://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".mini")) {

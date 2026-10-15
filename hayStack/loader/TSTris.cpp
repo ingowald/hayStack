@@ -44,137 +44,124 @@ namespace hs {
     
     size_t TSTriContent::projectedSize() 
     {
-      int mappedScalars = data.get_size("mapped",default_mappedValues);
-      size_t sizeOfTri = 3*(sizeof(vec3f)+mappedScalars*sizeof(float));
-    
-      size_t numTrisTotal = fileSize / sizeOfTri;
-      numTrisTotal = data.get_size("count",numTrisTotal);
+      /* number of scalar values for each sphere, first three are
+         always x,y,z position */
+      int stride = data.get_int("stride",3);
 
-      int numPartsToSplitInto = data.numParts;
-      size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
-      size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
-      size_t my_count = my_end - my_begin;
+      size_t sizeOfTriangle = 3 * stride * sizeof(float);
+      size_t skipBytes = data.get_size("skip",0);
+      size_t numTrianglesInFile = (fileSize-skipBytes) / sizeOfTriangle;
+      // ------------------------------------------------------------------
+      // compute *full* [begin,end] range of all particles in the file
+      // that *all* parts of this loader together are supposed to read
+      // ------------------------------------------------------------------
+      size_t begin = data.get_size("begin",0);
+      size_t count = std::min(data.get_size("count",0),
+                              numTrianglesInFile-begin);
+      int64_t end = std::min(numTrianglesInFile,
+                             data.get_size("end",
+                                           count
+                                           ? begin+count
+                                           : numTrianglesInFile));
 
-      return 50*my_count;
-      // return 100*my_count;
+      return (end-begin)*/* "some" estimate of cost of one triangle...*/50;
     }
     
     void   TSTriContent::executeLoad(OnePartition &dataGroup) 
     {
-      PING;
-      int mappedScalars = data.get_size("mapped",default_mappedValues);
-      PRINT(mappedScalars);
-      size_t sizeOfTri = 3*(sizeof(vec3f)+mappedScalars*sizeof(float));
-      size_t numTrisTotal = fileSize / sizeOfTri;
-
-      PRINT(numTrisTotal);
-      
-      int numPartsToSplitInto = data.numParts;
-      numTrisTotal = data.get_size("count",numTrisTotal);
-      size_t my_begin = (numTrisTotal * (thisPartID+0)) / numPartsToSplitInto;
-      size_t my_end = (numTrisTotal * (thisPartID+1)) / numPartsToSplitInto;
-      size_t my_count = my_end - my_begin;
-
       TriangleMesh::SP mesh = TriangleMesh::create();
-      mesh->indices.resize(my_count);
-      
-#define NEW_CM 1
+      // in dataloader.cpp, in case we need to add more material params:
+      mesh->material = parseAnariMaterial(data);
 
-#if NEW_CM
-      ColorMapper colorMapper(data);
-#else
-      std::vector<vec4f> xf;
-      vec2f domain = data.get_vec2f("map_domain",ColorMappingMetaContent::currentDomain);
-      if (mappedScalars > 0) {
-        ColorMap::init();
-        int mapIdx = data.get_int("map",ColorMappingMetaContent::currentIdx);
-        xf = ColorMap::get(mapIdx);
-      }
-      const auto &mapScalar = [&](float s)
-      {
-        if (domain.x != domain.y) {
-          s = std::max(s,domain.x);
-          s = std::min(s,domain.y);
-          s = (s - domain.x) / (domain.y-domain.x);
-        }
-        s = std::max(0.f,s);
-        s = std::min(1.f,s);
-        s = s * (xf.size()-1);
-        int idx = int(s);
-        float f = s - idx;
-        idx = std::max(0,std::min(int(xf.size()-2),idx));
-        vec4f mapped = (1.f-f)*xf[idx]+f*xf[idx+1];
-        return (const vec3f&)mapped;
-      };
-#endif
-      if (my_count == 0) return;
+      /* number of scalar values for each sphere, first three are
+         always x,y,z position */
+      int stride = data.get_int("stride",3);
       
-      mesh->vertices.resize(3*my_count);
-#if NEW_CM
-      if (colorMapper.valid() && mappedScalars > 0) {
-        mesh->colors.resize(3*my_count);
-      }
-#else
-      if (mappedScalars > 0)
-        mesh->colors.resize(3*my_count);
-#endif 
+      /* index of scalar to be used for color mapping; '-1' means 'no
+         color mapping' */
+      int sidx   = data.get_int("sidx",-1);
+      assert(idx < stride);
+
+      /* index of rgb 'c'olor to be used for color mapping; '-1' means 'no
+         color in particle' */
+      int cidx   = data.get_int("cidx",-1);
+
       FILE *file = fopen(data.where.c_str(),"rb");
-      fseek(file,my_begin*sizeOfTri,SEEK_SET);
-      int rc;
-      for (int i=0;i<my_count;i++) {
-        for (int j=0;j<3;j++) {
-          rc = fread(&mesh->vertices[3*i+j],sizeof(vec3f),1,file);
-          assert(rc);
-          switch(mappedScalars) {
-          case 0:
-            break;
-          case 1: {
-            float scalar;
-            rc = fread(&scalar,sizeof(float),1,file);
-            assert(rc);
-#if NEW_CM
-            mesh->colors[3*i+j] = colorMapper.map3f(scalar);
-#else
-            mesh->colors[3*i+j] = mapScalar(scalar);
-#endif
-          } break;
-          case 3:
-            rc = fread(&mesh->colors[3*i+j],sizeof(vec3f),1,file);
-            assert(rc);
-            break;
-          default: throw std::runtime_error("invalid num mapped scalars");
-          }
-        }
-      }
-      // size_t numRead = fread(mesh->vertices.data(),sizeOfTri,my_count,file);
-      // assert(numRead == my_count);
-      fclose(file);
+      ColorMapper colorMapper(data);
+      if (sidx >= 0 && !colorMapper.valid())
+        throw std::runtime_error
+          ("triangles: requested scalar mapping, but no 'map' range specified");
 
-      mesh->indices.resize(my_count);
-      for (int i=0;i<my_count;i++)
-        mesh->indices[i] = 3*i + vec3i(0,1,2);
+      size_t sizeOfTriangle = 3 * stride * sizeof(float);
+      size_t skipBytes = data.get_size("skip",0);
+      size_t numTrianglesInFile = (fileSize-skipBytes) / sizeOfTriangle;
+      // ------------------------------------------------------------------
+      // compute *full* [begin,end] range of all particles in the file
+      // that *all* parts of this loader together are supposed to read
+      // ------------------------------------------------------------------
+      size_t begin = data.get_size("begin",0);
+      size_t count = std::min(data.get_size("count",0),
+                              numTrianglesInFile-begin);
+      int64_t end = std::min(numTrianglesInFile,
+                             data.get_size("end",
+                                           count
+                                           ? begin+count
+                                           : numTrianglesInFile));
 
+      // ------------------------------------------------------------------
+      // now compute *this* part's range of particles to read
+      // ------------------------------------------------------------------
+      size_t numTrianglesToLoad = end-begin;
+      size_t my_begin
+        = begin//data.get_size("begin",0)
+        + (numTrianglesToLoad * (thisPartID+0)) / data.numParts;
+      size_t my_end
+        = begin//data.get_size("end",0)
+        + (numTrianglesToLoad * (thisPartID+1)) / data.numParts;
+      size_t my_count = my_end-my_begin;
+      // ------------------------------------------------------------------
+      // now: read ...
+      // ------------------------------------------------------------------
       if (verbose) {
         std::cout << "   ... done loading " << prettyNumber(my_count)
                   << " triangles from " << data.where << std::endl << std::flush;
         fflush(0);
       }
 
-#if 1
-      mini::ANARIMaterial::SP mat =
-        std::make_shared<mini::ANARIMaterial>();;
-      mat->metallic = 0.f;
-      mat->ior = 1.f;
-      mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f,.7f,.7f));
-      mat->metallic = data.get_float("metallic",0.f);
-      mat->roughness = data.get_float("roughness",.5f);
-      mat->opacity = data.get_float("opacity",1.f);
-#else
-      mini::Matte::SP mat = mini::Matte::create();
-      mat->reflectance = 3.14f * vec3f(.8f);
-#endif
-      mesh->material = mat;
-    
+      fseek(file,skipBytes+my_begin*sizeOfTriangle,SEEK_SET);
+
+      PRINT(stride);
+      std::vector<float> scalars(stride);
+      range1f inputRange;
+      for (size_t triID=my_begin;triID<my_end;triID++) {
+        for (int vtx=0;vtx<3;vtx++) {
+          int rc = fread((char*)scalars.data(),scalars.size()*sizeof(float),1,file);
+          assert(rc);
+          vec3f pos(scalars[0],scalars[1],scalars[2]);
+          mesh->vertices.push_back(pos);
+        
+          if (sidx >= 0) {
+            inputRange.extend(scalars[sidx]);
+            // just for informational purposes:
+            mesh->colors.push_back
+              (colorMapper.map3f(scalars[sidx]));
+          } else if (cidx >= 0)
+            mesh->colors.push_back
+              (vec3f(scalars[cidx],scalars[cidx+1],scalars[cidx+2]));
+          else
+            /* no color mapping */
+            ;
+        }
+      }
+
+      if (my_count >= (1ull<<31))
+        throw std::runtime_error
+          ("triangles: index overrun - too many triangles in a single file");
+
+      mesh->indices.resize(my_count);
+      for (int i=0;i<(int)my_count;i++)
+        mesh->indices[i] = 3*i + vec3i(0,1,2);
+
       // mini::Object::SP object = mini::Object::create({mesh});
       // mini::Scene::SP scene = mini::Scene::create({mini::Instance::create(object)});
       // dataGroup.minis.push_back(scene);
