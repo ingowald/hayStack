@@ -389,6 +389,7 @@ namespace hs {
         else
           throw std::runtime_error
             ("could not recognize content type '"+url.type+"'");
+        return;
       }    
       
       // first, parse all the files we recognise from file name
