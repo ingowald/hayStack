@@ -675,7 +675,26 @@ namespace hm {
 
   
   void AnariDeviceRenderer::createAndAdd(const mini::QuadLight &ml)
-  { return; }
+  {
+    anari::Light light = anari::newObject<anari::Light>
+      (anari.device,"quad");
+    assert(light);
+    anari::setParameter(anari.device,light,"position",
+                        (const anari::math::float3&)ml.corner);
+    anari::setParameter(anari.device,light,"edge1",
+                        (const anari::math::float3&)ml.edge0);
+    anari::setParameter(anari.device,light,"edge2",
+                        (const anari::math::float3&)ml.edge1);
+
+    float intensity = reduce_max(ml.emission);
+    vec3f color = ml.emission / intensity;
+    anari::setParameter(anari.device,light,"color",
+                        (const anari::math::float3&)color);
+    anari::setParameter(anari.device,light,"intensity",
+                        intensity);
+    anari::commitParameters(anari.device,light);
+    lights.push_back(light);
+  }
   
   void AnariDeviceRenderer::createAndAdd(const mini::DirLight &ml)
   {

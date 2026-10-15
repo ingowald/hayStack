@@ -592,6 +592,15 @@ int main(int ac, char **av)
       light.direction = get3f(av,i);
       light.radiance  = get3f(av,i);
       loader.sharedLights.directional.push_back(light);
+    } else if (arg == "--lights") {
+      std::string lightsFileName = av[++i];
+      std::cout << "#hs: importing lights from " << lightsFileName << std::endl;
+      mini::Scene::SP lightsScene = mini::Scene::load(lightsFileName);
+      for (auto light : lightsScene->quadLights)
+        loader.sharedLights.quad.push_back(light);
+      for (auto light : lightsScene->dirLights)
+        loader.sharedLights.directional.push_back(light);
+        
     } else if (arg == "--camera-pdu") {
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = fromCL.camera.vp + get3f(av,i);

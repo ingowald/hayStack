@@ -298,16 +298,16 @@ namespace hs {
       for (auto mp : localPartitions->myPartitions)
         loadPartition(mp);
         
-      if (!sharedLights.directional.empty() || sharedLights.envMap != "")
+      if (!sharedLights.directional.empty() ||
+          !sharedLights.quad.empty() ||
+          sharedLights.envMap != "")
         for (auto mp : localPartitions->myPartitions) {
         // for (int i=0;i<localPartitions->numPartitionsOnThisRank();i++) {
           mini::Scene::SP lights
             = loadEnvMap(sharedLights.envMap);
-          // = (sharedLights.envMap == "")
-          // ? mini::Scene::create()
-          // : mini::Scene::load(sharedLights.envMap);
           
           lights->dirLights = sharedLights.directional;
+          lights->quadLights = sharedLights.quad;
           mp->minis.push_back(lights);
         }
 
@@ -347,6 +347,50 @@ namespace hs {
       //   CylindersFromFile::create(this,contentDescriptor);
       // } else
 
+
+      bool hasExplicitType
+        = contentDescriptor.find("://") != contentDescriptor.npos;
+
+      if (hasExplicitType) {
+        ResourceSpecifier url(contentDescriptor);
+        if (url.type == "mapping")
+          loader::ColorMappingMetaContent::create(this,url);
+        else if (url.type == "spheres")
+          loader::SpheresFromFile::create(this,url);
+        else if (url.type == "ts.tri") 
+          TSTriContent::create(this,contentDescriptor);
+        else if (url.type == "iso-dump") 
+          IsoDumpContent::create(this,contentDescriptor);
+        else if (url.type == "rgbtris") 
+          loader::RGBTris::create(this,contentDescriptor);
+        else if (url.type == "materialsTest") 
+          MaterialsTest::create(this,contentDescriptor);
+        else if (url.type == "capsules") 
+          loader::Capsules::create(this,contentDescriptor);
+        // else if (url.type == "en-dump")
+        //   ENDumpContent::create(this,contentDescriptor);
+        else if (url.type == "raw") 
+          RAWVolumeContent::create(this,url);
+#if HS_USE_MULTI_SCATTERING
+        else if (url.type == "nvdb")
+          NVDBVolumeContent::create(this,url);
+#endif
+        else if (url.type == "gests") 
+          GESTSVolumeContent::create(this,url);
+        else if (url.type == "tamr") 
+          TAMRContent::create(this,url);
+        else if (url.type == "boxes") 
+          BoxesFromFile::create(this,url/*contentDescriptor*/);
+        else if (url.type == "cylinders") 
+          loader::CylindersFromFile::create(this,url);
+        else if (url.type == "spumesh")
+          // spatially partitioned umeshes
+          SpatiallyPartitionedUMeshContent::create(this,url);
+        else
+          throw std::runtime_error
+            ("could not recognize content type '"+url.type+"'");
+      }    
+      
       // first, parse all the files we recognise from file name
       // extension:
       if (endsWith(contentDescriptor,".umesh")) {
@@ -357,14 +401,7 @@ namespace hs {
         VTUContent::create(this,contentDescriptor);
 #endif
       } else if (endsWith(contentDescriptor,".obj")) {
-        if (contentDescriptor.substr(0,12)=="cylinders://") {
-          ResourceSpecifier url(contentDescriptor);
-          if (url.type == "cylinders") 
-            CylindersFromFile::create(this,url);
-        }
-        else {
-          OBJContent::create(this,contentDescriptor);
-        }
+        OBJContent::create(this,contentDescriptor);
       } else if (endsWith(contentDescriptor,".dgef")) {
         DGEFContent::create(this,contentDescriptor);
 #if HS_USD
@@ -404,44 +441,8 @@ namespace hs {
       } else if (endsWith(contentDescriptor,".tamr")) {
         TAMRContent::create(this,addIfRequired("tamr://",contentDescriptor));
       } else {
-        ResourceSpecifier url(contentDescriptor);
-        if (url.type == "mapping")
-          loader::ColorMappingMetaContent::create(this,url);
-        else if (url.type == "spheres")
-          loader::SpheresFromFile::create(this,url);
-        else if (url.type == "ts.tri") 
-          TSTriContent::create(this,contentDescriptor);
-        else if (url.type == "iso-dump") 
-          IsoDumpContent::create(this,contentDescriptor);
-        else if (url.type == "rgbtris") 
-          loader::RGBTris::create(this,contentDescriptor);
-        else if (url.type == "materialsTest") 
-          MaterialsTest::create(this,contentDescriptor);
-        else if (url.type == "capsules") 
-          loader::Capsules::create(this,contentDescriptor);
-        // else if (url.type == "en-dump")
-        //   ENDumpContent::create(this,contentDescriptor);
-        else if (url.type == "raw") 
-          RAWVolumeContent::create(this,url);
-#if HS_USE_MULTI_SCATTERING
-        else if (url.type == "nvdb")
-          NVDBVolumeContent::create(this,url);
-#endif
-        else if (url.type == "gests") 
-          GESTSVolumeContent::create(this,url);
-        else if (url.type == "tamr") 
-          TAMRContent::create(this,url);
-        else if (url.type == "boxes") 
-          BoxesFromFile::create(this,url/*contentDescriptor*/);
-        else if (url.type == "cylinders") 
-          loader::CylindersFromFile::create(this,url);
-        else if (url.type == "spumesh")
-          // spatially partitioned umeshes
-          SpatiallyPartitionedUMeshContent::create(this,url);
-        else
-          throw std::runtime_error
-            ("could not recognize content type '"+url.type+"'");
-      }    
+        throw std::runtime_error("no explicit 'loader://' specified, and could not determine type from file extension, either...!?");
+      }
     }
     
     void DynamicDataLoader::assignGroups(int numDifferentDataRanks)
