@@ -44,7 +44,7 @@ namespace hs {
       /* index of scalar to be used for color mapping; '-1' means 'no
          color mapping' */
       int sidx   = data.get_int("sidx",-1);
-      assert(idx < stride);
+      assert(sidx < stride);
 
       /* index of scalar to be used for storing radius; '-1' means 'no
          radius' */
@@ -81,6 +81,7 @@ namespace hs {
                                            count
                                            ? begin+count
                                            : numSpheresInFile));
+      PING;
       return (end-begin)*/* guesstimate for mem cost of sphere...*/50;
       // return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts);
     }
@@ -132,7 +133,7 @@ namespace hs {
       /* index of scalar to be used for color mapping; '-1' means 'no
          color mapping' */
       int sidx   = data.get_int("sidx",-1);
-      assert(idx < stride);
+      assert(sidx < stride);
 
       /* index of scalar to be used for storing radius; '-1' means 'no
          radius' */
@@ -181,6 +182,8 @@ namespace hs {
         = begin//data.get_size("end",0)
         + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
 
+      PING; PRINT(numSpheresToLoad);
+      
       // ------------------------------------------------------------------
       // now: read ...
       // ------------------------------------------------------------------

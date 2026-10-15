@@ -65,7 +65,7 @@ namespace hs {
         }
         fclose(file);
       }
-      
+
       if (mapColors.empty() && cmIndex >= 0)
         mapColors = ColorMap::get(cmIndex);
     }
@@ -78,7 +78,6 @@ namespace hs {
       
     vec4f ColorMapper::map4f(float f)
     {
-      assert(isValid());
       f = saturate((f-inputRange.lower)/(inputRange.upper-inputRange.lower));
       vec4f color;
       if (mapColors.empty()) {

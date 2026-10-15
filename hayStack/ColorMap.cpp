@@ -23,7 +23,7 @@ namespace hs {
   std::vector<std::pair<std::string,std::vector<vec4f>>> ColorMap::maps;
 
   const std::vector<vec4f> &ColorMap::get(int idx)
-  { return maps[idx % maps.size()].second; }
+  { if (maps.empty()) init(); return maps[idx % maps.size()].second; }
   
   const uint8_t paraview_cool_warm[]
   = {

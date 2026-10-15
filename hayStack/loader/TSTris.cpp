@@ -80,7 +80,7 @@ namespace hs {
       /* index of scalar to be used for color mapping; '-1' means 'no
          color mapping' */
       int sidx   = data.get_int("sidx",-1);
-      assert(idx < stride);
+      assert(sidx < stride);
 
       /* index of rgb 'c'olor to be used for color mapping; '-1' means 'no
          color in particle' */
@@ -130,7 +130,6 @@ namespace hs {
 
       fseek(file,skipBytes+my_begin*sizeOfTriangle,SEEK_SET);
 
-      PRINT(stride);
       std::vector<float> scalars(stride);
       range1f inputRange;
       for (size_t triID=my_begin;triID<my_end;triID++) {

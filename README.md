@@ -49,8 +49,10 @@ for that, plus optionally some arguments for this particular
 loader. In some cases the specific content can also be procedural, not
 a file, but otherwise the same logic applies.
 
-Any content specifier looks like this:
-`[contentType://][N@]contentDescriptor[:arg=value]*`
+## Loadable Resource Descriptors: 
+
+Any content specifier (in haystack also called a 'data URL') looks
+like this: `[contentType://][<N>@]contentDescriptor[:arg=value]*`
 
 In this, 
 
@@ -58,16 +60,28 @@ In this,
   `~/models/truck.obj`. In some cases it can also be a prodcedural
   content generator.
 - `contentType://` specifies the type of content loader to use for
-this content descriptor/content file. E.g., `obj://` would request an
-obj loader, `spheres://` describes a flexible type of binary files
-with spheres in them, etc. A list of supported content specifiers is
-given below. `contentType://` is optional if the type can be inferred
-from the file ame extension, but is required if either `N@` or any
-parameters are being used even if type could otherwise be derived from
-file name.
+  this content descriptor/content file. E.g., `obj://` would request an
+  obj loader, `spheres://` describes a flexible type of binary files
+  with spheres in them, etc. A list of supported content specifiers is
+  given below. `contentType://` is optional if the type can be inferred
+  from the file ame extension, but is required if either `N@` or any
+  parameters are being used even if type could otherwise be derived from
+  file name.
 
-
-- 
+- `<N>@` requests that haystack partition this particular content/file
+  on-the-fly while loading. I.e., `ts.tri://8@triangles.tri` would
+  request to treat the file `triangles.tri` as if it was 8 separate
+  files with one-eigth of the triangles. Different content loaders may
+  interpret differently what 'pre-partitioning' means, some may not
+  support it at all.
+  
+- `:arg=value` pairs. Any number of `:arg0=value0:arg1=value0:...` can
+  be appended to any content descriptor, from where the respective
+  loader can read them when it starts to read that content. What
+  arguments a loader understands - and what format it expects the
+  values to be in - depends on the loader.
+  
+##
 
 # Example Data Sets and How to Run Them
 
