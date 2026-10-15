@@ -171,9 +171,9 @@ loader produces. If so, the following arguments are recognized:
 
 - `:baseColor=r,g,b`: specifies base color, default is 1,1,1
 - `:emissive=r,g,b`: specifies emissive component of material, default is 0,0,0
-- ':roughness=<float>`: roughness, usually around 0.1..0.2 for some sort of glossy lobe
-- ':metallic=<float>`: how metallic the material is, in [0,1]
-- ':opacity=<float>`: opacity, in [0,1].
+- `:roughness=<float>`: roughness, usually around 0.1..0.2 for some sort of glossy lobe
+- `:metallic=<float>`: how metallic the material is, in [0,1]
+- `:opacity=<float>`: opacity, in [0,1].
 
 Note that some resource loaders may still set other values that
 supersede these parameters. For example a `ts.tri` loader may allow to
