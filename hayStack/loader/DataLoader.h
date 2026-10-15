@@ -31,7 +31,12 @@ namespace hs {
       int numParts = 1;
       std::map<std::string,std::string> keyValuePairs;
     };
-  
+
+    /*! helper function that creates an mini::ANARIMaterial from
+        parameters specified in the given dataURL */
+    mini::ANARIMaterial::SP parseAnariMaterial(const ResourceSpecifier &dataURL);
+    
+      
     /*! helper function that checks if a given string has another as prefix */
     bool startsWith(const std::string &haystack,
                     const std::string &needle);

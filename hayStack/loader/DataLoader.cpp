@@ -338,16 +338,25 @@ namespace hs {
       else
         return prefix+s;
     }
-  
+
+    /*! helper function that creates an mini::ANARIMaterial from
+        parameters specified in the given dataURL */
+    mini::ANARIMaterial::SP parseAnariMaterial(const ResourceSpecifier &data)
+    {
+      mini::ANARIMaterial::SP mat      
+        = std::make_shared<mini::ANARIMaterial>();
+      mat->opacity   = data.get_float("opacity",1.f);
+      (vec3f&)mat->baseColor = data.get_vec3f("baseColor",vec3f(.7f));
+      mat->baseColor.w = 1.f;
+      mat->metallic  = data.get_float("metallic",0.f);
+      mat->roughness = data.get_float("roughness",.1f);
+      mat->emissive  = data.get("emissive",vec3f(0.f));
+      return mat;      
+    }
+    
+
     void DataLoader::addContent(const std::string &contentDescriptor)
     {
-      // if (startsWith(contentDescriptor,"spheres://")) {
-      //   SpheresFromFile::create(this,contentDescriptor);
-      // } else if (startsWith(contentDescriptor,"cylinders://")) {
-      //   CylindersFromFile::create(this,contentDescriptor);
-      // } else
-
-
       bool hasExplicitType
         = contentDescriptor.find("://") != contentDescriptor.npos;
 

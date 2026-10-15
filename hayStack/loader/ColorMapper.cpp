@@ -47,7 +47,7 @@ namespace hs {
     ColorMapper::ColorMapper(const ResourceSpecifier &data)
     {
       cmIndex = data.get_int("map-index",ColorMappingMetaContent::currentIdx);
-      vec2f colorMapRange = data.get("map",vec2f(0.f,0.f));
+      vec2f colorMapRange = data.get("map",vec2f(+1.f,-1.f));
       inputRange = {colorMapRange.x,colorMapRange.y};
       std::string mapColorsFile = data.get("map-colors","");
       if (!mapColorsFile.empty()) {
