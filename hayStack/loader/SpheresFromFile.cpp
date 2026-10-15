@@ -81,7 +81,6 @@ namespace hs {
                                            count
                                            ? begin+count
                                            : numSpheresInFile));
-      PING;
       return (end-begin)*/* guesstimate for mem cost of sphere...*/50;
       // return (100/12) * divRoundUp((size_t)fileSize, (size_t)data.numParts);
     }
@@ -182,15 +181,12 @@ namespace hs {
         = begin//data.get_size("end",0)
         + (numSpheresToLoad * (thisPartID+1)) / data.numParts;
 
-      PING; PRINT(numSpheresToLoad);
-      
       // ------------------------------------------------------------------
       // now: read ...
       // ------------------------------------------------------------------
       FILE *file = fopen(data.where.c_str(),"rb");
       fseek(file,skipBytes+my_begin*sizeOfSphere,SEEK_SET);
 
-      PRINT(stride);
       std::vector<float> scalars(stride);
       range1f inputRange;
       for (size_t particleID=my_begin;particleID<my_end;particleID++) {
@@ -218,6 +214,8 @@ namespace hs {
           /* no radius in particle */
           ;
       }
+      if (inputRange.lower <= inputRange.upper)
+        std::cout << "hs.spheres: done loading, input range of scalars was " << inputRange << std::endl;
       spheres->radius = radius;
       dataGroup.sphereSets.push_back(spheres);
     }

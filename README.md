@@ -154,6 +154,14 @@ and others can be used for color mapping. Supported parameters:
 - any color-mapper specific parameters see below
 - any anari material specific parameters see below
 
+Examples:
+- `./hsViewer
+  spheres://~/models/0004004.vx.xyzf.flt:stride=4:radius=.001:baseColor=.3,.7,.3`:
+  A file of spheres, with four floats per sphere, rendering with a
+  fixed greenish color.
+- `./hsViewer
+  spheres://~/models/0004004.vx.xyzf.flt:stride=4:radius=.001:sidx=3:map=-20,80:map-colors=<filename>`:
+  A file of spheres, with four floats per sphere; fourth component (index=3) is used for color mapping, mapping from [-20,80] to an ascii color map specified in given file name.
 
 ### Anari Material related arguments
 
