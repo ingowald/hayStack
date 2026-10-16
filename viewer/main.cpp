@@ -30,7 +30,7 @@ namespace hm {
     float fovy = 60.f;
     float nearClip = 0.f;
   };
-  
+
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
       many as we have to fit for given number of ranks */
@@ -60,6 +60,7 @@ namespace hm {
     int  spp            = 1;
     bool verbose = true;
     CmdLineCamera camera;
+    bool denoise = true;
     std::vector<CmdLineCamera> cameraPath;
     // struct {
     //   vec3f vp0, vp1;
@@ -554,6 +555,11 @@ int main(int ac, char **av)
       loader.addContent(arg);
     } else if (arg == "--no-bg") {
       fromCL.bgColor = ::mini::common::vec4f(0.f);
+    } else if (arg == "--denoise" || arg == "-denoise") {
+      fromCL.denoise = true;
+    } else if (arg == "--no-denoise" || arg == "-no-denoise"
+               || arg == "--no-denoising"  || arg == "-no-denoising") {
+      fromCL.denoise = false;
     } else if (arg == "--bg-color") {
       fromCL.bgColor.x = std::stof(av[++i]);
       fromCL.bgColor.y = std::stof(av[++i]);
@@ -741,6 +747,7 @@ int main(int ac, char **av)
   globalRenderSettings.ambientRadiance = fromCL.ambientRadiance;
   globalRenderSettings.bgColor = fromCL.bgColor;
   globalRenderSettings.defaultColorMapIndex = fromCL.cmID;
+  globalRenderSettings.denoise = fromCL.denoise;
   
   HayMaker *hayMaker
     = new HayMaker(// mpi/peers:

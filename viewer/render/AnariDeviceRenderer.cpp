@@ -92,6 +92,9 @@ namespace hm {
     anari::setParameter(anari.device, anari.renderer,
                         "pixelSamples",
                         hayMaker->globalRenderSettings.samplesPerPixel);
+    anari::setParameter(anari.device, anari.renderer,
+                        "denoise",
+                        hayMaker->globalRenderSettings.denoise);
 #if HS_USE_MULTI_SCATTERING
     anari::setParameter(anari.device, anari.renderer,
                         "volumeMultiScatter", (bool)true);
@@ -116,7 +119,6 @@ namespace hm {
         (anari.device, anari.renderer,"background",
          (const anari::math::float4 &)bgColor);
     }
-    anari::setParameter(anari.device, anari.renderer, "denoise",  (bool)true);
     anari::commitParameters(anari.device, anari.renderer);
 
     // ------------------------------------------------------------------

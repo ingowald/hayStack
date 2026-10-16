@@ -25,6 +25,8 @@ namespace hm {
     
     /*! default color map index to use */
     int defaultColorMapIndex = 0;
+
+    bool denoise = true;
   };
   
   struct DeviceConfig {

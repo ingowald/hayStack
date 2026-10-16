@@ -62,6 +62,7 @@ my command line paramters. In no particular order:
 
 - `-o filename.png`: file to render to, in offline mode
 - `-spp int`: number of samples/paths per pixel
+- `--[no-]denoise`: enable/disable denoising
 - `--measure`: render for given number of frames/seconds, and print time per frame
 - `--bg-color r g b a`: specify (constant) background color
 - `--ambient float`: ambient illumination
