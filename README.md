@@ -20,7 +20,8 @@ my command line paramters. In no particular order:
 - `--camera pv py pz cx cv cz ux uy uz`: specifies position
   (px,py,pz), center of what the camera is aiming at (cx, cy, cz) and
   upvector (ux,uy,uz) of the camera
-- `-fovy deg`: camera field of view, in y direction, in degrees.
+- `-fovy deg`: camera field of view, in y direction, in degrees. Also sets camera type to perspective (default)
+- `-height float`: set camera to orthographic mode, and set height of image plane to this value
 - `--camera-near-clip float` : offsets all primary rays by this
   distance from their camera origin, allowing for some near-clipping
   plane like behavior.

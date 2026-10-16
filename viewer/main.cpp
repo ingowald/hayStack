@@ -23,13 +23,13 @@ namespace hm {
                  DPMODE_DATA_PARALLEL,
                  DPMODE_DATA_REPLICATED } DPMode;
 
-  struct CmdLineCamera {
-    vec3f vp   = vec3f(0.f);
-    vec3f vi   = vec3f(0.f);
-    vec3f vu   = vec3f(0.f,1.f,0.f);
-    float fovy = 60.f;
-    float nearClip = 0.f;
-  };
+  // struct CmdLineCamera {
+  //   vec3f vp   = vec3f(0.f);
+  //   vec3f vi   = vec3f(0.f);
+  //   vec3f vu   = vec3f(0.f,1.f,0.f);
+  //   float fovy = 60.f;
+  //   float nearClip = 0.f;
+  // };
 
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
@@ -59,9 +59,10 @@ namespace hm {
     int  numFramesAccum = 1;
     int  spp            = 1;
     bool verbose = true;
-    CmdLineCamera camera;
+    //    CmdLineCamera camera;
+    hs::Camera camera;
     bool denoise = true;
-    std::vector<CmdLineCamera> cameraPath;
+    // std::vector<CmdLineCamera> cameraPath;
     // struct {
     //   vec3f vp0, vp1;
     //   vec3f vi0, vi1;
@@ -164,6 +165,46 @@ namespace hm {
     void key(char key, const owl::common::vec2i &where) override
     {
       switch(key) {
+      case 'C': {
+        // for anybody deriving from this class: if you do not like
+        // this output, simply intercept the 'C' key in your derived
+        // 'key()' method before calling this...
+        hs::Camera camera;
+        OWLViewer::getCameraOrientation
+          ((owl::common::vec3f&)camera.vp,
+           (owl::common::vec3f&)camera.vi,
+           (owl::common::vec3f&)camera.vu,
+           camera.perspective.fovy);
+        vec3f vp = camera.vp;
+        vec3f vi = camera.vi;
+        vec3f vu = camera.vu;
+        
+        std::cout << "(C)urrent camera:" << std::endl;
+        std::cout << "- from  :" << vp << std::endl;
+        std::cout << "- poi   :" << vi << std::endl;
+        std::cout << "- upVec :" << vu << std::endl;
+        std::cout << "- dir   :" << normalize(vi-vp) << std::endl;
+
+        if (camera.type == Camera::PERSPECTIVE) {
+          std::cout << "- fovy  :" << camera.perspective.fovy << std::endl;
+        std::cout << "(suggested cmdline format, for apps that support this:) "
+                  << " --camera"
+                  << " " << vp.x << " " << vp.y << " " << vp.z
+                  << " " << vi.x << " " << vi.y << " " << vi.z
+                  << " " << vu.x << " " << vu.y << " " << vu.z
+                  << " -fovy " << camera.perspective.fovy
+                  << std::endl;
+        } else {
+          std::cout << "- height:" << camera.ortho.height << std::endl;
+          std::cout << "(suggested cmdline format, for apps that support this:) "
+                    << " --camera"
+                    << " " << vp.x << " " << vp.y << " " << vp.z
+                    << " " << vi.x << " " << vi.y << " " << vi.z
+                    << " " << vu.x << " " << vu.y << " " << vu.z
+                    << " -ortho " << camera.ortho.height
+                    << std::endl;
+        }
+      } break;
       case 'u':
         uiIsOn = !uiIsOn;
         break;
@@ -176,7 +217,7 @@ namespace hm {
           ((owl::common::vec3f&)camera.vp,
            (owl::common::vec3f&)camera.vi,
            (owl::common::vec3f&)camera.vu,
-           camera.fovy);
+           camera.perspective.fovy);
       } break;
       case 'P': {
           char *fl = getenv("BARNEY_FOCAL_LENGTH");
@@ -314,13 +355,13 @@ namespace hm {
     
     void cameraChanged() override
     {  
-      hs::Camera camera;
+      hs::Camera camera = fromCL.camera;
+      float ignore;
       OWLViewer::getCameraOrientation
         ((owl::common::vec3f&)camera.vp,
          (owl::common::vec3f&)camera.vi,
          (owl::common::vec3f&)camera.vu,
-         camera.fovy);
-      camera.nearClip = fromCL.camera.nearClip;
+         ignore);
       renderer->setCamera(camera);
       accumDirty = true;
     }
@@ -486,44 +527,44 @@ namespace hm {
                                     mini::common::vec3f b)
   { return (1.f-f)*a + f*b; }
   
-  void addCameraPath(int numSteps,
-                     CmdLineCamera c0,
-                     CmdLineCamera c1)
-  {
-    for (int i=0;i<numSteps;i++) {
-      float f = i/(numSteps-1.f);
-      CmdLineCamera c;
-      c.vp = lerp_l(f,c0.vp,c1.vp);
-      c.vi = lerp_l(f,c0.vi,c1.vi);
-      c.vu = lerp_l(f,c0.vu,c1.vu);
-      c.fovy = lerp_l(f,c0.fovy,c1.fovy);
-      fromCL.cameraPath.push_back(c);
-    }
-  }
+  // void addCameraPath(int numSteps,
+  //                    CmdLineCamera c0,
+  //                    CmdLineCamera c1)
+  // {
+  //   for (int i=0;i<numSteps;i++) {
+  //     float f = i/(numSteps-1.f);
+  //     CmdLineCamera c;
+  //     c.vp = lerp_l(f,c0.vp,c1.vp);
+  //     c.vi = lerp_l(f,c0.vi,c1.vi);
+  //     c.vu = lerp_l(f,c0.vu,c1.vu);
+  //     c.fovy = lerp_l(f,c0.fovy,c1.fovy);
+  //     fromCL.cameraPath.push_back(c);
+  //   }
+  // }
 
-  void addCamerasFromFile(const std::string &fileName)
-  {
-    std::ifstream in(fileName.c_str());
-    std::string line;
-    while (in.good()) {
-      std::getline(in,line);
-      CmdLineCamera c;
-      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
-                      &c.vp.x,
-                      &c.vp.y,
-                      &c.vp.z,
-                      &c.vi.x,
-                      &c.vi.y,
-                      &c.vi.z,
-                      &c.vu.x,
-                      &c.vu.y,
-                      &c.vu.z,
-                      &c.fovy);
-      if (rc != 10)
-        break;
-      fromCL.cameraPath.push_back(c);
-    }
-  }
+  // void addCamerasFromFile(const std::string &fileName)
+  // {
+  //   std::ifstream in(fileName.c_str());
+  //   std::string line;
+  //   while (in.good()) {
+  //     std::getline(in,line);
+  //     CmdLineCamera c;
+  //     int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
+  //                     &c.vp.x,
+  //                     &c.vp.y,
+  //                     &c.vp.z,
+  //                     &c.vi.x,
+  //                     &c.vi.y,
+  //                     &c.vi.z,
+  //                     &c.vu.x,
+  //                     &c.vu.y,
+  //                     &c.vu.z,
+  //                     &c.fovy);
+  //     if (rc != 10)
+  //       break;
+  //     fromCL.cameraPath.push_back(c);
+  //   }
+  // }
   
 }
 
@@ -634,27 +675,31 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
-    } else if (arg == "--cameras-from-file") {
-      hm::addCamerasFromFile(av[++i]);
-    } else if (arg == "--camera-path") {
-      CmdLineCamera c0, c1;
-      int numSteps = std::stoi(av[++i]);
-      // --camera
-      ++i;
-      c0.vp = get3f(av,i);
-      c0.vp = get3f(av,i);
-      c0.vu = get3f(av,i);
-      ++i;// -fovy
-      c0.fovy = std::stof(av[++i]);
-      ++i;// --camera
-      c1.vp = get3f(av,i);
-      c1.vp = get3f(av,i);
-      c1.vu = get3f(av,i);
-      ++i;// -fovy
-      c1.fovy = std::stof(av[++i]);
-      hm::addCameraPath(numSteps,c0,c1);
+    // } else if (arg == "--cameras-from-file") {
+    //   hm::addCamerasFromFile(av[++i]);
+    // } else if (arg == "--camera-path") {
+    //   CmdLineCamera c0, c1;
+    //   int numSteps = std::stoi(av[++i]);
+    //   // --camera
+    //   ++i;
+    //   c0.vp = get3f(av,i);
+    //   c0.vp = get3f(av,i);
+    //   c0.vu = get3f(av,i);
+    //   ++i;// -fovy
+    //   c0.fovy = std::stof(av[++i]);
+    //   ++i;// --camera
+    //   c1.vp = get3f(av,i);
+    //   c1.vp = get3f(av,i);
+    //   c1.vu = get3f(av,i);
+    //   ++i;// -fovy
+    //   c1.fovy = std::stof(av[++i]);
+    //   hm::addCameraPath(numSteps,c0,c1);
     } else if (arg == "-fovy") {
-      fromCL.camera.fovy = std::stof(av[++i]);
+      fromCL.camera.perspective.fovy = std::stof(av[++i]);
+      fromCL.camera.type = hs::Camera::PERSPECTIVE;
+    } else if (arg == "-ortho" || arg == "--ortho") {
+      fromCL.camera.ortho.height = std::stof(av[++i]);
+      fromCL.camera.type = hs::Camera::ORTHO;
     } else if (arg == "-xf") {
       fromCL.xfFileName = av[++i];
     } else if (arg == "-res" || arg == "-os" || arg == "--output-size") {
@@ -816,7 +861,7 @@ int main(int ac, char **av)
     (/*origin   */(const owl::common::vec3f &)fromCL.camera.vp,
      /*lookat   */(const owl::common::vec3f &)fromCL.camera.vi,
      /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
-     /*fovy(deg)*/fromCL.camera.fovy);
+/*fovy(deg)*//*ignore now ,we handle that differently*/fromCL.camera.perspective.fovy);
 
   // QMainWindow secondWindow;
   // if (modelHasVolumeData) {
@@ -859,12 +904,12 @@ int main(int ac, char **av)
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
   renderer->resize((const mini::common::vec2i&)fbSize,pixels.data());
 
-  hs::Camera camera;
-  camera.vp = fromCL.camera.vp;
-  camera.vu = fromCL.camera.vu;
-  camera.vi = fromCL.camera.vi;
-  camera.fovy = fromCL.camera.fovy;
-  camera.nearClip = fromCL.camera.nearClip;
+  hs::Camera camera = fromCL.camera;;
+  // camera.vp = fromCL.camera.vp;
+  // camera.vu = fromCL.camera.vu;
+  // camera.vi = fromCL.camera.vi;
+  // camera.fovy = fromCL.camera.fovy;
+  // camera.nearClip = fromCL.camera.nearClip;
   renderer->setCamera(camera);
   
   if (fromCL.xfFileName.length() > 0) {
@@ -874,36 +919,36 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
-  if (!fromCL.cameraPath.empty()) {
-    std::cout << "rendering camera path sequence" << std::endl;
-    for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
-      hs::Camera camera;
-      auto c = fromCL.cameraPath[frameID];
-      camera.vi = c.vi;
-      camera.vp = c.vp;
-      camera.vu = c.vu;
-      camera.fovy = c.fovy;
-      // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
-      // camera.vu = fromCL.camera.vu;
-      // camera.vp
-      //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
-      // camera.vi
-      //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
-      renderer->setCamera(camera);
-      renderer->renderFrame();
-      stbi_flip_vertically_on_write(true);
-      char suffix[100];
-      sprintf(suffix,"_frame%05i.png",frameID);
-      std::string fileName = fromCL.outFileName+std::string(suffix);
-      std::cout << " ... saving frame " << fileName << std::endl;
-      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-                     pixels.data(),fbSize.x*sizeof(uint32_t));
-    }
-    renderer->terminate();
-    world.barrier();
-    hs::mpi::finalize();
-    exit(0);
-  }
+  // if (!fromCL.cameraPath.empty()) {
+  //   std::cout << "rendering camera path sequence" << std::endl;
+  //   for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
+  //     hs::Camera camera;
+  //     auto c = fromCL.cameraPath[frameID];
+  //     camera.vi = c.vi;
+  //     camera.vp = c.vp;
+  //     camera.vu = c.vu;
+  //     camera.fovy = c.fovy;
+  //     // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
+  //     // camera.vu = fromCL.camera.vu;
+  //     // camera.vp
+  //     //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
+  //     // camera.vi
+  //     //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
+  //     renderer->setCamera(camera);
+  //     renderer->renderFrame();
+  //     stbi_flip_vertically_on_write(true);
+  //     char suffix[100];
+  //     sprintf(suffix,"_frame%05i.png",frameID);
+  //     std::string fileName = fromCL.outFileName+std::string(suffix);
+  //     std::cout << " ... saving frame " << fileName << std::endl;
+  //     stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+  //                    pixels.data(),fbSize.x*sizeof(uint32_t));
+  //   }
+  //   renderer->terminate();
+  //   world.barrier();
+  //   hs::mpi::finalize();
+  //   exit(0);
+  // }
   
 #if 1
   if (fromCL.measure) {

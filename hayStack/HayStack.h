@@ -14,8 +14,16 @@ namespace hs {
   using range1f = mini::common::interval<float>;
   
   struct Camera {
-    vec3f vp, vi, vu;
-    float fovy;
+    Camera() { perspective.fovy = 60.f; }
+    typedef enum { PERSPECTIVE, ORTHO } Type;
+    Type type = PERSPECTIVE;
+    vec3f vp   = vec3f(0.f);
+    vec3f vi   = vec3f(0.f);
+    vec3f vu   = vec3f(0.f,1.f,0.f);
+    union {
+      struct { float fovy; } perspective;
+      struct { float height; } ortho;
+    };
     float nearClip = 0.f;
   };
 

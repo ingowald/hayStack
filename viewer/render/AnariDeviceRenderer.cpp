@@ -71,11 +71,6 @@ namespace hm {
     assert(!anari.frame);
 
     // ------------------------------------------------------------------
-    // camera
-    // ------------------------------------------------------------------
-    anari.camera = anari::newObject<anari::Camera>(anari.device, "perspective");
-
-    // ------------------------------------------------------------------
     // world
     // ------------------------------------------------------------------    
     anari.world = anari::newObject<anari::World>(anari.device);
@@ -127,7 +122,7 @@ namespace hm {
     anari.frame = anari::newObject<anari::Frame>(anari.device);
 
     anari::setParameter(anari.device, anari.frame, "world",    anari.world);
-    anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+    // anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
     anari::setParameter(anari.device, anari.frame, "renderer", anari.renderer);
     anari::commitParameters(anari.device, anari.frame);
   }
@@ -308,6 +303,22 @@ namespace hm {
   
   void AnariDeviceRenderer::setCamera(const hs::Camera &camera)
   {
+    // ------------------------------------------------------------------
+    // camera
+    // ------------------------------------------------------------------
+    if (!anari.camera || camera.type != anari.cameraType) {
+      const char *cameraType
+        = (camera.type==Camera::ORTHO)
+        ?"orthographic"
+        :"perspective";
+      anari.camera = anari::newObject<anari::Camera>
+        (anari.device, cameraType);
+      anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+      anari::commitParameters(anari.device, anari.frame);
+      anariRelease(anari.device,anari.camera);
+      anari.cameraType == camera.type;
+    }
+
     float aspect = fbSize.x / (float)fbSize.y;
     anari::setParameter(anari.device, anari.camera,
                         "aspect",    aspect);
@@ -318,8 +329,13 @@ namespace hm {
                         "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(anari.device, anari.camera,
                         "up",        (const anari::math::float3&)camera.vu);
-    anari::setParameter(anari.device, anari.camera,
-                        "fovy",       radians(camera.fovy));
+    if (camera.type == Camera::ORTHO) {
+      anari::setParameter(anari.device, anari.camera,
+                          "height",  camera.ortho.height);
+    } else {
+      anari::setParameter(anari.device, anari.camera,
+                          "fovy",    radians(camera.perspective.fovy));
+    }
     anari::setParameter(anari.device, anari.camera,
                         "nearClip",   camera.nearClip);
     anari::commitParameters(anari.device, anari.camera);

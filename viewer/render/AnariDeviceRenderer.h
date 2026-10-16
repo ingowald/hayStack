@@ -163,6 +163,7 @@ namespace hm {
       anari::Renderer renderer = 0;
       anari::Frame    frame    = 0;
       anari::Camera   camera   = 0;
+      Camera::Type    cameraType;
     } anari;
   };
     
