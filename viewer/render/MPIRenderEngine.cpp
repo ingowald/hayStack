@@ -25,6 +25,7 @@ namespace hm {
      SCREEN_SHOT,
      TERMINATE,
      SET_XF,
+     SET_EMISSION_XF,
      RESET_ACCUMULATION,
 #if HS_USE_MULTI_SCATTERING
      SET_VOLUME_SCATTER,
@@ -41,6 +42,7 @@ namespace hm {
      "SCREEN_SHOT",
      "TERMINATE",
      "SET_XF",
+     "SET_EMISSION_XF",
      "RESET_ACCUMULATION",
 #if HS_USE_MULTI_SCATTERING
      "SET_VOLUME_SCATTER",
@@ -56,6 +58,7 @@ namespace hm {
                            "screen-shot",
                            "terminate",
                            "set_xf",
+                           "set_emission_xf",
                            "reset_accum",
 #if HS_USE_MULTI_SCATTERING
                            "set_volume_scatter",
@@ -96,6 +99,7 @@ namespace hm {
     void cmd_resetAccumulation();
     void cmd_setCamera();
     void cmd_setTransferFunction();
+    void cmd_setEmissionTransferFunction();
 #if HS_USE_MULTI_SCATTERING
     void cmd_setVolumeScatterSettings();
 #endif
@@ -411,6 +415,30 @@ namespace hm {
     renderer->setTransferFunction(xf);
   }
 
+  void MPIRenderEngine::setEmissionTransferFunction(const TransferFunction &xf)
+  {
+    const int cmd = SET_EMISSION_XF;
+    sendToWorkers(cmd);
+    sendToWorkers(xf.absDomain);
+    sendToWorkers(xf.relDomain);
+    sendToWorkers(xf.baseDensity);
+    sendToWorkers(xf.colorMap);
+    sendEndOfMessage();
+    if (passThrough)
+      passThrough->setEmissionTransferFunction(xf);
+  }
+
+  void WorkerLoop::cmd_setEmissionTransferFunction()
+  {
+    TransferFunction xf;
+    fromMaster(xf.absDomain);
+    fromMaster(xf.relDomain);
+    fromMaster(xf.baseDensity);
+    fromMaster(xf.colorMap);
+    checkEndOfMessage();
+    renderer->setEmissionTransferFunction(xf);
+  }
+
 #if HS_USE_MULTI_SCATTERING
   // ==================================================================
 
@@ -516,6 +544,9 @@ namespace hm {
         break;
       case SET_XF:
         cmd_setTransferFunction();
+        break;
+      case SET_EMISSION_XF:
+        cmd_setEmissionTransferFunction();
         break;
 #if HS_USE_MULTI_SCATTERING
       case SET_VOLUME_SCATTER:

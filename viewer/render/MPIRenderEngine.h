@@ -23,6 +23,7 @@ namespace hm {
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
     void setTransferFunction(const TransferFunction &xf) override;
+    void setEmissionTransferFunction(const TransferFunction &xf) override;
 #if HS_USE_MULTI_SCATTERING
     void setVolumeScatterSettings(const VolumeScatterSettings &settings) override;
 #endif

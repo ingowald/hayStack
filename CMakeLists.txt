@@ -15,7 +15,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 option(HS_MPI    "Enable MPI support in haystack" OFF)
 
 option(HS_IMGUI "Use Imgui in Non-QT viewer?" ON)
-option(HS_USE_MULTI_SCATTERING "NanoVDB volumes for Barney multi-scattering" OFF)
+option(HS_USE_MULTI_SCATTERING
+  "Use Barney principled volumes and volume multi-scattering" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
 if (NOT (TARGET miniScene))
@@ -41,6 +42,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 add_subdirectory(hayStack)
-add_subdirectory(viewer)
+if (HS_VIEWER)
+  add_subdirectory(viewer)
+endif()
 add_subdirectory(tools)
 

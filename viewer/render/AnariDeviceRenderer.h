@@ -5,6 +5,7 @@
 
 #include "hayStack/OnePartition.h"
 #include "hayStack/TransferFunction.h"
+#include "hayStack/VolumeScatter.h"
 #include "viewer/render/TextureLibrary.h"
 #include "viewer/render/MaterialLibrary.h"
 
@@ -62,18 +63,20 @@ namespace hm {
     void setCamera(const hs::Camera &camera);
     
     void setTransferFunction(const TransferFunction &xf);
+    void setEmissionTransferFunction(const TransferFunction &xf);
       
     // void renderAll();
     void renderMiniScene(mini::Scene::SP miniScene);
     anari::Group render(const mini::Object::SP &miniObject);
 
     void applyTransferFunction(const TransferFunction &xf);
-    void applyDefaultPrincipledTransferFunction(anari::Volume volume);
     void applyPrincipledScatterParams(anari::Volume volume,
                                       const VolumeScatterParams &scatter);
     void applyVolumeScatterSettings(const VolumeScatterSettings &settings);
     VolumeScatterSettings volumeScatterSettings;
     void setVolumeScatterSettings(const VolumeScatterSettings &settings);
+    anari::Volume createVolume(anari::SpatialField field,
+                               const VolumeScatterParams &scatter);
 
     /*! creates *default* color mapper that maps from global scalar
         min/max (across all per-vertex arrays and scalarfield types),
@@ -137,16 +140,7 @@ namespace hm {
     MaterialLibrary materialLibrary;
 
     TransferFunction currentXF;
-#if HS_USE_MULTI_SCATTERING
-    VolumeScatterSettings volumeScatterSettings;
-    void setVolumeScatterSettings(const VolumeScatterSettings &settings)
-    {
-      volumeScatterSettings = settings;
-      for (auto &entry : principledScatterByVolume)
-        entry.second = settings.medium;
-      this->applyVolumeScatterSettings(settings);
-    }
-#endif
+    TransferFunction currentEmissionXF;
 
 
     void setInstances(const std::vector<anari::Group> &groups,

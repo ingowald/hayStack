@@ -59,6 +59,7 @@ namespace hm {
     void terminate() {}
 
     void setTransferFunction(const hs::TransferFunction &xf) override;
+    void setEmissionTransferFunction(const hs::TransferFunction &xf) override;
     void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) override;
     hs::VolumeScatterSettings getVolumeScatterSettings() const override;
     
