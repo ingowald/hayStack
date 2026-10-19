@@ -36,5 +36,17 @@ if (HS_IMGUI)
     viewer-config
     )
   target_compile_definitions(hsViewer PUBLIC -DHS_IMGUI=1)
+
+#  add_executable(imguiTest imguiTest.cpp)
+  add_executable(imguiTest test2.cpp)
+  target_link_libraries(imguiTest
+    PUBLIC
+    hayStack
+    hayStackDataLoader
+    hayMaker
+    owlGLFWViewer
+    viewer-config
+    )
+  target_compile_definitions(imguiTest PUBLIC -DHS_IMGUI=1)
   
 endif()

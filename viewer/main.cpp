@@ -95,7 +95,8 @@ namespace hm {
     Viewer(BoundsData worldBounds,
            RenderEngineInterface *const renderer,
            hs::mpi::Comm *world)
-      : renderer(renderer),
+      : OWLViewer("HayStack"),
+        renderer(renderer),
         world(world),
         worldBounds(worldBounds)
     {
