@@ -111,11 +111,12 @@ namespace hm {
     {
       if (!uiIsOn) return;
       
-      ImGui::Begin("HayStack/Imgui");
+      // ImGui::Begin("HayStack/Imgui");
       
       if (worldBounds.scalars.empty()) {
         ImGui::Text("(no volume data)");
       } else {
+        PING;
         ImGui::Text("scalar range [%f .. %f]",
                     worldBounds.scalars.lower,
                     worldBounds.scalars.upper);
@@ -143,7 +144,7 @@ namespace hm {
                                0.f,200.f))
           xfDirty = true;
       }
-      ImGui::End();
+      // ImGui::End();
     }
 
     // void colorMapChanged();
