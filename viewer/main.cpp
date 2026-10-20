@@ -275,7 +275,9 @@ namespace hm {
     void resize(const owl::common::vec2i &newSize) override
     {
       OWLViewer::resize(newSize);
+      
       renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
+      PING;
     }
 
     /*! gets called whenever the viewer needs us to re-render out widget */
