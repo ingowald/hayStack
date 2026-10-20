@@ -218,7 +218,13 @@ namespace hm {
     for (auto dev : perDevice)
       dev->setTransferFunction(xf);
   }
-  
+
+  void HayMaker::setEmissionTransferFunction(const hs::TransferFunction &xf)
+  {
+    for (auto dev : perDevice)
+      dev->setEmissionTransferFunction(xf);
+  }
+
   void HayMaker::setVolumeScatterSettings(const hs::VolumeScatterSettings &settings)
   {
     for (auto dev : perDevice)

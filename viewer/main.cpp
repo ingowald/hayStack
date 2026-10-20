@@ -5,7 +5,7 @@
 #include "hayStack/loader/DataLoader.h"
 #if HS_IMGUI
 # include "owlViewer/OWLViewer.h"
-# include "owlViewer/XFEditor.h"
+# include "TransferFunctionEditor.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
 # define STB_IMAGE_IMPLEMENTATION 1
@@ -70,6 +70,9 @@ namespace hm {
     // } cameraPath;
     bool measure = 0;
     std::string envMapFileName;
+#if HS_USE_MULTI_SCATTERING
+    hs::VolumeScatterSettings scatterSettings;
+#endif
   };
   FromCL fromCL;
   
@@ -100,17 +103,47 @@ namespace hm {
         worldBounds(worldBounds)
     {
       xf.absDomain = worldBounds.scalars;
+#if HS_USE_MULTI_SCATTERING
+      scatterSettings = fromCL.scatterSettings;
+      emissionXF.absDomain = worldBounds.scalars;
+#endif
     }
 
     const BoundsData worldBounds;
     
     bool uiIsOn = true;
+    int controlPanelWidth = 420;
+    owl::common::vec2i windowSize { 0, 0 };
+
+    int panelWidthFor(int width) const
+    {
+      if (!uiIsOn)
+        return 0;
+      return std::min(controlPanelWidth, std::max(0, width - 320));
+    }
+
+    void toggleUI()
+    {
+      uiIsOn = !uiIsOn;
+      if (windowSize.x > 0 && windowSize.y > 0)
+        resize(windowSize);
+    }
     
     void runImgui() override
     {
       if (!uiIsOn) return;
-      
-      ImGui::Begin("HayStack/Imgui");
+
+      const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+      const float panelWidth = float(panelWidthFor(int(displaySize.x)));
+      ImGui::SetNextWindowPos(ImVec2(displaySize.x - panelWidth, 0.f),
+                              ImGuiCond_Always);
+      ImGui::SetNextWindowSize(ImVec2(panelWidth, displaySize.y),
+                               ImGuiCond_Always);
+      ImGui::Begin("HayStack/Imgui", nullptr,
+                   ImGuiWindowFlags_NoMove
+                   | ImGuiWindowFlags_NoResize
+                   | ImGuiWindowFlags_NoCollapse
+                   | ImGuiWindowFlags_NoSavedSettings);
       
       if (worldBounds.scalars.empty()) {
         ImGui::Text("(no volume data)");
@@ -118,12 +151,39 @@ namespace hm {
         ImGui::Text("scalar range [%f .. %f]",
                     worldBounds.scalars.lower,
                     worldBounds.scalars.upper);
-        if (xfEditor.run_ui())
+        ImGui::PushID("opacityTransferFunction");
+        const bool opacityChanged = xfEditor.runUI();
+        ImGui::PopID();
+        if (opacityChanged)
           xfDirty = true;
+#if HS_USE_MULTI_SCATTERING
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Volume rendering",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
+            scatterDirty = true;
+          if (ImGui::SliderInt("Volume bounces",
+                               &scatterSettings.maxVolumeBounces, 1, 64))
+            scatterDirty = true;
+          if (ImGui::SliderFloat("Anisotropy",
+                                 &scatterSettings.medium.anisotropy,
+                                 -.99f, .99f))
+            scatterDirty = true;
+        }
+        if (ImGui::CollapsingHeader("Emission",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::DragFloat("Emission strength",
+                               &scatterSettings.medium.emissionStrength,
+                               .001f, 0.f, 3.f, "%.4f"))
+            scatterDirty = true;
+          ImGui::PushID("emissionTransferFunction");
+          const bool emissionChanged = emissionXfEditor.runUI(false);
+          ImGui::PopID();
+          if (emissionChanged)
+            emissionXfDirty = true;
+        }
+#endif
         
-        ImGui::Text("scalar range [%f .. %f]",
-                    worldBounds.scalars.lower,
-                    worldBounds.scalars.upper);
         if (ImGui::SliderFloat("xfDomain(abs).x", &xf.absDomain.lower,
                                worldBounds.scalars.lower,
                                worldBounds.scalars.upper))
@@ -148,10 +208,6 @@ namespace hm {
     // void colorMapChanged();
     // void rangeChanged();
     // void opacityScaleChanged();
-#if HS_USE_MULTI_SCATTERING
-    void scatterSettingsChanged(const VolumeScatterSettings &settings);
-#endif
-
     void screenShot()
     {
       std::string fileName = fromCL.outFileName;
@@ -206,7 +262,7 @@ namespace hm {
         }
       } break;
       case 'u':
-        uiIsOn = !uiIsOn;
+        toggleUI();
         break;
       case '!':
         screenShot();
@@ -261,7 +317,17 @@ namespace hm {
 
       case 'T':
         std::cout << "(T) : dumping transfer function" << std::endl;
+#if HS_USE_MULTI_SCATTERING
+        {
+          hs::VolumeTransferFunctionSet set;
+          set.opacity = xf;
+          set.emission = emissionXF;
+          set.scatterSettings = scatterSettings;
+          saveVolumeTransferFunctions("hayThere.xf", set);
+        }
+#else
         xf.save("hayThere.xf");
+#endif
         break;
 
       default: OWLViewer::key(key,where);
@@ -273,8 +339,11 @@ namespace hm {
       to the device frame buffer that the viewer cated for us */
     void resize(const owl::common::vec2i &newSize) override
     {
-      OWLViewer::resize(newSize);
-      renderer->resize((const mini::common::vec2i&)newSize,fbPointer);
+      windowSize = newSize;
+      const int panelWidth = panelWidthFor(newSize.x);
+      const owl::common::vec2i renderSize(newSize.x - panelWidth, newSize.y);
+      OWLViewer::resize(renderSize);
+      renderer->resize((const mini::common::vec2i&)renderSize,fbPointer);
     }
 
     /*! gets called whenever the viewer needs us to re-render out widget */
@@ -286,7 +355,11 @@ namespace hm {
         auto cm = xfEditor.getColorMap();
         xf.set((const mini::vec4f*)cm.data(),
                         cm.size());
-        
+#if HS_USE_MULTI_SCATTERING
+        emissionXfEditor.setColorOnly(
+          (const owl::common::vec4f *)cm.data(), cm.size());
+        emissionXfDirty = true;
+#endif
         
         renderer->setTransferFunction(xf);
         xfDirty = false;
@@ -297,6 +370,15 @@ namespace hm {
       if (scatterDirty) {
         renderer->setVolumeScatterSettings(scatterSettings);
         scatterDirty = false;
+        accumDirty = true;
+      }
+      if (emissionXfDirty) {
+        auto cm = emissionXfEditor.getColorMap();
+        emissionXF.set((const mini::vec4f *)cm.data(), cm.size());
+        emissionXF.absDomain = xf.absDomain;
+        emissionXF.relDomain = xf.relDomain;
+        renderer->setEmissionTransferFunction(emissionXF);
+        emissionXfDirty = false;
         accumDirty = true;
       }
 #endif
@@ -371,14 +453,18 @@ namespace hm {
 #if HS_USE_MULTI_SCATTERING
     VolumeScatterSettings scatterSettings;
     bool scatterDirty = true;
-    VolumeScatterPanel *scatterPanel = 0;
+    bool emissionXfDirty = true;
 #endif
     bool accumDirty = true;
     RenderEngineInterface *const renderer;
     hs::mpi::Comm *world;
 
     // the ui editor, that edits the color and alpha map (and nothing else)
-    owl::viewer::XFEditor xfEditor;
+    hs::viewer::TransferFunctionEditor xfEditor;
+#if HS_USE_MULTI_SCATTERING
+    hs::viewer::TransferFunctionEditor emissionXfEditor;
+    hs::TransferFunction emissionXF;
+#endif
     // the ui elements to edit abs/rel domains
     // range1f xfDomainAbs{0.f,1.f};
     // range1f xfDomainRel{0.f,100.f};
@@ -388,23 +474,28 @@ namespace hm {
     hs::TransferFunction xf;
     
     void loadXF() {
+#if HS_USE_MULTI_SCATTERING
+      auto set = hs::loadVolumeTransferFunctions(fromCL.xfFileName);
+      xf = set.opacity;
+      scatterSettings = set.scatterSettings;
+      emissionXF = set.emission;
+      emissionXfEditor.setColorAndAlpha(
+        (const owl::common::vec4f *)emissionXF.colorMap.data(),
+        emissionXF.colorMap.size());
+      emissionXfEditor.setColorOnly(
+        (const owl::common::vec4f *)xf.colorMap.data(),
+        xf.colorMap.size());
+      scatterDirty = true;
+      emissionXfDirty = true;
+#else
       xf.load(fromCL.xfFileName);
+#endif
       xfEditor.setColorAndAlpha((const owl::common::vec4f*)xf.colorMap.data(),
                                 xf.colorMap.size());
       xfDirty = true;
     }
     
   };
-#endif
-
-#if HS_IMGUI
-#if HS_USE_MULTI_SCATTERING
-  void Viewer::scatterSettingsChanged(const VolumeScatterSettings &settings)
-  {
-    scatterSettings = settings;
-    scatterDirty = true;
-  }
-#endif
 #endif
 
   inline mini::common::vec3f get3f(char **av, int &i)
@@ -626,6 +717,16 @@ int main(int ac, char **av)
       fromCL.ambientRadiance = std::stof(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
       fromCL.spp = std::stoi(av[++i]);
+#if HS_USE_MULTI_SCATTERING
+    } else if (arg == "--no-multi-scatter") {
+      fromCL.scatterSettings.enabled = false;
+    } else if (arg == "--max-volume-bounces") {
+      fromCL.scatterSettings.maxVolumeBounces = std::stoi(av[++i]);
+    } else if (arg == "--anisotropy") {
+      fromCL.scatterSettings.medium.anisotropy = std::stof(av[++i]);
+    } else if (arg == "--emission-strength") {
+      fromCL.scatterSettings.medium.emissionStrength = std::stof(av[++i]);
+#endif
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--no-mum") {
@@ -729,6 +830,16 @@ int main(int ac, char **av)
     }    
   }
 
+#if HS_USE_MULTI_SCATTERING
+  hs::VolumeTransferFunctionSet cliVolumeXfs;
+  bool haveCliVolumeXfs = false;
+  if (!fromCL.xfFileName.empty()) {
+    cliVolumeXfs = hs::loadVolumeTransferFunctions(fromCL.xfFileName);
+    haveCliVolumeXfs = true;
+    fromCL.scatterSettings = cliVolumeXfs.scatterSettings;
+  }
+#endif
+
   int localRank = 0, localSize = 1;
 #if HS_MPI
   determineLocalProcessID(world,localRank,localSize);
@@ -802,6 +913,21 @@ int main(int ac, char **av)
                    localPartitions,
                    
                    deviceConfigs);
+
+#if HS_USE_MULTI_SCATTERING
+  hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
+  hayMaker->setEmissionTransferFunction(
+    haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
+#endif
+  if (!fromCL.xfFileName.empty()) {
+#if HS_USE_MULTI_SCATTERING
+    hayMaker->setTransferFunction(cliVolumeXfs.opacity);
+#else
+    hs::TransferFunction initialXF;
+    initialXF.load(fromCL.xfFileName);
+    hayMaker->setTransferFunction(initialXF);
+#endif
+  }
                    
   world.barrier();
   const BoundsData worldBounds = hayMaker->getWorldBounds();
@@ -863,39 +989,8 @@ int main(int ac, char **av)
      /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
 /*fovy(deg)*//*ignore now ,we handle that differently*/fromCL.camera.perspective.fovy);
 
-  // QMainWindow secondWindow;
-  // if (modelHasVolumeData) {
-  //   XFEditor *xfEditor = new XFEditor
-  //     ((cutee::common::interval<float>&)worldBounds.scalars);
-  //   viewer.xfEditor = xfEditor;
-
-  //   QWidget *sidePanel = new QWidget;
-  //   auto *sideLayout = new QVBoxLayout(sidePanel);
-  //   sideLayout->addWidget(xfEditor);
-  
-    // QObject::connect(xfEditor,&cutee::XFEditor::colorMapChanged,
-    //                  &viewer, &Viewer::colorMapChanged);
-    // QObject::connect(xfEditor,&cutee::XFEditor::rangeChanged,
-    //                  &viewer, &Viewer::rangeChanged);
-    // QObject::connect(xfEditor,&cutee::XFEditor::opacityScaleChanged,
-    //                  &viewer, &Viewer::opacityScaleChanged);
-  
   if (!fromCL.xfFileName.empty())
-    viewer.loadXF();//fromCL.xfFileName);
-    // viewer.xf.load(fromCL.xfFileName);
-      // viewer.xfEditor.setColorAndAlpha(loadCM(fromCL.xfFileName));
-
-// #if HS_USE_MULTI_SCATTERING
-//     {
-//       VolumeScatterPanel *scatterPanel = new VolumeScatterPanel;
-//       viewer.scatterPanel = scatterPanel;
-//       scatterPanel->setSettings(VolumeScatterSettings{});
-//       viewer.scatterSettings = scatterPanel->getSettings();
-//       sideLayout->addWidget(scatterPanel);
-//       QObject::connect(scatterPanel, &VolumeScatterPanel::settingsChanged,
-//                        &viewer, &Viewer::scatterSettingsChanged);
-//     }
-// #endif
+    viewer.loadXF();
 
   viewer.showAndRun();
 #else

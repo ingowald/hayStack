@@ -4,11 +4,14 @@
 add_library(hs-config INTERFACE)
 target_include_directories(hs-config INTERFACE
   ${PROJECT_SOURCE_DIR}
-  ${PROJECT_SOURCE_DIR}/3rdParty/nanovdb
+  ${PROJECT_SOURCE_DIR}/3rdParty/nanovdb/include
 )
 
-#  target_compile_definitions(hayStack PUBLIC HS_USE_MULTI_SCATTERING=1)
-#  target_include_directories(hayStack PUBLIC ${NANOVDB_INCLUDE_DIR})
+if (HS_USE_MULTI_SCATTERING)
+  target_compile_definitions(hs-config INTERFACE HS_USE_MULTI_SCATTERING=1)
+else()
+  target_compile_definitions(hs-config INTERFACE HS_USE_MULTI_SCATTERING=0)
+endif()
 # link to miniscene and umesh - we need those in either config
 target_link_libraries(hs-config
   INTERFACE
@@ -134,6 +137,8 @@ add_library(hayStack
   StructuredVolume.cpp
   TAMRVolume.h
   TAMRVolume.cpp
+  NanoVDBVolume.h
+  VolumeScatter.h
   ColorMap.h
   ColorMap.cpp
 

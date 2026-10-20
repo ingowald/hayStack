@@ -4,6 +4,8 @@
 #pragma once
 
 #include "hayStack/common.h"
+#include "hayStack/VolumeScatter.h"
+#include <cstdint>
 #include <vector>
 
 namespace hs {
@@ -20,13 +22,27 @@ namespace hs {
     range1f getDomain() const;
     
     std::vector<mini::common::vec4f> colorMap
-    = { mini::common::vec4f(1.f), mini::common::vec4f(1.f) };
+    = { mini::common::vec4f(1.f, 1.f, 1.f, 0.f),
+        mini::common::vec4f(1.f) };
 
     range1f absDomain = { +1.f, -1.f };
     range1f relDomain = { 0.f, 100.f };
     
     float   baseDensity = 100.f;
   };
+
+  /*! A second RGBA transfer function used as the principled volume's
+      emission map. Alpha masks emission independently of opacity. */
+  struct VolumeTransferFunctionSet {
+    TransferFunction opacity;
+    TransferFunction emission;
+    VolumeScatterSettings scatterSettings;
+  };
+
+  void saveVolumeTransferFunctions(const std::string &fileName,
+                                   const VolumeTransferFunctionSet &set);
+  VolumeTransferFunctionSet
+  loadVolumeTransferFunctions(const std::string &fileName);
 
   inline bool isUnsetTransferFunctionDomain(const range1f &domain)
   {

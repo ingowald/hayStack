@@ -17,6 +17,7 @@
 #include <stdexcept>
 
 namespace hs {
+namespace loader {
 
   struct NVDBVolumeContent : public LoadableContent {
     NVDBVolumeContent(const std::string &fileName,
@@ -95,7 +96,7 @@ namespace hs {
       return fileSize * partCellCount / fullCells;
     }
 
-    void executeLoad(DataRank &dataGroup, bool verbose) override
+    void executeLoad(OnePartition &dataGroup) override
     {
       nanovdb::GridHandle<> gridHandle;
       try {
@@ -127,10 +128,9 @@ namespace hs {
 
       dataGroup.nanovdbVolumes.push_back(vol);
 
-      if (verbose)
-        std::cout << "#hs.nvdb: loaded part " << thisPartID << " of "
-                  << fileName << " (" << vol->data.size() << " bytes), bounds "
-                  << vol->bounds << std::endl;
+      std::cout << "#hs.nvdb: loaded part " << thisPartID << " of "
+                << fileName << " (" << vol->data.size() << " bytes), bounds "
+                << vol->bounds << std::endl;
     }
 
     std::string toString() override
@@ -206,6 +206,7 @@ namespace hs {
     }
   };
 
-}
+} // namespace loader
+} // namespace hs
 
 #endif

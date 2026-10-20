@@ -5,7 +5,7 @@
 
 #if HS_USE_MULTI_SCATTERING
 
-#include "hayStack/NanoVDBVolume.h"
+#include "hayStack/VolumeScatter.h"
 
 #include <QCheckBox>
 #include <QDoubleSpinBox>
@@ -36,18 +36,8 @@ namespace hs {
     QCheckBox *enabledBox = nullptr;
     QSpinBox *maxBouncesBox = nullptr;
     QDoubleSpinBox *anisotropyBox = nullptr;
-    QDoubleSpinBox *scatteringAlbedoBox = nullptr;
-    QDoubleSpinBox *densityBox = nullptr;
-    QDoubleSpinBox *densityThresholdBox = nullptr;
     QDoubleSpinBox *emissionStrengthBox = nullptr;
-    QDoubleSpinBox *blackbodyIntensityBox = nullptr;
-    QDoubleSpinBox *temperatureBox = nullptr;
-    QDoubleSpinBox *scatterColor[3]{};
-    QDoubleSpinBox *absorptionColor[3]{};
-    QDoubleSpinBox *emissionColor[3]{};
-    QDoubleSpinBox *blackbodyTint[3]{};
 
-    QWidget *paramsWidget = nullptr;
     bool suppressSignals = false;
 
     static QDoubleSpinBox *addUnitSpin(QFormLayout *layout,
@@ -56,11 +46,6 @@ namespace hs {
                                        double minVal,
                                        double maxVal,
                                        double step);
-    static void addColorSpinRow(QFormLayout *layout,
-                                const char *label,
-                                QDoubleSpinBox *rgb[3],
-                                const mini::common::vec3f &value);
-    static mini::common::vec3f readColor(QDoubleSpinBox *rgb[3]);
   };
 
 }

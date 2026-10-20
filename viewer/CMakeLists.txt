@@ -26,7 +26,11 @@ target_link_libraries(hsOffline
 
 # ------------------------------------------------------------------
 if (HS_IMGUI)
-  add_executable(hsViewer ${SOURCES})
+  add_executable(hsViewer
+    ${SOURCES}
+    TransferFunctionEditor.cpp
+    TransferFunctionEditor.h
+  )
   target_link_libraries(hsViewer
     PUBLIC
     hayStack

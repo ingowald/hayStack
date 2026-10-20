@@ -4,7 +4,7 @@
 #pragma once
 
 #include "hayStack/TransferFunction.h"
-#include "hayStack/NanoVDBVolume.h"
+#include "hayStack/VolumeScatter.h"
 
 /* parallel renderer abstraction */
 namespace hm {
@@ -15,6 +15,7 @@ namespace hm {
   struct RenderEngineInterface {
 
     virtual void setTransferFunction(const hs::TransferFunction &xf) {}
+    virtual void setEmissionTransferFunction(const hs::TransferFunction &xf) {}
     virtual void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) {}
     virtual hs::VolumeScatterSettings getVolumeScatterSettings() const { return {}; }
     
