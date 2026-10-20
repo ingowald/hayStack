@@ -103,6 +103,7 @@ namespace hm {
         worldBounds(worldBounds)
     {
       xf.absDomain = worldBounds.scalars;
+      uiIsOn = !worldBounds.scalars.empty();
 #if HS_USE_MULTI_SCATTERING
       scatterSettings = fromCL.scatterSettings;
       emissionXF.absDomain = worldBounds.scalars;
@@ -124,6 +125,8 @@ namespace hm {
 
     void toggleUI()
     {
+      if (worldBounds.scalars.empty())
+        return;
       uiIsOn = !uiIsOn;
       if (windowSize.x > 0 && windowSize.y > 0)
         resize(windowSize);
@@ -135,15 +138,32 @@ namespace hm {
 
       const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
       const float panelWidth = float(panelWidthFor(int(displaySize.x)));
-      ImGui::SetNextWindowPos(ImVec2(displaySize.x - panelWidth, 0.f),
-                              ImGuiCond_Always);
+      const float maxPanelWidth = std::max(300.f, displaySize.x - 320.f);
+      ImGui::GetIO().ConfigWindowsResizeFromEdges = true;
+      ImGui::GetBackgroundDrawList()->AddImage(
+        reinterpret_cast<void *>(fbTexture),
+        ImVec2(panelWidth, 0.f),
+        displaySize,
+        ImVec2(0.f, 1.f),
+        ImVec2(1.f, 0.f));
+      ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
       ImGui::SetNextWindowSize(ImVec2(panelWidth, displaySize.y),
-                               ImGuiCond_Always);
+                               ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, displaySize.y),
+                                          ImVec2(maxPanelWidth,
+                                                 displaySize.y));
+      ImGui::SetNextWindowBgAlpha(1.f);
       ImGui::Begin("HayStack/Imgui", nullptr,
                    ImGuiWindowFlags_NoMove
-                   | ImGuiWindowFlags_NoResize
                    | ImGuiWindowFlags_NoCollapse
                    | ImGuiWindowFlags_NoSavedSettings);
+
+      const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
+      if (resizedPanelWidth != controlPanelWidth) {
+        controlPanelWidth = resizedPanelWidth;
+        if (windowSize.x > 0 && windowSize.y > 0)
+          resize(windowSize);
+      }
       
       if (worldBounds.scalars.empty()) {
         ImGui::Text("(no volume data)");
@@ -208,6 +228,35 @@ namespace hm {
     // void colorMapChanged();
     // void rangeChanged();
     // void opacityScaleChanged();
+    owl::common::vec2i viewportMousePosition(
+      const owl::common::vec2i &position) const
+    {
+      return { position.x - panelWidthFor(windowSize.x), position.y };
+    }
+
+    void mouseMotion(const owl::common::vec2i &position) override
+    {
+      OWLViewer::mouseMotion(viewportMousePosition(position));
+    }
+
+    void mouseButtonLeft(const owl::common::vec2i &position,
+                         bool pressed) override
+    {
+      OWLViewer::mouseButtonLeft(viewportMousePosition(position), pressed);
+    }
+
+    void mouseButtonCenter(const owl::common::vec2i &position,
+                           bool pressed) override
+    {
+      OWLViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
+    }
+
+    void mouseButtonRight(const owl::common::vec2i &position,
+                          bool pressed) override
+    {
+      OWLViewer::mouseButtonRight(viewportMousePosition(position), pressed);
+    }
+
     void screenShot()
     {
       std::string fileName = fromCL.outFileName;

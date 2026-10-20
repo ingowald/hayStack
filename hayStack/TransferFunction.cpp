@@ -6,6 +6,7 @@
 
 namespace hs {
 
+#if HS_USE_MULTI_SCATTERING
   namespace {
     const size_t xfFileFormatMagic = 0x1235abc100;
 
@@ -61,12 +62,30 @@ namespace hs {
       s.enabled = enabled != 0;
     }
   }
+#else
+  const size_t xfFileFormatMagic = 0x1235abc000;
+#endif
 
   void TransferFunction::save(const std::string &fileName) const
   {
+#if HS_USE_MULTI_SCATTERING
     VolumeTransferFunctionSet set;
     set.opacity = *this;
     saveVolumeTransferFunctions(fileName, set);
+#else
+    std::ofstream out(fileName,std::ios::binary);
+    out.write((char*)&xfFileFormatMagic,sizeof(xfFileFormatMagic));
+
+    out.write((char*)&baseDensity,sizeof(baseDensity));
+    out.write((char*)&absDomain,sizeof(absDomain));
+    out.write((char*)&relDomain,sizeof(relDomain));
+
+    int numColorMapValues = colorMap.size();
+    out.write((char*)&numColorMapValues,sizeof(numColorMapValues));
+    out.write((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
+    std::cout << "#hs.Transferfunction: saved xf to "
+              <<  fileName << std::endl;
+#endif
   }  
 
   range1f TransferFunction::getDomain() const
@@ -80,9 +99,26 @@ namespace hs {
 
   void TransferFunction::load(const std::string &fileName)
   {
+#if HS_USE_MULTI_SCATTERING
     *this = loadVolumeTransferFunctions(fileName).opacity;
+#else
+    std::cout << "#hs: loading transfer function " << fileName << std::endl;
+    std::ifstream in(fileName.c_str(),std::ios::binary);
+    size_t magic;
+    in.read((char*)&magic,sizeof(xfFileFormatMagic));
+
+    in.read((char*)&baseDensity,sizeof(baseDensity));
+    in.read((char*)&absDomain,sizeof(absDomain));
+    in.read((char*)&relDomain,sizeof(relDomain));
+
+    int numColorMapValues;
+    in.read((char*)&numColorMapValues,sizeof(numColorMapValues));
+    colorMap.resize(numColorMapValues);
+    in.read((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
+#endif
   }
 
+#if HS_USE_MULTI_SCATTERING
   void saveVolumeTransferFunctions(const std::string &fileName,
                                    const VolumeTransferFunctionSet &set)
   {
@@ -117,5 +153,6 @@ namespace hs {
     readScatter(in, set.scatterSettings, fileName);
     return set;
   }
+#endif
 
 }
