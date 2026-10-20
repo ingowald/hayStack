@@ -112,14 +112,15 @@ namespace hm {
     const BoundsData worldBounds;
     
     bool uiIsOn = true;
-    int controlPanelWidth = 420;
+    int controlPanelWidth = 320;
     owl::common::vec2i windowSize { 0, 0 };
 
     int panelWidthFor(int width) const
     {
       if (!uiIsOn)
         return 0;
-      return std::min(controlPanelWidth, std::max(0, width - 320));
+      return std::min(controlPanelWidth,
+                      std::max(0, width - /* minimum render canvas size */320));
     }
 
     void toggleUI()
