@@ -33,6 +33,8 @@ namespace hs {
       vec4f             color1 {.1f,.6f,.3f,.5f};
       vec4f             color2 {.2f,.1f,.8f,.5f};
       vec4f             color3 {.3f,.7f,.3f,.5f};
+      vec3f             gridOrigin {0.f};
+      vec3f             gridSpacing {1.f};
       bool              showVolume = true;
     };
 

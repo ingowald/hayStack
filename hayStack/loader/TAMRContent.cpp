@@ -25,6 +25,9 @@ namespace hs {
       color2 = dataURL.get_vec4f("color2",color2);
       color3 = dataURL.get_vec4f("color3",color3);
 
+      gridOrigin = dataURL.get_vec3f("origin",gridOrigin);
+      gridSpacing = dataURL.get_vec3f("spacing",gridSpacing);
+
       fieldName = dataURL.get("field","");
       PING; PRINT(fieldName);
       
@@ -70,7 +73,8 @@ namespace hs {
                                        fieldID,
                                        iso0,iso1,iso2,iso3,
                                        color0,color1,color2,color3,
-                                       showVolume);
+                                       showVolume,
+                                       gridOrigin,gridSpacing);
       dataGroup.amr.push_back(content);
       if (showBlockDebug)
         dataGroup.cylinderSets.push_back(TAMRVolume::createBlockDebugCylinders(model));
