@@ -15,6 +15,7 @@
 #include "hayStack/loader/UMeshContent.h"
 #include "hayStack/loader/OBJContent.h"
 #include "hayStack/loader/DGEFContent.h"
+#include "hayStack/loader/VTPContent.h"
 #include "hayStack/loader/ColorMapper.h"
 #if HS_VTK
 #include "hayStack/loader/VTUContent.h"
@@ -407,9 +408,10 @@ namespace hs {
       // extension:
       if (endsWith(contentDescriptor,".umesh")) {
         UMeshContent::create(this,contentDescriptor);
+      } else if (endsWith(contentDescriptor,".vtp")) {
+        VTPContent::create(this,contentDescriptor);
 #if HS_VTK
-      } else if (endsWith(contentDescriptor,".vtu") ||
-                 endsWith(contentDescriptor,".vtp")) {
+      } else if (endsWith(contentDescriptor,".vtu")) {
         VTUContent::create(this,contentDescriptor);
 #endif
       } else if (endsWith(contentDescriptor,".obj")) {

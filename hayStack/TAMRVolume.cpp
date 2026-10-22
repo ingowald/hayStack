@@ -97,8 +97,10 @@ namespace hs {
       const float cellSize = powf(2.f, -(float)grid.level);
       vec3i org = (const vec3i &)grid.origin;
       vec3i dim = (const vec3i &)grid.dims;
-      bb.extend(cellSize * (vec3f(org) - .5f));
-      bb.extend(cellSize * (vec3f(org + dim) + .5f));
+      bb.extend(gridOrigin
+                + gridSpacing * (cellSize * (vec3f(org) - .5f)));
+      bb.extend(gridOrigin
+                + gridSpacing * (cellSize * (vec3f(org + dim) + .5f)));
     }
     return bb;
   }

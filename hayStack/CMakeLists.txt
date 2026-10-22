@@ -54,6 +54,8 @@ set(LOADER_SOURCES
   loader/DGEFContent.cpp
   loader/TriangleMesh.h
   loader/TriangleMesh.cpp
+  loader/VTPContent.h
+  loader/VTPContent.cpp
   loader/GESTS.h
   loader/GESTS.cpp
   loader/RAWVolumeContent.h
