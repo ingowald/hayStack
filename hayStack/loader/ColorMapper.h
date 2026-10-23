@@ -13,8 +13,8 @@
 namespace hs {
   namespace loader {
 
-    /*! helper classf or color mapping. this class will parse a
-        dataurl's 'map', map-xf, and 'map-file' parameters (if
+    /*! helper class for color mapping. this class will parse a
+        dataURL's 'map', map-xf, and 'map-file' parameters (if
         present), and then allow to simply call 'map(float)" to get a
         color. if no float2 'map' parameter is set this will return
         valid()==false, and mapping should not be used. if a
@@ -44,14 +44,14 @@ namespace hs {
     };
 
     struct ColorMappingMetaContent : public LoadableContent {
-      static int currentIdx;
-      static vec2f currentDomain;
+      static int   default_cmIndex;
+      static vec2f default_domain;
       
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL)
       {
-        currentIdx = dataURL.get_int("map",currentIdx);
-        currentDomain = dataURL.get_vec2f("domain",currentDomain);
+        default_cmIndex = dataURL.get_int("cmidx",default_cmIndex);
+        default_domain  = dataURL.get_vec2f("map",default_domain);
       }
       void   executeLoad(OnePartition &dataGroup) { /* nothing */ }
     
