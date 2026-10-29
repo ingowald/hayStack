@@ -44,8 +44,7 @@ namespace hm {
   };
     
   struct HayMaker : public RenderEngineInterface {
-    HayMaker(Comm &world,
-             Comm &workers,
+    HayMaker(Comm::SP world,
              GlobalRenderSettings &globalRenderSettings,
              hs::LocalPartitions *localPartitions,
              const std::vector<DeviceConfig> &deviceConfigs);
@@ -61,7 +60,7 @@ namespace hm {
     void setTransferFunction(const hs::TransferFunction &xf) override;
     void setEmissionTransferFunction(const hs::TransferFunction &xf) override;
     void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) override;
-    hs::VolumeScatterSettings getVolumeScatterSettings() const override;
+    // hs::VolumeScatterSettings getVolumeScatterSettings() const override;
     
     /*! go over all input content, and 'render' this into an
         anari::world; later renderFrame()'s can then simply use that
@@ -69,7 +68,6 @@ namespace hm {
     void renderInitialAnariWorld();
     
     inline int numDevices() const { return perDevice.size(); }
-    BoundsData getWorldBounds() const;
 
     uint32_t     *hostRGBA   = 0;
     vec2i         fbSize;
@@ -80,12 +78,13 @@ namespace hm {
 
     // the library used to create the device(s)
     anari::Library library;
-      
-    Comm            &world;
-    Comm            &workers;
+
+    Comm::SP world;
     hs::LocalPartitions *const localPartitions;
     GlobalRenderSettings globalRenderSettings;
     const std::vector<DeviceConfig> deviceConfigs;
+  private:
+    void computeWorldBounds();
   };
 
 }

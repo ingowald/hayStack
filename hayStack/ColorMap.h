@@ -12,5 +12,11 @@ namespace hs {
     static const std::vector<vec4f> &get(int idx);
     static std::vector<std::pair<std::string,std::vector<vec4f>>> maps;
   };
+
+  struct ScalarMapper : public ColorMap {
+    
+    range1f domain { 0.f, 1.f };
+  };
+  
   
 }

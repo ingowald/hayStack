@@ -60,10 +60,10 @@ namespace hs {
     /*! abstraction for an entity that can load one or more pieces of
       renderable data (i.e., "content") from a file */
     struct DataLoader {
-      DataLoader(hs::mpi::Comm &workers);
+      DataLoader(hs::Comm::SP workers);
 
       /*! returns rank of process loading the data */
-      int myRank() const { return workers.rank; }
+      int myRank() const { return workers->rank; }
       void addContent(const std::string &contentDescriptor);
     
       /*! interface for any type of loadablecontent to add one or more
@@ -94,7 +94,7 @@ namespace hs {
       } sharedLights;
       /*! default radius to use for spheres that do not have a radius specified */
       static float defaultRadius;
-      hs::mpi::Comm workers;
+      hs::Comm::SP workers;
     };
 
     /*! abstraction for some piece of renderable content, such as a
@@ -122,7 +122,7 @@ namespace hs {
     /*! a data loader that assigns objects dynamically to data groups
       based on their projected weight */
     struct DynamicDataLoader : public DataLoader {
-      DynamicDataLoader(hs::mpi::Comm &workers)
+      DynamicDataLoader(hs::Comm::SP workers)
         : DataLoader(workers)
       {}
       void assignGroups(int numDataRanks) override;

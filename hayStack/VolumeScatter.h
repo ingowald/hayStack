@@ -13,6 +13,9 @@ namespace hs {
   };
 
   struct VolumeScatterSettings {
+    void read(std::istream &in);
+    void write(std::ostream &out) const;
+    
     bool enabled = true;
     int maxVolumeBounces = 8;
     VolumeScatterParams medium;

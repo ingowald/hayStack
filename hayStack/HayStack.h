@@ -36,7 +36,7 @@ namespace hs {
     vec3f position;
     vec3f power;
   };
-  
+
   struct BoundsData {
     void extend(const BoundsData &other);
 
@@ -49,7 +49,8 @@ namespace hs {
     /*! range of all (color-)mapped scalar fields, if present */
     range1f mapped;
   };
-  
+
+
   inline std::ostream &operator<<(std::ostream &o, const BoundsData &bd)
   {
     o << "{spatial=" << bd.spatial

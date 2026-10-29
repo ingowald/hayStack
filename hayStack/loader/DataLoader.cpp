@@ -39,7 +39,7 @@ namespace hs {
     /*! default radius to use for spheres that do not have a radius specified */
     float DataLoader::defaultRadius = .1f;
 
-    DataLoader::DataLoader(hs::mpi::Comm &workers)
+    DataLoader::DataLoader(hs::Comm::SP workers)
       : workers(workers)
     {}
 
@@ -264,8 +264,8 @@ namespace hs {
     {
       ColorMap::init();
       if (dataPerRank == 0) {
-        if (workers.size < numDataRanks) {
-          dataPerRank = numDataRanks / workers.size;
+        if (workers->size < numDataRanks) {
+          dataPerRank = numDataRanks / workers->size;
         } else {
           dataPerRank = 1;
         }
@@ -284,12 +284,12 @@ namespace hs {
       std::vector<int> localDataRanks;
 
       for (int i=0;i<dataPerRank;i++) {
-        int dataGroupID = (workers.rank*dataPerRank+i) % numDataRanks;
+        int dataGroupID = (workers->rank*dataPerRank+i) % numDataRanks;
         if (1 || verbose) {
           std::stringstream ss;
-          ss << "#hv: worker #" << workers.rank
+          ss << "#hv: worker #" << workers->rank
              << " loading global data group ID " << dataGroupID
-             << " into slot " << workers.rank << "." << i << ":";
+             << " into slot " << workers->rank << "." << i << ":";
           std::cout << ss.str()
                     << std::endl << std::flush;
         }
@@ -316,10 +316,10 @@ namespace hs {
         }
 
       if (verbose) {
-        workers.barrier();
-        if (workers.rank == 0)
+        workers->barrier();
+        if (workers->rank == 0)
           std::cout << "#hv: all workers done loading their data..." << std::endl;
-        workers.barrier();
+        workers->barrier();
       }
       assert(localPartitions);
       assert(localPartitions->numPartitionsOnThisRank() > 0);
@@ -410,10 +410,8 @@ namespace hs {
         UMeshContent::create(this,contentDescriptor);
       } else if (endsWith(contentDescriptor,".vtp")) {
         VTPContent::create(this,contentDescriptor);
-#if HS_VTK
       } else if (endsWith(contentDescriptor,".vtu")) {
         VTUContent::create(this,contentDescriptor);
-#endif
       } else if (endsWith(contentDescriptor,".obj")) {
         OBJContent::create(this,contentDescriptor);
       } else if (endsWith(contentDescriptor,".dgef")) {
@@ -472,8 +470,8 @@ namespace hs {
         contentOfGroup[groupID].push_back(addtlContent);
         loadedGroups.push({currentWeight+addtlWeight,groupID});
       }
-      workers.barrier();
-      if (workers.rank == 0) {
+      workers->barrier();
+      if (workers->rank == 0) {
         std::cout << "content assignment: created " << contentOfGroup.size() << " data groups" << std::endl;
         for (int i=0;i<contentOfGroup.size();i++) {
           std::cout << "= data group " << i << std::endl;
@@ -481,7 +479,7 @@ namespace hs {
             std::cout << "  - " << content->toString() << std::endl;
         }
       }
-      workers.barrier();
+      workers->barrier();
     }
     
     void DynamicDataLoader::loadPartition(OnePartition *partition)
@@ -494,12 +492,12 @@ namespace hs {
                   << MINI_TERMINAL_DEFAULT << std::endl;
       for (auto content : contentOfGroup[dataGroupID]) {
         if (verbose)
-          std::cout << " - #" << workers.rank << " loading content "
+          std::cout << " - #" << workers->rank << " loading content "
                     << content->toString() << std::endl << std::flush;
         content->executeLoad(*partition);
       }
       if (verbose)
-        std::cout << " - #" << workers.rank << " done loading." << std::endl;
+        std::cout << " - #" << workers->rank << " done loading." << std::endl;
     }
   
   }

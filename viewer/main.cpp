@@ -3,18 +3,18 @@
 
 #include "viewer/render/HayMaker.h"
 #include "hayStack/loader/DataLoader.h"
-#if HS_IMGUI
-# include "owlViewer/OWLViewer.h"
-# include "TransferFunctionEditor.h"
+#if HS_SERVER
+# include "viewer/ClientServer.h"
+#endif
+#if HS_VIEWER
+# include "viewer/Viewer.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
 # define STB_IMAGE_IMPLEMENTATION 1
 #endif
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
-#if HS_MPI
-#include <unistd.h>
-#endif
+
 namespace hm {
 
   double t_last_render;
@@ -22,14 +22,6 @@ namespace hm {
   typedef enum { DPMODE_NOT_SPECIFIED,
                  DPMODE_DATA_PARALLEL,
                  DPMODE_DATA_REPLICATED } DPMode;
-
-  // struct CmdLineCamera {
-  //   vec3f vp   = vec3f(0.f);
-  //   vec3f vi   = vec3f(0.f);
-  //   vec3f vu   = vec3f(0.f,1.f,0.f);
-  //   float fovy = 60.f;
-  //   float nearClip = 0.f;
-  // };
 
   struct FromCL {
     /*! data groups per rank. '0' means 'auto - use few as we can, as
@@ -70,9 +62,7 @@ namespace hm {
     // } cameraPath;
     bool measure = 0;
     std::string envMapFileName;
-#if HS_USE_MULTI_SCATTERING
     hs::VolumeScatterSettings scatterSettings;
-#endif
   };
   FromCL fromCL;
   
@@ -91,462 +81,6 @@ namespace hm {
       throw std::runtime_error("fatal error: " +error);
     exit(0);
   }
-
-#if HS_IMGUI
-  struct Viewer : public owl::viewer::OWLViewer
-  {
-    Viewer(BoundsData worldBounds,
-           RenderEngineInterface *const renderer,
-           hs::mpi::Comm *world)
-      : renderer(renderer),
-        world(world),
-        worldBounds(worldBounds)
-    {
-      xf.absDomain = worldBounds.scalars;
-      uiIsOn = !worldBounds.scalars.empty();
-#if HS_USE_MULTI_SCATTERING
-      scatterSettings = fromCL.scatterSettings;
-      emissionXF.absDomain = worldBounds.scalars;
-#endif
-    }
-
-    const BoundsData worldBounds;
-    
-    bool uiIsOn = true;
-    int controlPanelWidth = 320;
-    owl::common::vec2i windowSize { 0, 0 };
-
-    int panelWidthFor(int width) const
-    {
-      if (!uiIsOn)
-        return 0;
-      return std::min(controlPanelWidth,
-                      std::max(0, width - /* minimum render canvas size */320));
-    }
-
-    void toggleUI()
-    {
-      if (worldBounds.scalars.empty())
-        return;
-      uiIsOn = !uiIsOn;
-      if (windowSize.x > 0 && windowSize.y > 0)
-        resize(windowSize);
-    }
-    
-    void runImgui() override
-    {
-      if (!uiIsOn) return;
-
-      const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-      const float panelWidth = float(panelWidthFor(int(displaySize.x)));
-      const float maxPanelWidth = std::max(300.f, displaySize.x - 320.f);
-      ImGui::GetIO().ConfigWindowsResizeFromEdges = true;
-      ImGui::GetBackgroundDrawList()->AddImage(
-        reinterpret_cast<void *>(fbTexture),
-        ImVec2(panelWidth, 0.f),
-        displaySize,
-        ImVec2(0.f, 1.f),
-        ImVec2(1.f, 0.f));
-      ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
-      ImGui::SetNextWindowSize(ImVec2(panelWidth, displaySize.y),
-                               ImGuiCond_FirstUseEver);
-      ImGui::SetNextWindowSizeConstraints(ImVec2(300.f, displaySize.y),
-                                          ImVec2(maxPanelWidth,
-                                                 displaySize.y));
-      ImGui::SetNextWindowBgAlpha(1.f);
-      ImGui::Begin("HayStack/Imgui", nullptr,
-                   ImGuiWindowFlags_NoMove
-                   | ImGuiWindowFlags_NoCollapse
-                   | ImGuiWindowFlags_NoSavedSettings);
-
-      const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
-      if (resizedPanelWidth != controlPanelWidth) {
-        controlPanelWidth = resizedPanelWidth;
-        if (windowSize.x > 0 && windowSize.y > 0)
-          resize(windowSize);
-      }
-      
-      if (worldBounds.scalars.empty()) {
-        ImGui::Text("(no volume data)");
-      } else {
-        ImGui::Text("scalar range [%f .. %f]",
-                    worldBounds.scalars.lower,
-                    worldBounds.scalars.upper);
-        ImGui::PushID("opacityTransferFunction");
-        const bool opacityChanged = xfEditor.runUI();
-        ImGui::PopID();
-        if (opacityChanged)
-          xfDirty = true;
-#if HS_USE_MULTI_SCATTERING
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("Volume rendering",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
-            scatterDirty = true;
-          if (ImGui::SliderInt("Volume bounces",
-                               &scatterSettings.maxVolumeBounces, 1, 64))
-            scatterDirty = true;
-          if (ImGui::SliderFloat("Anisotropy",
-                                 &scatterSettings.medium.anisotropy,
-                                 -.99f, .99f))
-            scatterDirty = true;
-        }
-        if (ImGui::CollapsingHeader("Emission",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::DragFloat("Emission strength",
-                               &scatterSettings.medium.emissionStrength,
-                               .001f, 0.f, 3.f, "%.4f"))
-            scatterDirty = true;
-          ImGui::PushID("emissionTransferFunction");
-          const bool emissionChanged = emissionXfEditor.runUI(false);
-          ImGui::PopID();
-          if (emissionChanged)
-            emissionXfDirty = true;
-        }
-#endif
-        
-        if (ImGui::SliderFloat("xfDomain(abs).x", &xf.absDomain.lower,
-                               worldBounds.scalars.lower,
-                               worldBounds.scalars.upper))
-          xfDirty = true;
-        if (ImGui::SliderFloat("xfDomain(abs).y", &xf.absDomain.upper, 
-                               worldBounds.scalars.lower,
-                               worldBounds.scalars.upper))
-          xfDirty = true;
-        if (ImGui::SliderFloat("xfDomain(rel).x", &xf.relDomain.lower,
-                               0.f, 100.f))
-          xfDirty = true;
-        if (ImGui::SliderFloat("xfDomain(rel).y", &xf.relDomain.upper,
-                               0.f, 100.f))
-          xfDirty = true;
-        if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
-                               0.f,200.f))
-          xfDirty = true;
-      }
-      ImGui::End();
-    }
-
-    // void colorMapChanged();
-    // void rangeChanged();
-    // void opacityScaleChanged();
-    owl::common::vec2i viewportMousePosition(
-      const owl::common::vec2i &position) const
-    {
-      return { position.x - panelWidthFor(windowSize.x), position.y };
-    }
-
-    void mouseMotion(const owl::common::vec2i &position) override
-    {
-      OWLViewer::mouseMotion(viewportMousePosition(position));
-    }
-
-    void mouseButtonLeft(const owl::common::vec2i &position,
-                         bool pressed) override
-    {
-      OWLViewer::mouseButtonLeft(viewportMousePosition(position), pressed);
-    }
-
-    void mouseButtonCenter(const owl::common::vec2i &position,
-                           bool pressed) override
-    {
-      OWLViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
-    }
-
-    void mouseButtonRight(const owl::common::vec2i &position,
-                          bool pressed) override
-    {
-      OWLViewer::mouseButtonRight(viewportMousePosition(position), pressed);
-    }
-
-    void screenShot()
-    {
-      std::string fileName = fromCL.outFileName;
-      std::cout << "#ht: saving screen shot in " << fileName << std::endl;
-      stbi_flip_vertically_on_write(true);
-      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-                     fbPointer,fbSize.x*sizeof(uint32_t));
-    }
-    
-    /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const owl::common::vec2i &where) override
-    {
-      switch(key) {
-      case 'C': {
-        // for anybody deriving from this class: if you do not like
-        // this output, simply intercept the 'C' key in your derived
-        // 'key()' method before calling this...
-        hs::Camera camera;
-        OWLViewer::getCameraOrientation
-          ((owl::common::vec3f&)camera.vp,
-           (owl::common::vec3f&)camera.vi,
-           (owl::common::vec3f&)camera.vu,
-           camera.perspective.fovy);
-        vec3f vp = camera.vp;
-        vec3f vi = camera.vi;
-        vec3f vu = camera.vu;
-        
-        std::cout << "(C)urrent camera:" << std::endl;
-        std::cout << "- from  :" << vp << std::endl;
-        std::cout << "- poi   :" << vi << std::endl;
-        std::cout << "- upVec :" << vu << std::endl;
-        std::cout << "- dir   :" << normalize(vi-vp) << std::endl;
-
-        if (camera.type == Camera::PERSPECTIVE) {
-          std::cout << "- fovy  :" << camera.perspective.fovy << std::endl;
-        std::cout << "(suggested cmdline format, for apps that support this:) "
-                  << " --camera"
-                  << " " << vp.x << " " << vp.y << " " << vp.z
-                  << " " << vi.x << " " << vi.y << " " << vi.z
-                  << " " << vu.x << " " << vu.y << " " << vu.z
-                  << " -fovy " << camera.perspective.fovy
-                  << std::endl;
-        } else {
-          std::cout << "- height:" << camera.ortho.height << std::endl;
-          std::cout << "(suggested cmdline format, for apps that support this:) "
-                    << " --camera"
-                    << " " << vp.x << " " << vp.y << " " << vp.z
-                    << " " << vi.x << " " << vi.y << " " << vi.z
-                    << " " << vu.x << " " << vu.y << " " << vu.z
-                    << " -ortho " << camera.ortho.height
-                    << std::endl;
-        }
-      } break;
-      case 'u':
-        toggleUI();
-        break;
-      case '!':
-        screenShot();
-        break;
-      case '*': {
-        hs::Camera camera;
-        OWLViewer::getCameraOrientation
-          ((owl::common::vec3f&)camera.vp,
-           (owl::common::vec3f&)camera.vi,
-           (owl::common::vec3f&)camera.vu,
-           camera.perspective.fovy);
-      } break;
-      case 'P': {
-          char *fl = getenv("BARNEY_FOCAL_LENGTH");
-          std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
-          char *lr = getenv("BARNEY_LENS_RADIUS");
-          std::cout << "export BARNEY_LENS_RADIUS=" << (lr != nullptr ? lr : "0") << std::endl;
-          break;
-        }
-      case '9': case '0':
-      case '(': case ')': {
-        char* flc = getenv("BARNEY_FOCAL_LENGTH");
-        float ratio = (key == '(' || key == '9') ? (0.9f) : (1.1f);
-        if (key == '9' || key == '0')
-          ratio = (ratio - 1.f) * 0.1f + 1.f; 
-        float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
-#ifdef _WIN32
-        _putenv_s("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str());
-#else        
-        setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
-#endif        
-        std::cout << "Focal length is set to: " << fl << '\n';
-        renderer->resetAccumulation();
-        break;
-      }
-      case '{': case '}':
-      case '[': case ']': {
-        char* lrc = getenv("BARNEY_LENS_RADIUS");
-        float ratio = (key == '[' || key == '{') ? (0.9f) : (1.1f);
-        if (key == '[' || key == ']')
-          ratio = (ratio - 1.f) * 0.1f + 1.f; 
-        float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
-#ifdef _WIN32
-        _putenv_s("BARNEY_LENS_RADIUS", std::to_string(lr).c_str());
-#else        
-        setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
-#endif        
-        std::cout << "Lens radius is set to: " << lr << '\n';
-        renderer->resetAccumulation();
-        break;
-      }
-
-      case 'T':
-        std::cout << "(T) : dumping transfer function" << std::endl;
-#if HS_USE_MULTI_SCATTERING
-        {
-          hs::VolumeTransferFunctionSet set;
-          set.opacity = xf;
-          set.emission = emissionXF;
-          set.scatterSettings = scatterSettings;
-          saveVolumeTransferFunctions("hayThere.xf", set);
-        }
-#else
-        xf.save("hayThere.xf");
-#endif
-        break;
-
-      default: OWLViewer::key(key,where);
-      };
-    }
-
-    /*! window notifies us that we got resized. We HAVE to override
-      this to know our actual render dimensions, and get pointer
-      to the device frame buffer that the viewer cated for us */
-    void resize(const owl::common::vec2i &newSize) override
-    {
-      windowSize = newSize;
-      const int panelWidth = panelWidthFor(newSize.x);
-      const owl::common::vec2i renderSize(newSize.x - panelWidth, newSize.y);
-      OWLViewer::resize(renderSize);
-      renderer->resize((const mini::common::vec2i&)renderSize,fbPointer);
-    }
-
-    /*! gets called whenever the viewer needs us to re-render out widget */
-    void render() override
-    {
-      double _t0 = mini::common::getCurrentTime();
-      
-      if (xfDirty) {
-        auto cm = xfEditor.getColorMap();
-        xf.set((const mini::vec4f*)cm.data(),
-                        cm.size());
-#if HS_USE_MULTI_SCATTERING
-        emissionXfEditor.setColorOnly(
-          (const owl::common::vec4f *)cm.data(), cm.size());
-        emissionXfDirty = true;
-#endif
-        
-        renderer->setTransferFunction(xf);
-        xfDirty = false;
-        accumDirty = true;
-      }
-
-#if HS_USE_MULTI_SCATTERING
-      if (scatterDirty) {
-        renderer->setVolumeScatterSettings(scatterSettings);
-        scatterDirty = false;
-        accumDirty = true;
-      }
-      if (emissionXfDirty) {
-        auto cm = emissionXfEditor.getColorMap();
-        emissionXF.set((const mini::vec4f *)cm.data(), cm.size());
-        emissionXF.absDomain = xf.absDomain;
-        emissionXF.relDomain = xf.relDomain;
-        renderer->setEmissionTransferFunction(emissionXF);
-        emissionXfDirty = false;
-        accumDirty = true;
-      }
-#endif
-
-      if (accumDirty) {
-        renderer->resetAccumulation();
-        accumDirty = false;
-      }
-
-      static int numFramesRendered = 0;
-      const int measure_warmup_frames = 2;
-      const int measure_max_frames = 100;
-      const float measure_max_seconds = 60.f;
-      
-      static double measure_t0 = 0.;
-      if (numFramesRendered == measure_warmup_frames)
-        measure_t0 = mini::common::getCurrentTime();
-
-      static double t0 = mini::common::getCurrentTime();
-      renderer->renderFrame();
-      ++numFramesRendered;
-      double t1 = mini::common::getCurrentTime();
-
-      if (fromCL.measure) {
-        int numFramesMeasured = numFramesRendered - measure_warmup_frames;
-        float numSecondsMeasured
-          = (numFramesMeasured < 1)
-          ? 0.f
-          : float(t1 - measure_t0);
-
-        if (numFramesMeasured >= measure_max_frames ||
-            numSecondsMeasured >= measure_max_seconds) {
-          std::cout << "measure: rendered " << numFramesMeasured << " frames in " << numSecondsMeasured << ", that is:" << std::endl;
-          std::cout << "FPS " << double(numFramesMeasured/numSecondsMeasured) << std::endl;
-          screenShot();
-          renderer->terminate();
-          
-          world->barrier();
-          hs::mpi::finalize();
-          exit(0);
-        }
-      }
-
-      static double sum_t = 0.f;
-      static double sum_w = 0.f;
-      sum_t = 0.8f*sum_t + (t1-t0);
-      sum_w = 0.8f*sum_w + 1.f;
-      float timePerFrame = float(sum_t / sum_w);
-      float fps = 1.f/timePerFrame;
-      std::string title = "HayThere ("+mini::common::prettyDouble(fps)+"fps)";
-      setTitle(title.c_str());
-      t0 = t1;
-      double _t1 = mini::common::getCurrentTime();
-      t_last_render = _t1-_t0;
-    }
-    
-    void cameraChanged() override
-    {  
-      hs::Camera camera = fromCL.camera;
-      float ignore;
-      OWLViewer::getCameraOrientation
-        ((owl::common::vec3f&)camera.vp,
-         (owl::common::vec3f&)camera.vi,
-         (owl::common::vec3f&)camera.vu,
-         ignore);
-      renderer->setCamera(camera);
-      accumDirty = true;
-    }
-
-    //    TransferFunction xf;
-    bool xfDirty = true;
-#if HS_USE_MULTI_SCATTERING
-    VolumeScatterSettings scatterSettings;
-    bool scatterDirty = true;
-    bool emissionXfDirty = true;
-#endif
-    bool accumDirty = true;
-    RenderEngineInterface *const renderer;
-    hs::mpi::Comm *world;
-
-    // the ui editor, that edits the color and alpha map (and nothing else)
-    hs::viewer::TransferFunctionEditor xfEditor;
-#if HS_USE_MULTI_SCATTERING
-    hs::viewer::TransferFunctionEditor emissionXfEditor;
-    hs::TransferFunction emissionXF;
-#endif
-    // the ui elements to edit abs/rel domains
-    // range1f xfDomainAbs{0.f,1.f};
-    // range1f xfDomainRel{0.f,100.f};
-    float xfDensity = 1.f;
-    // the objec that stores the _haystack_ idea of what a xf is (with
-    // domain, color, and alpha)
-    hs::TransferFunction xf;
-    
-    void loadXF() {
-#if HS_USE_MULTI_SCATTERING
-      auto set = hs::loadVolumeTransferFunctions(fromCL.xfFileName);
-      xf = set.opacity;
-      scatterSettings = set.scatterSettings;
-      emissionXF = set.emission;
-      emissionXfEditor.setColorAndAlpha(
-        (const owl::common::vec4f *)emissionXF.colorMap.data(),
-        emissionXF.colorMap.size());
-      emissionXfEditor.setColorOnly(
-        (const owl::common::vec4f *)xf.colorMap.data(),
-        xf.colorMap.size());
-      scatterDirty = true;
-      emissionXfDirty = true;
-#else
-      xf.load(fromCL.xfFileName);
-#endif
-      xfEditor.setColorAndAlpha((const owl::common::vec4f*)xf.colorMap.data(),
-                                xf.colorMap.size());
-      xfDirty = true;
-    }
-    
-  };
-#endif
 
   inline mini::common::vec3f get3f(char **av, int &i)
   {
@@ -588,35 +122,30 @@ namespace hm {
   }
 
 #if HS_MPI
-  void determineLocalProcessID(mpi::Comm &world, int &localRank, int &localSize)
+  void determineLocalProcessID(hs::Comm::SP world, int &localRank, int &localSize)
   {
-# if HS_FAKE_MPI
-    localRank = 0;
-    localSize = 1;
-# else
-    world.barrier();
+    world->barrier();
     std::vector<char> hostName(10000);
     gethostname(hostName.data(),hostName.size());
     size_t hash = computeHashFromString(hostName.data());
-    std::vector<size_t> allHostNames(world.size);
+    std::vector<size_t> allHostNames(world->size);
     MPI_Allgather(&hash,sizeof(hash),MPI_BYTE,
                   allHostNames.data(),sizeof(hash),MPI_BYTE,
-                  world.comm);
+                  world->comm);
     localRank = 0;
     localSize = 0;
-    for (int i=0;i<world.size;i++) {
+    for (int i=0;i<world->size;i++) {
       if (allHostNames[i] != hash) continue;
       localSize++;
-      if (i < world.rank) localRank++;
+      if (i < world->rank) localRank++;
     }
 
-    for (int i=0;i<world.size;i++) {
-      world.barrier();
-      if (i != world.rank) continue;
-      std::cout << "#hs(" << world.rank << "): determined local rank/size as "
+    for (int i=0;i<world->size;i++) {
+      world->barrier();
+      if (i != world->rank) continue;
+      std::cout << "#hs(" << world->rank << "): determined local rank/size as "
                 << localRank << "/" << localSize << std::endl;
     }
-#endif
   }
 #endif
 
@@ -627,20 +156,20 @@ namespace hm {
     return std::stoi(var);
   }
 
-  std::vector<int> selectGPUs(mpi::Comm &world, int localRank, int localSize)
+  std::vector<int> selectGPUs(Comm::SP world, int localRank, int localSize)
   {
 #ifdef __APPLE__
     return { -1 };
 #endif
-    std::cout << "#hs(" << world.rank << ":" << localRank << "/" << localSize << "): selecting GPUs ... " << std::endl;
+    std::cout << "#hs(" << world->rank << ":" << localRank << "/" << localSize << "): selecting GPUs ... " << std::endl;
     const char *hcd = getenv("HS_CUDA_DEVICES");
     if (hcd) {
-      std::cout << "#hs(" << world.rank << "): found HS_CUDA_DEVICES, using this" << std::endl;
+      std::cout << "#hs(" << world->rank << "): found HS_CUDA_DEVICES, using this" << std::endl;
       return parseCommaSeparatedListOfInts(hcd);
     }
     const char *cvd = getenv("CUDA_VISIBLE_DEVICES");
     if (hcd) {
-      std::cout << "#hs(" << world.rank << "): found CUDA_VISIBLE_DEVICES being set in env, using GPUs 0,1,... etc" << std::endl;
+      std::cout << "#hs(" << world->rank << "): found CUDA_VISIBLE_DEVICES being set in env, using GPUs 0,1,... etc" << std::endl;
       auto cudaGPUs = parseCommaSeparatedListOfInts(hcd);
       std::vector<int> result;
       for (int i=0;i<cudaGPUs.size();i++)
@@ -648,7 +177,7 @@ namespace hm {
       return result;
     }
 
-    if (world.size == 1) {
+    if (world->size == 1) {
       return { -1 };
     }
     
@@ -717,19 +246,18 @@ int main(int ac, char **av)
   //     initailized before mpi even gets to run */
   // hs::initAllGPUs();
 
-  hs::mpi::init(ac, av);
-#if HS_FAKE_MPI
-  hs::mpi::Comm world;
-#else
-  hs::mpi::Comm world(MPI_COMM_WORLD);
-#endif
-  world.barrier();
-  if (world.rank == 0) {
+  // hs::mpi::init(ac, av);
+  hs::Comm::mpiInit(ac, av);
+  
+  /*! create MPI world, or wrapper equivalent */
+  hs::Comm::SP world = hs::Comm::createMPIWorld();
+  
+  world->barrier();
+  if (world->rank == 0) {
     std::cout << "#hv: hsviewer starting up" << std::endl; fflush(0);
   }
-  world.barrier();
+  world->barrier();
 
-  bool hanari = true;
   hs::loader::DynamicDataLoader loader(world);
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
@@ -826,25 +354,6 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
-    // } else if (arg == "--cameras-from-file") {
-    //   hm::addCamerasFromFile(av[++i]);
-    // } else if (arg == "--camera-path") {
-    //   CmdLineCamera c0, c1;
-    //   int numSteps = std::stoi(av[++i]);
-    //   // --camera
-    //   ++i;
-    //   c0.vp = get3f(av,i);
-    //   c0.vp = get3f(av,i);
-    //   c0.vu = get3f(av,i);
-    //   ++i;// -fovy
-    //   c0.fovy = std::stof(av[++i]);
-    //   ++i;// --camera
-    //   c1.vp = get3f(av,i);
-    //   c1.vp = get3f(av,i);
-    //   c1.vu = get3f(av,i);
-    //   ++i;// -fovy
-    //   c1.fovy = std::stof(av[++i]);
-    //   hm::addCameraPath(numSteps,c0,c1);
     } else if (arg == "-fovy") {
       fromCL.camera.perspective.fovy = std::stof(av[++i]);
       fromCL.camera.type = hs::Camera::PERSPECTIVE;
@@ -871,50 +380,41 @@ int main(int ac, char **av)
       fromCL.createHeadNode = true;
     } else if (arg == "-h" || arg == "--help") {
       usage();
-    } else if (arg == "-anari" || arg == "--hanari") {
-      hanari = true;
-    } else if (arg == "-native" || arg == "--native") {
-      hanari = false;
     } else {
       usage("unknown cmd-line argument '"+arg+"'");
     }    
   }
 
-#if HS_USE_MULTI_SCATTERING
   hs::VolumeTransferFunctionSet cliVolumeXfs;
   bool haveCliVolumeXfs = false;
   if (!fromCL.xfFileName.empty()) {
-    cliVolumeXfs = hs::loadVolumeTransferFunctions(fromCL.xfFileName);
+    cliVolumeXfs = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
     haveCliVolumeXfs = true;
     fromCL.scatterSettings = cliVolumeXfs.scatterSettings;
   }
-#endif
 
   int localRank = 0, localSize = 1;
 #if HS_MPI
   determineLocalProcessID(world,localRank,localSize);
 #endif
   std::vector<int> gpuIDs;
-  for (int i=0;i<world.size;i++) {
-    world.barrier();
-    if (i != world.rank) continue;
+  for (int i=0;i<world->size;i++) {
+    world->barrier();
+    if (i != world->rank) continue;
     gpuIDs = selectGPUs(world,localRank,localSize);
   }
   assert(!gpuIDs.empty());
-  world.barrier();
+  world->barrier();
   
-  const bool isHeadNode = fromCL.createHeadNode && (world.rank == 0);
-  hs::mpi::Comm workers = world.split(!isHeadNode);
-
-  if (world.size > 1 && fromCL.dpMode == DPMODE_NOT_SPECIFIED)
+  if (world->size > 1 && fromCL.dpMode == DPMODE_NOT_SPECIFIED)
     throw std::runtime_error("you're running haystack in MPI mode, and with more than one rank, but didn't specify num data groups (-ndg <n>), or whether you want to run data parallel (-dp|--data-parallel) or data replicated (-dr|--data-replicated). Just to make sure we're not actually running the wrong mode I'll hereby bail out ...");
   
   if (fromCL.ndg == 0) {
-    if (fromCL.dpMode == DPMODE_DATA_PARALLEL && world.size > 1)
+    if (fromCL.dpMode == DPMODE_DATA_PARALLEL && world->size > 1)
       // we _are_ run in mpi mode with more than one rank, and in data
       // _parallel_mode. if not otherwise specified, use one data
       // group per rank))
-      fromCL.ndg = world.size;
+      fromCL.ndg = world->size;
     else
       fromCL.ndg = 1;
   }
@@ -922,14 +422,11 @@ int main(int ac, char **av)
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   //  LocalModel thisRankData;
-  LocalPartitions *localPartitions = 0;
-  // localPartitions->colorMapIndex = fromCL.cmID;
-  if (!isHeadNode) {
-    localPartitions = loader.loadData(numDataGroupsGlobally,dataPerRank);
-    // loader.loadData(thisRankData,numDataGroupsGlobally,dataPerRank,verbose());
-  }
+  LocalPartitions *localPartitions
+    = loader.loadData(numDataGroupsGlobally,dataPerRank);
   if (fromCL.mergeUnstructuredMeshes) {
-    std::cout << "merging potentially separate unstructured meshes into single mesh" << std::endl;
+    std::cout << "merging potentially separate unstructured "
+              << "meshes into single mesh" << std::endl;
     localPartitions->mergeUnstructuredMeshes();
     std::cout << "done mergine umeshes..." << std::endl;
   }
@@ -937,7 +434,7 @@ int main(int ac, char **av)
   int numPartitionsLocally = localPartitions->numPartitionsOnThisRank();
   if (numPartitionsLocally == 0)
     throw std::runtime_error("no partitions on this rank!?");
-  world.barrier();
+  world->barrier();
 
   // std::vector<int> gpuIDs;
   std::vector<DeviceConfig> deviceConfigs;
@@ -957,33 +454,26 @@ int main(int ac, char **av)
   
   HayMaker *hayMaker
     = new HayMaker(// mpi/peers:
-                   world,workers,
+                   world,
                    globalRenderSettings,
                    // the parition(s) we have loaded locally on this rank
                    localPartitions,
                    
                    deviceConfigs);
 
-#if HS_USE_MULTI_SCATTERING
   hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
   hayMaker->setEmissionTransferFunction(
     haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
-#endif
+
   if (!fromCL.xfFileName.empty()) {
-#if HS_USE_MULTI_SCATTERING
     hayMaker->setTransferFunction(cliVolumeXfs.opacity);
-#else
-    hs::TransferFunction initialXF;
-    initialXF.load(fromCL.xfFileName);
-    hayMaker->setTransferFunction(initialXF);
-#endif
   }
                    
-  world.barrier();
-  const BoundsData worldBounds = hayMaker->getWorldBounds();
+  world->barrier();
+  const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
   bool modelHasVolumeData = !worldBounds.scalars.empty();
   
-  if (world.rank == 0)
+  if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
               << MINI_TERMINAL_DEFAULT << std::endl;
@@ -995,39 +485,47 @@ int main(int ac, char **av)
     fromCL.camera.vi = worldBounds.spatial.center();
   }
 
-  world.barrier();
-  if (world.rank == 0)
+  world->barrier();
+  if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: creating context"
               << MINI_TERMINAL_DEFAULT << std::endl;
-  world.barrier();
-  if (world.rank == 0)
+  world->barrier();
+  if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: building data groups"
               << MINI_TERMINAL_DEFAULT << std::endl;
-  if (!isHeadNode)
+  if (hayMaker)
     hayMaker->renderInitialAnariWorld();
   
-  world.barrier();
+  world->barrier();
 
   RenderEngineInterface *renderer = nullptr;
-  if (world.size == 1)
+  if (world->size == 1)
     // no MPI, render direcftly
     renderer = hayMaker;
-  else if (world.rank == 0)
+  else if (world->rank == 0)
     // we're in MPI mode, _and_ the rank that runs the viewer
     renderer = new MPIRenderEngine(world,hayMaker);
   else {
     // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
     MPIRenderEngine::runWorker(world,hayMaker);
-    world.barrier();
-    hs::mpi::finalize();
-
+    world->barrier();
+    Comm::mpiFinalize();
+    
     exit(0);
   }
 
-#if HS_IMGUI
-  Viewer viewer(worldBounds,renderer,&world);
+#if HS_SERVER
+  // in 'server' mode, we just open a socket, wait for viewer to
+  // connect, and then 'forward' all viewer-specific commands as if we
+  // were a local viewer
+  HSServer hsServer__create_waitForClient_and_run(renderer);
+#elif HS_VIEWER
+  Viewer viewer(worldBounds,
+                fromCL.scatterSettings,
+                renderer,//&world,
+                fromCL.camera);
 
   // viewer.show();
   viewer.enableFlyMode();
@@ -1040,7 +538,7 @@ int main(int ac, char **av)
 /*fovy(deg)*//*ignore now ,we handle that differently*/fromCL.camera.perspective.fovy);
 
   if (!fromCL.xfFileName.empty())
-    viewer.loadXF();
+    viewer.loadXF(fromCL.xfFileName);
 
   viewer.showAndRun();
 #else
@@ -1057,45 +555,12 @@ int main(int ac, char **av)
   // camera.nearClip = fromCL.camera.nearClip;
   renderer->setCamera(camera);
   
-  if (fromCL.xfFileName.length() > 0) {
-    hs::TransferFunction xf;
-    xf.load(fromCL.xfFileName);
-    renderer->setTransferFunction(xf);
+  if (!fromCL.xfFileName.empty()) {
+    auto xf = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
+    renderer->setTransferFunctionSet(xf);
     renderer->resetAccumulation();
   }
 
-  // if (!fromCL.cameraPath.empty()) {
-  //   std::cout << "rendering camera path sequence" << std::endl;
-  //   for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
-  //     hs::Camera camera;
-  //     auto c = fromCL.cameraPath[frameID];
-  //     camera.vi = c.vi;
-  //     camera.vp = c.vp;
-  //     camera.vu = c.vu;
-  //     camera.fovy = c.fovy;
-  //     // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
-  //     // camera.vu = fromCL.camera.vu;
-  //     // camera.vp
-  //     //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
-  //     // camera.vi
-  //     //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
-  //     renderer->setCamera(camera);
-  //     renderer->renderFrame();
-  //     stbi_flip_vertically_on_write(true);
-  //     char suffix[100];
-  //     sprintf(suffix,"_frame%05i.png",frameID);
-  //     std::string fileName = fromCL.outFileName+std::string(suffix);
-  //     std::cout << " ... saving frame " << fileName << std::endl;
-  //     stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-  //                    pixels.data(),fbSize.x*sizeof(uint32_t));
-  //   }
-  //   renderer->terminate();
-  //   world.barrier();
-  //   hs::mpi::finalize();
-  //   exit(0);
-  // }
-  
-#if 1
   if (fromCL.measure) {
     int numFramesRendered = 0;
     const int measure_warmup_frames = 2;
@@ -1127,13 +592,12 @@ int main(int ac, char **av)
                        pixels.data(),fbSize.x*sizeof(uint32_t));
         
         renderer->terminate();
-        world.barrier();
-        hs::mpi::finalize();
+        world->barrier();
+        Comm::mpiFinalize();
         exit(0);
       }
     }
   }
-#endif
   for (int i=0;i<fromCL.numFramesAccum;i++) 
     renderer->renderFrame();
 
@@ -1145,8 +609,8 @@ int main(int ac, char **av)
   renderer->terminate();
 #endif
 
-  world.barrier();
-  hs::mpi::finalize();
+  world->barrier();
+  Comm::mpiFinalize();
 
   return 0;
 }

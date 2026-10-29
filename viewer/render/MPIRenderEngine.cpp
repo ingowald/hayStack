@@ -16,69 +16,34 @@ namespace hm {
   
   const int endOfMessageConstant = 0x12345;
   
-  typedef enum
-    {
-     SET_CAMERA = 0 ,
-     SET_LIGHTS,
-     RESIZE,
-     RENDER_FRAME,
-     SCREEN_SHOT,
-     TERMINATE,
-     SET_XF,
-     SET_EMISSION_XF,
-     RESET_ACCUMULATION,
+  typedef enum {
+    SET_CAMERA = 0,
+    SET_LIGHTS,
+    RESIZE,
+    RENDER_FRAME,
+    TERMINATE,
+    SET_XF,
+    SET_EMISSION_XF,
+    RESET_ACCUMULATION,
 #if HS_USE_MULTI_SCATTERING
-     SET_VOLUME_SCATTER,
+    SET_VOLUME_SCATTER,
 #endif
-     // SET_ISO,
-     MAX_VALID_COMMANDS
-    } CommandTag;
-  const char *commandNames[]
-  = {
-     "SET_CAMERA",
-     "SET_LIGHTS",
-     "RESIZE",
-     "RENDER_FRAME",
-     "SCREEN_SHOT",
-     "TERMINATE",
-     "SET_XF",
-     "SET_EMISSION_XF",
-     "RESET_ACCUMULATION",
-#if HS_USE_MULTI_SCATTERING
-     "SET_VOLUME_SCATTER",
-#endif
-  };
-
+    MAX_VALID_COMMANDS
+  } CommandTag;
   
-  const char *cmdName[] = {
-                           "set_camera",
-                           "set_lights",
-                           "resize",
-                           "render_frame",
-                           "screen-shot",
-                           "terminate",
-                           "set_xf",
-                           "set_emission_xf",
-                           "reset_accum",
-#if HS_USE_MULTI_SCATTERING
-                           "set_volume_scatter",
-#endif
-                           "<EOL>" };
-                           
-  
-  MPIRenderEngine::MPIRenderEngine(Comm &comm,
-                           RenderEngineInterface *passThrough)
+  MPIRenderEngine::MPIRenderEngine(std::shared_ptr<Comm> comm,
+                                   RenderEngineInterface *passThrough)
     : comm(comm),
       passThrough(passThrough)
   {
     int handShake = 29031974;
-    comm.barrier();
+    comm->barrier();
     sendToWorkers(handShake);
   }
 
   struct WorkerLoop 
   {
-    WorkerLoop(Comm &comm,
+    WorkerLoop(Comm::SP comm,
                RenderEngineInterface *client);
 
     /*! the 'main loop' that receives and executes cmmands sent by the master */
@@ -115,7 +80,7 @@ namespace hm {
     template<typename T>
     void fromMaster(T &t);
     
-    Comm &comm;
+    Comm::SP comm;
     RenderEngineInterface *renderer;
 
   private:
@@ -127,7 +92,7 @@ namespace hm {
   template<typename T>
   void WorkerLoop::fromMaster(T &t)
   {
-    comm.bc_recv(&t,sizeof(T));
+    comm->bc_recv(&t,sizeof(T));
   }
   
   template<typename T>
@@ -136,7 +101,7 @@ namespace hm {
     size_t s;
     fromMaster(s);
     t.resize(s);
-    if (s) comm.bc_recv(t.data(),s*sizeof(T));
+    if (s) comm->bc_recv(t.data(),s*sizeof(T));
   }
   
   template<typename T>
@@ -144,18 +109,18 @@ namespace hm {
   {
     size_t s = t.size();
     sendToWorkers(s);
-    if (s) comm.bc_send(t.data(),s*sizeof(T));
+    if (s) comm->bc_send(t.data(),s*sizeof(T));
   }
   
   template<typename T>
   void MPIRenderEngine::sendToWorkers(const T &t)
   {
-    comm.bc_send(&t,sizeof(T));
+    comm->bc_send(&t,sizeof(T));
   }
     
     
 
-  WorkerLoop::WorkerLoop(Comm &comm,
+  WorkerLoop::WorkerLoop(Comm::SP comm,
                          RenderEngineInterface *renderer)
     : comm(comm),
       renderer(renderer)
@@ -177,37 +142,6 @@ namespace hm {
     sendToWorkers(eomIdentifier);
   }
   
-  // ==================================================================
-  void MPIRenderEngine::screenShot()
-  {
-    // ------------------------------------------------------------------
-    // send request....
-    // ------------------------------------------------------------------
-    int cmd = SCREEN_SHOT;
-    sendToWorkers(cmd);
-    sendEndOfMessage();
-
-    // ------------------------------------------------------------------
-    // and do our own....
-    // ------------------------------------------------------------------
-    if (passThrough) passThrough->screenShot();
-
-  }
-
-  void WorkerLoop::cmd_screenShot()
-  {
-    // ------------------------------------------------------------------
-    // get args....
-    // ------------------------------------------------------------------
-    checkEndOfMessage();
-    ;
-    // ------------------------------------------------------------------
-    // and execute
-    // ------------------------------------------------------------------
-    renderer->screenShot();
-  }
-    
-
   // ==================================================================
   
   void MPIRenderEngine::resetAccumulation()
@@ -253,7 +187,7 @@ namespace hm {
     // and do our own....
     // ------------------------------------------------------------------
     // MPI_Finalize();
-    // hs::mpi::finalize();//comm.finalize();
+    // hs::mpi::finalize();//comm->finalize();
     // exit(0);
   }
     
@@ -269,7 +203,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // MPI_Finalize();
     renderer->terminate();
-    // comm.finalize();
+    // comm->finalize();
     // exit(0);
   }
 
@@ -324,7 +258,7 @@ namespace hm {
     // ------------------------------------------------------------------
     if (passThrough) passThrough->resize(newSize,appFB);
 
-    comm.barrier();
+    comm->barrier();
   }
 
   void WorkerLoop::cmd_resize()
@@ -341,7 +275,7 @@ namespace hm {
     
     renderer->resize(newSize,nullptr);
 
-    comm.barrier();
+    comm->barrier();
   }
 
   // ==================================================================
@@ -385,8 +319,7 @@ namespace hm {
     // ------------------------------------------------------------------
     int cmd = SET_XF;
     sendToWorkers(cmd);
-    sendToWorkers(xf.absDomain);
-    sendToWorkers(xf.relDomain);
+    sendToWorkers(xf.domain);
     sendToWorkers(xf.baseDensity);
     sendToWorkers(xf.colorMap);
     sendEndOfMessage();
@@ -403,8 +336,7 @@ namespace hm {
     // get args....
     // ------------------------------------------------------------------
     TransferFunction xf;
-    fromMaster(xf.absDomain);
-    fromMaster(xf.relDomain);
+    fromMaster(xf.domain);
     fromMaster(xf.baseDensity);
     fromMaster(xf.colorMap);
     checkEndOfMessage();
@@ -419,8 +351,7 @@ namespace hm {
   {
     const int cmd = SET_EMISSION_XF;
     sendToWorkers(cmd);
-    sendToWorkers(xf.absDomain);
-    sendToWorkers(xf.relDomain);
+    sendToWorkers(xf.domain);
     sendToWorkers(xf.baseDensity);
     sendToWorkers(xf.colorMap);
     sendEndOfMessage();
@@ -431,15 +362,13 @@ namespace hm {
   void WorkerLoop::cmd_setEmissionTransferFunction()
   {
     TransferFunction xf;
-    fromMaster(xf.absDomain);
-    fromMaster(xf.relDomain);
+    fromMaster(xf.domain);
     fromMaster(xf.baseDensity);
     fromMaster(xf.colorMap);
     checkEndOfMessage();
     renderer->setEmissionTransferFunction(xf);
   }
 
-#if HS_USE_MULTI_SCATTERING
   // ==================================================================
 
   void MPIRenderEngine::setVolumeScatterSettings(const VolumeScatterSettings &settings)
@@ -459,7 +388,6 @@ namespace hm {
     checkEndOfMessage();
     renderer->setVolumeScatterSettings(settings);
   }
-#endif
   
   // ==================================================================
   void MPIRenderEngine::setLights(float ambient,
@@ -508,7 +436,7 @@ namespace hm {
   void WorkerLoop::runWorker()
   {
     int handShake = -1;
-    comm.barrier();
+    comm->barrier();
     fromMaster(handShake);
     if (handShake != 29031974)
       throw std::runtime_error("could not handshake with master");
@@ -516,12 +444,6 @@ namespace hm {
     while (1) {
       int cmd = -1;
       fromMaster(cmd);
-      LOG(printf("#mi(%i) worker got cmd tag %i (%s)\n",
-                 comm.workersRank,cmd,
-                 ((cmd>=0 && cmd<MAX_VALID_COMMANDS)
-                  ?commandNames[cmd]
-                  :"<not a valid tag>")));
-      // PRINT(cmd); PRINT(cmdName[cmd]);
       switch(cmd) {
       case SET_CAMERA:
         cmd_setCamera();
@@ -529,7 +451,6 @@ namespace hm {
       case TERMINATE:
         cmd_terminate();
         return;
-        // break;
       case RESIZE:
         cmd_resize();
         break;
@@ -538,9 +459,6 @@ namespace hm {
         break;
       case RESET_ACCUMULATION:
         cmd_resetAccumulation();
-        break;
-      case SCREEN_SHOT:
-        cmd_screenShot();
         break;
       case SET_XF:
         cmd_setTransferFunction();
@@ -553,9 +471,6 @@ namespace hm {
         cmd_setVolumeScatterSettings();
         break;
 #endif
-      // case SET_ISO:
-      //   cmd_setISO();
-      //   break;
       case SET_LIGHTS:
         cmd_setLights();
         break;
@@ -566,10 +481,10 @@ namespace hm {
   }
   
 
-  void MPIRenderEngine::runWorker(Comm &comms,
-                              RenderEngineInterface *client)
+  void MPIRenderEngine::runWorker(std::shared_ptr<Comm> comm,
+                                  RenderEngineInterface *client)
   {
-    WorkerLoop helper(comms,client);
+    WorkerLoop helper(comm,client);
     helper.runWorker();
   }
   

@@ -29,16 +29,16 @@ namespace hm {
     // Ignore INFO/DEBUG messages
   }
 
-  HayMaker::HayMaker(Comm &world,
-                     Comm &workers,
+  HayMaker::HayMaker(Comm::SP world,
                      GlobalRenderSettings &globalRenderSettings,
                      hs::LocalPartitions *localPartitions,
                      const std::vector<DeviceConfig> &deviceConfigs)
     : world(world),
-      workers(workers),
       globalRenderSettings(globalRenderSettings),
       localPartitions(localPartitions)
   {
+    computeWorldBounds();
+    
     // ------------------------------------------------------------------
     // initialize anari *library* - need to load before we can even
     // create device(s)
@@ -80,7 +80,7 @@ namespace hm {
     // other global inits
     // ------------------------------------------------------------------
 
-    BoundsData bb = getWorldBounds();
+    BoundsData bb = worldBounds;//getWorldBounds();
     if (!bb.mapped.empty()) {
       hs::ColorMap::init();
       int cmID = globalRenderSettings.defaultColorMapIndex
@@ -190,21 +190,22 @@ namespace hm {
   }
   
   
-  BoundsData HayMaker::getWorldBounds() const
+  // BoundsData HayMaker::getWorldBounds() const
+  void HayMaker::computeWorldBounds() 
   {
     BoundsData bb = localPartitions->getBounds();
-    bb.spatial.lower = world.allReduceMin(bb.spatial.lower);
-    bb.spatial.upper = world.allReduceMax(bb.spatial.upper);
-    bb.scalars.lower = world.allReduceMin(bb.scalars.lower);
-    bb.scalars.upper = world.allReduceMax(bb.scalars.upper);
-    bb.mapped.lower = world.allReduceMin(bb.mapped.lower);
-    bb.mapped.upper = world.allReduceMax(bb.mapped.upper);
+    bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
+    bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
+    bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
+    bb.scalars.upper = world->allReduceMax(bb.scalars.upper);
+    bb.mapped.lower = world->allReduceMin(bb.mapped.lower);
+    bb.mapped.upper = world->allReduceMax(bb.mapped.upper);
     
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
     }  
     
-    return bb;
+    this->worldBounds = bb;
   }
 
   void HayMaker::renderInitialAnariWorld()
@@ -231,12 +232,12 @@ namespace hm {
       dev->setVolumeScatterSettings(settings);
   }
   
-  hs::VolumeScatterSettings HayMaker::getVolumeScatterSettings() const
-  {
-    if (perDevice.empty())
-      return {};
-    return perDevice[0]->volumeScatterSettings;
-  }
+  // hs::VolumeScatterSettings HayMaker::getVolumeScatterSettings() const
+  // {
+  //   if (perDevice.empty())
+  //     return {};
+  //   return perDevice[0]->volumeScatterSettings;
+  // }
   
 }
 

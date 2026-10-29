@@ -17,165 +17,56 @@
 #pragma once
 
 #include "hayStack/common.h"
-
-#if HS_FAKE_MPI
-// no mpi...
-#else
-#  include <mpi.h>
-#endif
 #include <stdexcept>
-
-#if HS_FAKE_MPI
-#define HS_MPI_CALL(fctCall)  
-#define MPI_Comm int
-#define MPI_COMM_NULL 0
-#define MPI_Request int
-#else
-#define HS_MPI_CALL(fctCall)                                                 \
-    { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
-#endif
+#include <unistd.h>
 
 namespace hs {
-  namespace mpi {
-#if HS_FAKE_MPI
-      inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
-#else
-    inline std::string mpiErrorString(int rc)
-    {
-      char s[MPI_MAX_ERROR_STRING];
-      memset(s,0,MPI_MAX_ERROR_STRING);
-      int len = MPI_MAX_ERROR_STRING;
-      MPI_Error_string(rc,s,&len);
-      return s;
-    }
-#endif  
-    struct Exception : public std::runtime_error {
-      Exception(const std::string &where, int rc)
-        : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
-      {}
-    };
+
+  /*! this implements a COMMUNICATOR abstraction like in MPI; in
+      particular it assumes that all ranks on this communicator are
+      'equal' (ie, there is no 'master' vs 'workers') */
+  struct Comm {
+    typedef std::shared_ptr<Comm> SP;
+
+    static Comm::SP createMPIWorld();
+    static void mpiInit(int &ac, char **&av);
+    static void mpiFinalize();
     
-    void init(int &ac, char **av);
-    void finalize();
+    virtual ~Comm() = default;
+
+    virtual int   allReduceMax(int value) const = 0;
+    virtual int   allReduceMin(int value) const = 0;
+    virtual int   allReduceAdd(int value) const = 0;
+    virtual float allReduceAdd(float value) const = 0;
+    virtual float allReduceMax(float value) const = 0;
+    virtual float allReduceMin(float value) const = 0;
+    virtual void barrier() const = 0;
     
-    struct Comm {
-      Comm(MPI_Comm comm=MPI_COMM_NULL);
-
-      /*! equivalent of MPI_Comm_split - splits this comm into
-          possibly multiple comms, each one containing exactly those
-          former ranks of the same color. E.g. split(old.rank > 0)
-          would have rank 0 get a communicator that contains only
-          itself, and all others get a communicator that contains all
-          other former ranks */
-      Comm split(int color);
-      
-      inline operator MPI_Comm() { return comm; }
-
-      void  assertValid() const;
-      int   allReduceMax(int value) const;
-      int   allReduceMin(int value) const;
-      float allReduceMax(float value) const;
-      float allReduceMin(float value) const;
-      vec3f allReduceMax(vec3f value) const;
-      vec3f allReduceMin(vec3f value) const;
-      int   allReduceAdd(int value) const;
-      float allReduceAdd(float value) const;
-      void barrier() const;
-
-      /*! free/close this communicator */
-      void free();
-
-      void allGather(int *allValues, int myValue);
-      void allGather(int *allValues, const int *myValues, int numMyValues);
-      
-      /*! master-side of a gather where clietn gathers a fixed number
-          of itmes from each rank */
-      template<typename T>
-      void masterGather(// where we'll receive into - for ALL ranks
-                        T *recvBuffer,
-                        // what we're sending (this rank's data only)
-                        const T *sendBuffer, int numItemsSentOnEachRank);
-      /*! client-side of a gather where each client send a fixed number
-          of items to the master */
-      template<typename T>
-      void masterGather(// what we're sending (this rank's data only)
-                        const T *sendBuffer, int numItemsSentOnEachRank);
-
-      template<typename T>
-      void recv(int fromRank, int tag,
-                T *buffer, int numItems, MPI_Request &req);
-
-      template<typename T>
-      void send(int fromRank, int tag,
-                const T *buffer, int numItems, MPI_Request &req);
-
-      void wait(MPI_Request &req)
-      {
-        HS_MPI_CALL(Wait(&req,MPI_STATUS_IGNORE));
-      }
-
-      /*! master's send side of broadcast - must be done on rank 0,
-          and matched by bc_recv on all workers */
-      void bc_send(const void *ptr, size_t numBytes);
-      
-      /*! receive side of a broadcast - must be called on all ranks >
-          0, and match a bc_send on rank 0 */
-      void bc_recv(void *ptr, size_t numBytes);
-
-      int rank = -1, size = -1;
-
-      MPI_Comm comm = MPI_COMM_NULL;
-    };
+    /*! may only be called on 'master rank' (ie, rank 0 in a mpi
+        communicator, or on the 'master' size of a socket or
+        intercommunicator. depending on what comm fabric is used this
+        _has_ to be matched by corresponding bc_recv() calls on all
+        other ranks of the respective collective communicator (ie, all
+        ranks>0 in a regular mpi communicator, or the remote side
+        socket, etc) */
+    virtual void bc_send(const void *data, size_t size) const = 0;
+    virtual void bc_recv(void *data, size_t size) const = 0;
     
-    template<typename T>
-    inline void Comm::recv(int fromRank, int tag,
-                                  T *buffer, int numItems, MPI_Request &req)
-    {
-      // HS_MPI_CALL(Recv(buffer,numItems*sizeof(T),MPI_BYTE,
-      //                  fromRank,tag,comm,MPI_STATUS_IGNORE),
-      //             "Irecv");
-      HS_MPI_CALL(Irecv(buffer,
-                        numItems*sizeof(T),MPI_BYTE,
-                        // 1,MPI_INT,
-                        fromRank,0x123+tag,comm,&req));
-    }
-    template<typename T>
-    inline void Comm::send(int toRank, int tag,
-                           const T *buffer, int numItems, MPI_Request &req)
-    {
-      // HS_MPI_CALL(Send(buffer,numItems*sizeof(T),MPI_BYTE,
-      //                  toRank,tag,comm),
-      //             "Isend");
-      HS_MPI_CALL(Isend(buffer,
-                        numItems*sizeof(T),MPI_BYTE,
-                        // 1,MPI_INT,
-                        toRank,0x123+tag,comm,&req));
-    }
+    vec3f allReduceMax(vec3f value) const;
+    vec3f allReduceMin(vec3f value) const;
 
-    /*! master-side of a gather where clietn gathers a fixed number
-      of itmes from each rank */
-    template<typename T>
-    inline void Comm::masterGather(// where we'll receive into - for ALL ranks
-                                   T *recvBuffer,
-                                   // what we're sending (this rank's data only)
-                                   const T *sendBuffer, int numItemsSentOnEachRank)
-    {
-      HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
-                          recvBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
-                          0,comm));
-    }
-    
-    /*! client-side of a gather where each client send a fixed number
-      of items to the master */
-    template<typename T>
-    inline void Comm::masterGather(// what we're sending (this rank's data only)
-                                   const T *sendBuffer, int numItemsSentOnEachRank)
-    {
-        HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
-                          nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
-                          0,comm));
-    }
-    
+    int rank = 0;
+    int size = 1;
+  };
 
-  }
+
+  // struct RemoteWorkersInterface {
+  //   virtual void bc(void *data, size_t size) = 0;
+  //   virtual void send(int whoTo,   void *data, size_t size) = 0;
+  //   virtual void recv(int whoFrom, void *data, size_t size) = 0;
+  // };
+  // struct MPICommClientServer : public ClientServer {
+  // };
+  // struct SocketClientServer : public ClientServer {
+  // };
 }

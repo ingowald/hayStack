@@ -79,16 +79,10 @@ namespace hs {
     std::vector<Cylinders::SP>        cylinderSets;
     std::vector<Capsules::SP>         capsuleSets;
     std::vector<StructuredVolume::SP> structuredVolumes;
-#if HS_USE_MULTI_SCATTERING
     std::vector<NanoVDBVolume::SP>    nanovdbVolumes;
-#endif
     std::vector<TAMRVolume::SP>       amr;
     
     const PartitionsIndex partitionsIndex;
-    // const int localPartitionsRank;
-    // const int localPartitionsCount;
-    // const int globalPartitionsRank;
-    // const int globalPartitionsCount;
   };
 
 } // ::hs

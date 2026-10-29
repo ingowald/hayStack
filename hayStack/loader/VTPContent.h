@@ -8,19 +8,18 @@
 namespace hs {
   namespace loader {
 
-    /*! A dependency-free reader for VTK XML PolyData files with
-        little-endian, raw appended arrays. */
     struct VTPContent : public LoadableContent {
-      VTPContent(const std::string &fileName);
-      static void create(DataLoader *loader, const std::string &fileName);
+      VTPContent(const ResourceSpecifier &data);
+      static void create(DataLoader *loader,
+                         const ResourceSpecifier &data);
 
       std::string toString() override;
       size_t projectedSize() override;
       void executeLoad(OnePartition &dataGroup) override;
 
-      const std::string fileName;
+      const ResourceSpecifier data;
       const size_t fileSize;
     };
-
+    
   }
 }

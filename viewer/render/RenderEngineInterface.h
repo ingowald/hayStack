@@ -9,7 +9,7 @@
 /* parallel renderer abstraction */
 namespace hm {
   using namespace hs;
-  
+
   /*! base abstraction for any renderer - no matter whether it's a
       single node or multiple workers on the back */
   struct RenderEngineInterface {
@@ -17,7 +17,13 @@ namespace hm {
     virtual void setTransferFunction(const hs::TransferFunction &xf) {}
     virtual void setEmissionTransferFunction(const hs::TransferFunction &xf) {}
     virtual void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) {}
-    virtual hs::VolumeScatterSettings getVolumeScatterSettings() const { return {}; }
+
+    void setTransferFunctionSet(const VolumeTransferFunctionSet &xf)
+    {
+      setTransferFunction(xf.opacity);
+      setTransferFunction(xf.emission);
+      setVolumeScatterSettings(xf.scatterSettings);
+    }
     
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
@@ -28,6 +34,15 @@ namespace hm {
     virtual void setLights(float ambient,
                            const std::vector<hs::PointLight> &pointLights,
                            const std::vector<hs::DirLight> &dirLights) {}
+
+
+    // ==================================================================
+    // scene query interface - how the viewer/remoteViewer/offlineApp
+    // can figure out what's there to set/modify
+    // ==================================================================
+
+    /*! global world boudns across all surfaces and volumes */
+    BoundsData worldBounds;
   };
 
 }

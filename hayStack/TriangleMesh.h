@@ -8,7 +8,7 @@
 #include "hayStack/HayStack.h"
 
 namespace hs {
-  
+
   struct TriangleMesh {
     typedef std::shared_ptr<TriangleMesh> SP;
 

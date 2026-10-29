@@ -15,52 +15,185 @@
 // ======================================================================== //
 
 #include "hayStack/MPIWrappers.h"
+#if HS_MPI
+# include <mpi.h>
+#endif
+
+#if !HS_MPI
+# define HS_FAKE_MPI 1
+#endif
+
+#if HS_FAKE_MPI
+#define HS_MPI_CALL(fctCall)  
+#define MPI_Comm int
+#define MPI_COMM_NULL 0
+#define MPI_Request int
+#else
+#define HS_MPI_CALL(fctCall)                                            \
+  { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
+#endif
+
+
 
 namespace hs {
+
+  vec3f Comm::allReduceMin(vec3f v) const
+  {
+    return vec3f(allReduceMin(v.x),allReduceMin(v.y),allReduceMin(v.z));
+  }
+    
+  vec3f Comm::allReduceMax(vec3f v) const
+  {
+    return vec3f(allReduceMax(v.x),allReduceMax(v.y),allReduceMax(v.z));
+  }
+
+
   namespace mpi {
+    struct Comm : public hs::Comm {
+      Comm();
+      ~Comm() override;
+      
+      // /*! equivalent of MPI_Comm_split - splits this comm into
+      //     possibly multiple comms, each one containing exactly those
+      //     former ranks of the same color. E.g. split(old.rank > 0)
+      //     would have rank 0 get a communicator that contains only
+      //     itself, and all others get a communicator that contains all
+      //     other former ranks */
+      // Comm split(int color);
+      
+      void  assertValid() const;
+      int   allReduceMax(int value) const override;
+      int   allReduceMin(int value) const override;
+      float allReduceMax(float value) const override;
+      float allReduceMin(float value) const override;
+      int   allReduceAdd(int value) const override;
+      float allReduceAdd(float value) const override;
+      void barrier() const override;
 
-    void init(int &ac, char **av)
-    {
-#if HS_FAKE_MPI
-        // no mpi...
-#else
-      int required = MPI_THREAD_MULTIPLE;
-      int provided = 0;
-      HS_MPI_CALL(Init_thread(&ac,&av,required,&provided));
-      if (provided != required)
-        throw std::runtime_error("MPI runtime does not provide threading support");
+      void allGather(int *allValues, int myValue);
+      void allGather(int *allValues, const int *myValues, int numMyValues);
+      
+      /*! master-side of a gather where clietn gathers a fixed number
+        of itmes from each rank */
+      template<typename T>
+      void masterGather(// where we'll receive into - for ALL ranks
+                        T *recvBuffer,
+                        // what we're sending (this rank's data only)
+                        const T *sendBuffer, int numItemsSentOnEachRank);
+      /*! client-side of a gather where each client send a fixed number
+        of items to the master */
+      template<typename T>
+      void masterGather(// what we're sending (this rank's data only)
+                        const T *sendBuffer, int numItemsSentOnEachRank);
+
+      template<typename T>
+      void recv(int fromRank, int tag,
+                T *buffer, int numItems, MPI_Request &req);
+
+      template<typename T>
+      void send(int fromRank, int tag,
+                const T *buffer, int numItems, MPI_Request &req);
+
+      void wait(MPI_Request &req)
+      {
+        HS_MPI_CALL(Wait(&req,MPI_STATUS_IGNORE));
+      }
+
+      /*! master's send side of broadcast - must be done on rank 0,
+        and matched by bc_recv on all workers */
+      void bc_send(const void *ptr, size_t numBytes) const override;
+      
+      /*! receive side of a broadcast - must be called on all ranks >
+        0, and match a bc_send on rank 0 */
+      void bc_recv(void *ptr, size_t numBytes) const override;
+
+#if HS_MPI
+      MPI_Comm comm = MPI_COMM_NULL;
 #endif
-    }
+    };
 
-    void finalize()
+    template<typename T>
+    inline void Comm::recv(int fromRank, int tag,
+                           T *buffer, int numItems, MPI_Request &req)
     {
-      HS_MPI_CALL(Finalize());
+      HS_MPI_CALL(Irecv(buffer,
+                        numItems*sizeof(T),MPI_BYTE,
+                        fromRank,0x123+tag,comm,&req));
+    }
+    template<typename T>
+    inline void Comm::send(int toRank, int tag,
+                           const T *buffer, int numItems, MPI_Request &req)
+    {
+      HS_MPI_CALL(Isend(buffer,
+                        numItems*sizeof(T),MPI_BYTE,
+                        toRank,0x123+tag,comm,&req));
     }
 
-    Comm::Comm(MPI_Comm comm)
-      : comm(comm)
+    /*! master-side of a gather where clietn gathers a fixed number
+      of itmes from each rank */
+    template<typename T>
+    inline void Comm::masterGather(// where we'll receive into - for ALL ranks
+                                   T *recvBuffer,
+                                   // what we're sending (this rank's data only)
+                                   const T *sendBuffer, int numItemsSentOnEachRank)
+    {
+      HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+                         recvBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+                         0,comm));
+    }
+    
+    /*! client-side of a gather where each client send a fixed number
+      of items to the master */
+    template<typename T>
+    inline void Comm::masterGather(// what we're sending (this rank's data only)
+                                   const T *sendBuffer, int numItemsSentOnEachRank)
+    {
+      HS_MPI_CALL(Gather(sendBuffer,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+                         nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
+                         0,comm));
+    }
+    
+
+#if HS_FAKE_MPI
+    inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
+#else
+    inline std::string mpiErrorString(int rc)
+    {
+      char s[MPI_MAX_ERROR_STRING];
+      memset(s,0,MPI_MAX_ERROR_STRING);
+      int len = MPI_MAX_ERROR_STRING;
+      MPI_Error_string(rc,s,&len);
+      return s;
+    }
+#endif  
+    struct Exception : public std::runtime_error {
+      Exception(const std::string &where, int rc)
+        : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
+      {}
+    };
+    
+    Comm::Comm()
     {
 #if HS_FAKE_MPI
       rank = 0;
       size = 1;
 #else
-      if (comm != MPI_COMM_NULL) {
-        HS_MPI_CALL(Comm_rank(comm,&rank));
-        HS_MPI_CALL(Comm_size(comm,&size));
-      }
+      HS_MPI_CALL(Comm_dup(MPI_COMM_WORLD,&comm));
+      HS_MPI_CALL(Comm_rank(comm,&rank));
+      HS_MPI_CALL(Comm_size(comm,&size));
 #endif
     }
 
     /*! master's send side of broadcast - must be done on rank 0,
       and matched by bc_recv on all workers */
-    void Comm::bc_send(const void *data, size_t numBytes)
+    void Comm::bc_send(const void *data, size_t numBytes) const
     {
       HS_MPI_CALL(Bcast((void *)data,numBytes,MPI_BYTE,0,comm));
     }
     
     /*! receive side of a broadcast - must be called on all ranks >
       0, and match a bc_send on rank 0 */
-    void Comm::bc_recv(void *data, size_t numBytes)
+    void Comm::bc_recv(void *data, size_t numBytes) const
     {
       HS_MPI_CALL(Bcast(data,numBytes,MPI_BYTE,0,comm));
     }
@@ -68,7 +201,7 @@ namespace hs {
     void Comm::assertValid() const
     {
 #if HS_FAKE_MPI
-        // no mpi...
+      // no mpi...
 #else
       if (comm == MPI_COMM_NULL)
         throw std::runtime_error(std::string(__PRETTY_FUNCTION__)
@@ -118,16 +251,6 @@ namespace hs {
       return result;
     }
 
-    vec3f Comm::allReduceMin(vec3f v) const
-    {
-      return vec3f(allReduceMin(v.x),allReduceMin(v.y),allReduceMin(v.z));
-    }
-    
-    vec3f Comm::allReduceMax(vec3f v) const
-    {
-      return vec3f(allReduceMax(v.x),allReduceMax(v.y),allReduceMax(v.z));
-    }
-    
     void Comm::allGather(int *allValues, int myValue)
     {
       HS_MPI_CALL(Allgather(&myValue,1,MPI_INT,allValues,1,MPI_INT,comm));
@@ -139,27 +262,27 @@ namespace hs {
     }
     
     /*! free/close this communicator */
-    void Comm::free()
+    Comm::~Comm()
     {
       HS_MPI_CALL(Comm_free(&comm));
     }
       
-    /*! equivalent of MPI_Comm_split - splits this comm into
-      possibly multiple comms, each one containing exactly those
-      former ranks of the same color. E.g. split(old.rank > 0)
-      would have rank 0 get a communicator that contains only
-      itself, and all others get a communicator that contains all
-      other former ranks */
-    Comm Comm::split(int color)
-    {
-#if HS_FAKE_MPI
-        return Comm();
-#else
-      MPI_Comm newComm;
-      HS_MPI_CALL(Comm_split(comm,color,rank,&newComm));
-      return Comm(newComm);
-#endif
-    }
+    //     /*! equivalent of MPI_Comm_split - splits this comm into
+    //       possibly multiple comms, each one containing exactly those
+    //       former ranks of the same color. E.g. split(old.rank > 0)
+    //       would have rank 0 get a communicator that contains only
+    //       itself, and all others get a communicator that contains all
+    //       other former ranks */
+    //     Comm Comm::split(int color)
+    //     {
+    // #if HS_FAKE_MPI
+    //         return Comm();
+    // #else
+    //       MPI_Comm newComm;
+    //       HS_MPI_CALL(Comm_split(comm,color,rank,&newComm));
+    //       return Comm(newComm);
+    // #endif
+    //     }
     
     void Comm::barrier() const
     {
@@ -167,4 +290,28 @@ namespace hs {
     }
 
   }
+
+  void Comm::mpiInit(int &ac, char **&av)
+  {
+#if HS_MPI
+    int required = MPI_THREAD_MULTIPLE;
+    int provided = 0;
+    HS_MPI_CALL(Init_thread(&ac,&av,required,&provided));
+    if (provided != required)
+      throw std::runtime_error("MPI runtime does not provide threading support");
+#endif
+  }
+  
+  void Comm::mpiFinalize()
+  {
+#if HS_MPI
+    HS_MPI_CALL(Finalize());
+#endif
+  }
+  
+  Comm::SP Comm::createMPIWorld()
+  {
+    return std::make_shared<mpi::Comm>();
+  }
+  
 }

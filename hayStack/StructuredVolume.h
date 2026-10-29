@@ -39,9 +39,7 @@ namespace hs {
     std::vector<uint8_t> rawData;
     /*! either empty, or 3xuint8_t (RGB) for each voxel */
     std::vector<uint8_t> rawDataRGB;
-    // ScalarType scalarType;
-    const std::string// BNDataType
-    texelFormat;
+    const std::string    texelFormat;
     vec3f gridOrigin, gridSpacing;
   };
 
@@ -50,18 +48,6 @@ namespace hs {
     if (type == "float") return sizeof(float);
     if (type == "uint8_t") return sizeof(uint8_t);
     if (type == "uint16_t") return sizeof(uint16_t);
-    // switch(type) {
-    // case BN_FLOAT:
-    //   return sizeof(float); 
-    // case BN_UFIXED16:
-    //   return sizeof(uint16_t);
-    // case BN_UFIXED8:
-    //   return sizeof(uint8_t);
-    // case StructuredVolume::FLOAT: return sizeof(float); 
-    // case StructuredVolume::UINT16: return sizeof(uint8_t);
-    // case StructuredVolume::UINT8: return sizeof(uint8_t);
-    // default:
-      throw std::runtime_error("un-handled scalar type");
-    // };
+    throw std::runtime_error("un-handled scalar type");
   }
 }
