@@ -26,6 +26,10 @@ namespace hs {
       const size_t fileSize;
       const int default_mappedValues;
       const int thisPartID = 0;
+
+      static int default_sidx;
+      static int default_cidx;
+      static int default_stride;
     };
   
   }

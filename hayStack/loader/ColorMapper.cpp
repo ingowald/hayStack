@@ -7,9 +7,14 @@
 namespace hs {
   namespace loader {
     
-    int ColorMappingMetaContent::currentIdx = 0;
-    vec2f ColorMappingMetaContent::currentDomain = {0.f,0.f};
-
+    int   ColorMappingMetaContent::default_cmIndex = 0;
+    vec2f ColorMappingMetaContent::default_domain =
+#if 1
+      {+1.f,-1.f}
+#else
+      {0.f,0.f}
+#endif
+    ;
 
     inline float saturate(float f) { return min(1.f,max(0.f,f)); }
   
@@ -46,8 +51,12 @@ namespace hs {
 
     ColorMapper::ColorMapper(const ResourceSpecifier &data)
     {
-      cmIndex = data.get_int("map-index",ColorMappingMetaContent::currentIdx);
-      vec2f colorMapRange = data.get("map",vec2f(+1.f,-1.f));
+      // original (old) spelling as 'map-index'
+      cmIndex = data.get_int("map-index",ColorMappingMetaContent::default_cmIndex);
+      // new spelling: 'cmidx='
+      cmIndex = data.get_int("cmidx",cmIndex);
+      vec2f colorMapRange = data.get("map",ColorMappingMetaContent::default_domain);
+      // vec2f(+1.f,-1.f));
       inputRange = {colorMapRange.x,colorMapRange.y};
       std::string mapColorsFile = data.get("map-colors","");
       if (!mapColorsFile.empty()) {
