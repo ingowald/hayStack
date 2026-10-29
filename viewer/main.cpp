@@ -686,11 +686,13 @@ namespace hm {
   void addCamerasFromFile(const std::string &fileName)
   {
     std::ifstream in(fileName.c_str());
+    if (!in)
+      throw std::runtime_error("could not open cameras from '"+fileName+"'");
     std::string line;
     while (in.good()) {
       std::getline(in,line);
       hs::Camera c = fromCL.camera;
-      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
+      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f -fovy %f",
                       &c.vp.x,
                       &c.vp.y,
                       &c.vp.z,
@@ -1064,36 +1066,31 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
-  // if (!fromCL.cameraPath.empty()) {
-  //   std::cout << "rendering camera path sequence" << std::endl;
-  //   for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
-  //     hs::Camera camera;
-  //     auto c = fromCL.cameraPath[frameID];
-  //     camera.vi = c.vi;
-  //     camera.vp = c.vp;
-  //     camera.vu = c.vu;
-  //     camera.fovy = c.fovy;
-  //     // float f = frameID / (fromCL.cameraPath.numSteps-1.f);
-  //     // camera.vu = fromCL.camera.vu;
-  //     // camera.vp
-  //     //   = (1.f-f)*fromCL.cameraPath.vp0 + f*fromCL.cameraPath.vp1;
-  //     // camera.vi
-  //     //   = (1.f-f)*fromCL.cameraPath.vi0 + f*fromCL.cameraPath.vi1;
-  //     renderer->setCamera(camera);
-  //     renderer->renderFrame();
-  //     stbi_flip_vertically_on_write(true);
-  //     char suffix[100];
-  //     sprintf(suffix,"_frame%05i.png",frameID);
-  //     std::string fileName = fromCL.outFileName+std::string(suffix);
-  //     std::cout << " ... saving frame " << fileName << std::endl;
-  //     stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-  //                    pixels.data(),fbSize.x*sizeof(uint32_t));
-  //   }
-  //   renderer->terminate();
-  //   world.barrier();
-  //   hs::mpi::finalize();
-  //   exit(0);
-  // }
+  PING; PRINT(fromCL.cameraPath.size());
+  if (!fromCL.cameraPath.empty()) {
+    std::cout << "rendering camera path sequence" << std::endl;
+    for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
+      // hs::Camera camera;
+      auto camera = fromCL.cameraPath[frameID];
+      // camera.vi = c.vi;
+      // camera.vp = c.vp;
+      // camera.vu = c.vu;
+      // camera.fovy = c.fovy;
+      renderer->setCamera(camera);
+      renderer->renderFrame();
+      stbi_flip_vertically_on_write(true);
+      char suffix[100];
+      sprintf(suffix,"_frame%05i.png",frameID);
+      std::string fileName = fromCL.outFileName+std::string(suffix);
+      std::cout << " ... saving frame " << fileName << std::endl;
+      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+                     pixels.data(),fbSize.x*sizeof(uint32_t));
+    }
+    renderer->terminate();
+    world.barrier();
+    hs::mpi::finalize();
+    exit(0);
+  }
   
 #if 1
   if (fromCL.measure) {
