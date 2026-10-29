@@ -62,7 +62,7 @@ namespace hm {
     //    CmdLineCamera camera;
     hs::Camera camera;
     bool denoise = true;
-    // std::vector<CmdLineCamera> cameraPath;
+    std::vector<hs::Camera> cameraPath;
     // struct {
     //   vec3f vp0, vp1;
     //   vec3f vi0, vi1;
@@ -683,29 +683,29 @@ namespace hm {
   //   }
   // }
 
-  // void addCamerasFromFile(const std::string &fileName)
-  // {
-  //   std::ifstream in(fileName.c_str());
-  //   std::string line;
-  //   while (in.good()) {
-  //     std::getline(in,line);
-  //     CmdLineCamera c;
-  //     int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
-  //                     &c.vp.x,
-  //                     &c.vp.y,
-  //                     &c.vp.z,
-  //                     &c.vi.x,
-  //                     &c.vi.y,
-  //                     &c.vi.z,
-  //                     &c.vu.x,
-  //                     &c.vu.y,
-  //                     &c.vu.z,
-  //                     &c.fovy);
-  //     if (rc != 10)
-  //       break;
-  //     fromCL.cameraPath.push_back(c);
-  //   }
-  // }
+  void addCamerasFromFile(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str());
+    std::string line;
+    while (in.good()) {
+      std::getline(in,line);
+      hs::Camera c = fromCL.camera;
+      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
+                      &c.vp.x,
+                      &c.vp.y,
+                      &c.vp.z,
+                      &c.vi.x,
+                      &c.vi.y,
+                      &c.vi.z,
+                      &c.vu.x,
+                      &c.vu.y,
+                      &c.vu.z,
+                      &c.perspective.fovy);
+      if (rc != 10)
+        break;
+      fromCL.cameraPath.push_back(c);
+    }
+  }
   
 }
 
@@ -826,8 +826,8 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
-    // } else if (arg == "--cameras-from-file") {
-    //   hm::addCamerasFromFile(av[++i]);
+    } else if (arg == "--cameras-from-file") {
+      hm::addCamerasFromFile(av[++i]);
     // } else if (arg == "--camera-path") {
     //   CmdLineCamera c0, c1;
     //   int numSteps = std::stoi(av[++i]);
