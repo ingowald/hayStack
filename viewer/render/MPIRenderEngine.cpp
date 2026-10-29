@@ -466,11 +466,9 @@ namespace hm {
       case SET_EMISSION_XF:
         cmd_setEmissionTransferFunction();
         break;
-#if HS_USE_MULTI_SCATTERING
       case SET_VOLUME_SCATTER:
         cmd_setVolumeScatterSettings();
         break;
-#endif
       case SET_LIGHTS:
         cmd_setLights();
         break;

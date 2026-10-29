@@ -22,6 +22,7 @@ namespace hm {
         send(fd,&value,sizeof(value),0);
       else
         recv(fd,&value,sizeof(value),0);
+      PING; PRINT(value);
     }
 
     /* all WORKERS do the reduction - but for default MPI comm this
@@ -119,6 +120,7 @@ namespace hm {
     MPIRenderEngine::runWorker(connection,backend);
   }
 
+  
   HSClient::HSClient(const std::string &server, int port)
     : MPIRenderEngine(std::make_shared<SocketComm>(server,port),nullptr)
   {

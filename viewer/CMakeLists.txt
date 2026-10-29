@@ -72,11 +72,11 @@ target_compile_definitions(hsServer PUBLIC -DHS_SERVER=1)
 if (TARGET hayStackViewer)
   add_executable(hsClient
     remoteViewer.cpp
+    ClientServer.cpp
   )
   target_link_libraries(hsClient
     PUBLIC
-    hayStack
+    hayStackViewer
     hayMaker
-    owlGLFWViewer
   )
 endif()
