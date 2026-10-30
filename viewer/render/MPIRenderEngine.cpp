@@ -22,12 +22,11 @@ namespace hm {
     RESIZE,
     RENDER_FRAME,
     TERMINATE,
+    GET_WORLD_BOUNDS,
     SET_XF,
     SET_EMISSION_XF,
     RESET_ACCUMULATION,
-#if HS_USE_MULTI_SCATTERING
     SET_VOLUME_SCATTER,
-#endif
     MAX_VALID_COMMANDS
   } CommandTag;
   
@@ -59,15 +58,14 @@ namespace hm {
     /*! @{ command handlers - each corresponds to exactly one command
         sent my the master */
     void cmd_terminate();
+    void cmd_getWorldBounds();
     void cmd_renderFrame();
     void cmd_resize();
     void cmd_resetAccumulation();
     void cmd_setCamera();
     void cmd_setTransferFunction();
     void cmd_setEmissionTransferFunction();
-#if HS_USE_MULTI_SCATTERING
     void cmd_setVolumeScatterSettings();
-#endif
     void cmd_setISO();
     void cmd_setShadeMode();
     void cmd_setNodeSelection();
@@ -171,7 +169,61 @@ namespace hm {
     // ------------------------------------------------------------------
     renderer->resetAccumulation();
   }
+
+  // ==================================================================
+  BoundsData MPIRenderEngine::getWorldBounds()
+  {
+    // ------------------------------------------------------------------
+    // send request....
+    // ------------------------------------------------------------------
+    int cmd = GET_WORLD_BOUNDS;
+    sendToWorkers(cmd);
+    sendEndOfMessage();
+
+    BoundsData bb;
+    // ------------------------------------------------------------------
+    // and do our own....
+    // ------------------------------------------------------------------
+    if (passThrough)
+      bb = passThrough->getWorldBounds();
+
+    bb.spatial.lower = comm->allReduceMin(bb.spatial.lower);
+    bb.spatial.upper = comm->allReduceMax(bb.spatial.upper);
+    bb.scalars.lower = comm->allReduceMin(bb.scalars.lower);
+    bb.scalars.upper = comm->allReduceMax(bb.scalars.upper);
+    bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
+    bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
     
+    if (bb.spatial.empty()) {
+      bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
+    }
+    PING; PRINT(bb.spatial);
+    
+    return bb;
+  }
+  
+  void WorkerLoop::cmd_getWorldBounds()
+  {
+    // ------------------------------------------------------------------
+    // get args....
+    // ------------------------------------------------------------------
+    checkEndOfMessage();
+    ;
+    // ------------------------------------------------------------------
+    // and execute
+    // ------------------------------------------------------------------
+    BoundsData bb = renderer->getWorldBounds();
+    PING; PRINT(bb.spatial);
+
+    bb.spatial.lower = comm->allReduceMin(bb.spatial.lower);
+    bb.spatial.upper = comm->allReduceMax(bb.spatial.upper);
+    bb.scalars.lower = comm->allReduceMin(bb.scalars.lower);
+    bb.scalars.upper = comm->allReduceMax(bb.scalars.upper);
+    bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
+    bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
+    PING; PRINT(bb.spatial);
+  }
+
 
   // ==================================================================
   void MPIRenderEngine::terminate()
@@ -447,6 +499,9 @@ namespace hm {
       switch(cmd) {
       case SET_CAMERA:
         cmd_setCamera();
+        break;
+      case GET_WORLD_BOUNDS:
+        cmd_getWorldBounds();
         break;
       case TERMINATE:
         cmd_terminate();

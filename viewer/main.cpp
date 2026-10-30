@@ -474,21 +474,6 @@ int main(int ac, char **av)
     hayMaker->setTransferFunction(cliVolumeXfs.opacity);
   }
                    
-  world->barrier();
-  const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
-  bool modelHasVolumeData = !worldBounds.scalars.empty();
-  
-  if (world->rank == 0)
-    std::cout << MINI_TERMINAL_CYAN
-              << "#hs: world bounds is " << worldBounds
-              << MINI_TERMINAL_DEFAULT << std::endl;
-
-  if (fromCL.camera.vp == fromCL.camera.vi) {
-    fromCL.camera.vp
-      = worldBounds.spatial.center()
-      + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
-    fromCL.camera.vi = worldBounds.spatial.center();
-  }
 
   world->barrier();
   if (world->rank == 0)
@@ -521,6 +506,25 @@ int main(int ac, char **av)
     exit(0);
   }
 
+
+
+  // const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
+  const BoundsData worldBounds = renderer->getWorldBounds();
+  bool modelHasVolumeData = !worldBounds.scalars.empty();
+  
+  if (world->rank == 0)
+    std::cout << MINI_TERMINAL_CYAN
+              << "#hs: world bounds is " << worldBounds
+              << MINI_TERMINAL_DEFAULT << std::endl;
+
+  if (fromCL.camera.vp == fromCL.camera.vi) {
+    fromCL.camera.vp
+      = worldBounds.spatial.center()
+      + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
+    fromCL.camera.vi = worldBounds.spatial.center();
+  }
+
+  
 #if HS_SERVER
   // in 'server' mode, we just open a socket, wait for viewer to
   // connect, and then 'forward' all viewer-specific commands as if we

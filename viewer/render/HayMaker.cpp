@@ -37,7 +37,7 @@ namespace hm {
       globalRenderSettings(globalRenderSettings),
       localPartitions(localPartitions)
   {
-    computeWorldBounds();
+    // computeWorldBounds();
     
     // ------------------------------------------------------------------
     // initialize anari *library* - need to load before we can even
@@ -80,7 +80,8 @@ namespace hm {
     // other global inits
     // ------------------------------------------------------------------
 
-    BoundsData bb = worldBounds;//getWorldBounds();
+    // BoundsData bb = worldBounds;//getWorldBounds();
+    BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
       hs::ColorMap::init();
       int cmID = globalRenderSettings.defaultColorMapIndex
@@ -121,6 +122,25 @@ namespace hm {
   }
   
 
+  BoundsData HayMaker::getWorldBounds()
+  {
+    BoundsData bb = localPartitions->getBounds();
+
+    PING; PRINT(bb.spatial);
+    bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
+    bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
+    bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
+    bb.scalars.upper = world->allReduceMax(bb.scalars.upper);
+    bb.mapped.lower = world->allReduceMin(bb.mapped.lower);
+    bb.mapped.upper = world->allReduceMax(bb.mapped.upper);
+    
+    if (bb.spatial.empty()) {
+      bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
+    }  
+    PING; PRINT(bb.spatial);    
+    return bb;
+  }
+  
   void HayMaker::renderFrame()
   {
     assert(!perDevice.empty());
@@ -190,23 +210,23 @@ namespace hm {
   }
   
   
-  // BoundsData HayMaker::getWorldBounds() const
-  void HayMaker::computeWorldBounds() 
-  {
-    BoundsData bb = localPartitions->getBounds();
-    bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
-    bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
-    bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
-    bb.scalars.upper = world->allReduceMax(bb.scalars.upper);
-    bb.mapped.lower = world->allReduceMin(bb.mapped.lower);
-    bb.mapped.upper = world->allReduceMax(bb.mapped.upper);
+  // // BoundsData HayMaker::getWorldBounds() const
+  // void HayMaker::computeWorldBounds() 
+  // {
+  //   BoundsData bb = localPartitions->getBounds();
+  //   bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
+  //   bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
+  //   bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
+  //   bb.scalars.upper = world->allReduceMax(bb.scalars.upper);
+  //   bb.mapped.lower = world->allReduceMin(bb.mapped.lower);
+  //   bb.mapped.upper = world->allReduceMax(bb.mapped.upper);
     
-    if (bb.spatial.empty()) {
-      bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
-    }  
+  //   if (bb.spatial.empty()) {
+  //     bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
+  //   }  
     
-    this->worldBounds = bb;
-  }
+  //   this->worldBounds = bb;
+  // }
 
   void HayMaker::renderInitialAnariWorld()
   {

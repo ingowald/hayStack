@@ -18,11 +18,13 @@ namespace hm {
     template<typename T> 
     void dummyReduce(T &value) const
     {
-      if (onClientSide)
-        send(fd,&value,sizeof(value),0);
-      else
+      if (onClientSide) {
         recv(fd,&value,sizeof(value),0);
-      PING; PRINT(value);
+        PING; PRINT(value);
+      } else {
+        PING; PRINT(value);
+        send(fd,&value,sizeof(value),0);
+      }
     }
 
     /* all WORKERS do the reduction - but for default MPI comm this
@@ -134,6 +136,10 @@ namespace hm {
     std::cout << "#hsc: hs client created..." << std::endl;
   }
 
+  // BoundsData HSClient::getWorldBounds() override
+  // {
+    
+  // }
 
   void HSClient::resize(const vec2i &fbSize, uint32_t *hostRgba)
   {

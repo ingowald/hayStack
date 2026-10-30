@@ -33,6 +33,7 @@ namespace hm {
     static void runWorker(std::shared_ptr<Comm> comm,
                           RenderEngineInterface *client);
 
+    BoundsData getWorldBounds() override;
   private:
     template<typename T>
     void sendToWorkers(const std::vector<T> &t);

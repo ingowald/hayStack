@@ -19,6 +19,7 @@ namespace hm {
     
     void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void renderFrame() override;
+    // BoundsData getWorldBounds() override;
 
     vec2i     fbSize;
     uint32_t *hostRgba;

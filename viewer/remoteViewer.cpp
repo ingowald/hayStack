@@ -19,7 +19,7 @@ int main(int ac, char **av)
 
   HSClient remote(server,port);
 
-  auto &worldBounds = remote.worldBounds;
+  auto worldBounds = remote.getWorldBounds();//worldBounds;
   PRINT(worldBounds.spatial);
   
   if (fromCL.camera.vp == fromCL.camera.vi) {

@@ -24,6 +24,8 @@ namespace hm {
       setTransferFunction(xf.emission);
       setVolumeScatterSettings(xf.scatterSettings);
     }
+
+    virtual BoundsData getWorldBounds() = 0;
     
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize, uint32_t *hostRgba) {}
@@ -42,7 +44,7 @@ namespace hm {
     // ==================================================================
 
     /*! global world boudns across all surfaces and volumes */
-    BoundsData worldBounds;
+    // BoundsData worldBounds;
   };
 
 }
