@@ -31,6 +31,8 @@
 #else
 #define HS_MPI_CALL(fctCall)                                            \
   { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
+#define HS_MPI_NOTHROW(fctCall)                                            \
+  { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) { std::cerr << "haystack mpi error at " << __PRETTY_FUNCTION__ << std::endl; exit(1); }}
 #endif
 
 
@@ -49,6 +51,23 @@ namespace hs {
 
 
   namespace mpi {
+#if HS_FAKE_MPI
+    inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
+#else
+    inline std::string mpiErrorString(int rc)
+    {
+      char s[MPI_MAX_ERROR_STRING];
+      memset(s,0,MPI_MAX_ERROR_STRING);
+      int len = MPI_MAX_ERROR_STRING;
+      MPI_Error_string(rc,s,&len);
+      return s;
+    }
+#endif  
+    struct Exception : public std::runtime_error {
+      Exception(const std::string &where, int rc)
+        : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
+      {}
+    };
     struct Comm : public hs::Comm {
       Comm();
       ~Comm() override;
@@ -68,6 +87,8 @@ namespace hs {
       float allReduceMin(float value) const override;
       int   allReduceAdd(int value) const override;
       float allReduceAdd(float value) const override;
+      void  allGather(const size_t &ulong,
+                      std::vector<size_t> &allUlongs) const override;
       void barrier() const override;
 
       void allGather(int *allValues, int myValue);
@@ -154,23 +175,6 @@ namespace hs {
     }
     
 
-#if HS_FAKE_MPI
-    inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
-#else
-    inline std::string mpiErrorString(int rc)
-    {
-      char s[MPI_MAX_ERROR_STRING];
-      memset(s,0,MPI_MAX_ERROR_STRING);
-      int len = MPI_MAX_ERROR_STRING;
-      MPI_Error_string(rc,s,&len);
-      return s;
-    }
-#endif  
-    struct Exception : public std::runtime_error {
-      Exception(const std::string &where, int rc)
-        : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
-      {}
-    };
     
     Comm::Comm()
     {
@@ -264,31 +268,21 @@ namespace hs {
     /*! free/close this communicator */
     Comm::~Comm()
     {
-      HS_MPI_CALL(Comm_free(&comm));
+      HS_MPI_NOTHROW(Comm_free(&comm));
     }
       
-    //     /*! equivalent of MPI_Comm_split - splits this comm into
-    //       possibly multiple comms, each one containing exactly those
-    //       former ranks of the same color. E.g. split(old.rank > 0)
-    //       would have rank 0 get a communicator that contains only
-    //       itself, and all others get a communicator that contains all
-    //       other former ranks */
-    //     Comm Comm::split(int color)
-    //     {
-    // #if HS_FAKE_MPI
-    //         return Comm();
-    // #else
-    //       MPI_Comm newComm;
-    //       HS_MPI_CALL(Comm_split(comm,color,rank,&newComm));
-    //       return Comm(newComm);
-    // #endif
-    //     }
-    
     void Comm::barrier() const
     {
       HS_MPI_CALL(Barrier(comm));
     }
 
+    void Comm::allGather(const size_t &ulong,
+                         std::vector<size_t> &allUlongs) const
+    {
+      MPI_Allgather(&ulong,sizeof(ulong),MPI_BYTE,
+                    allUlongs.data(),sizeof(ulong),MPI_BYTE,
+                    comm);
+    }
   }
 
   void Comm::mpiInit(int &ac, char **&av)

@@ -40,6 +40,8 @@ namespace hs {
     virtual float allReduceAdd(float value) const = 0;
     virtual float allReduceMax(float value) const = 0;
     virtual float allReduceMin(float value) const = 0;
+    virtual void  allGather(const size_t &ulong,
+                            std::vector<size_t> &allUlongs) const = 0;
     virtual void barrier() const = 0;
     
     /*! may only be called on 'master rank' (ie, rank 0 in a mpi

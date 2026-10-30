@@ -17,9 +17,7 @@
 #include "hayStack/loader/DGEFContent.h"
 #include "hayStack/loader/VTPContent.h"
 #include "hayStack/loader/ColorMapper.h"
-#if HS_VTK
 #include "hayStack/loader/VTUContent.h"
-#endif
 #if HS_USD
 #include "hayStack/loader/USD.h"
 #endif
@@ -365,7 +363,7 @@ namespace hs {
 
       if (hasExplicitType) {
         ResourceSpecifier url(contentDescriptor);
-        if (url.type == "mapping")
+        if (url.type == "colorMapping" || url.type == "cm")
           loader::ColorMappingMetaContent::create(this,url);
         else if (url.type == "spheres")
           loader::SpheresFromFile::create(this,url);
@@ -379,8 +377,6 @@ namespace hs {
           MaterialsTest::create(this,contentDescriptor);
         else if (url.type == "capsules") 
           loader::Capsules::create(this,contentDescriptor);
-        // else if (url.type == "en-dump")
-        //   ENDumpContent::create(this,contentDescriptor);
         else if (url.type == "raw") 
           RAWVolumeContent::create(this,url);
 #if HS_USE_MULTI_SCATTERING

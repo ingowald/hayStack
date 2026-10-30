@@ -3,14 +3,16 @@
 
 #include "hayStack/loader/VTUContent.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkXMLUnstructuredGridReader.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkCellData.h>
-#include <vtkPointData.h>
-#include <vtkCellTypes.h>
-#include <vtkCellIterator.h>
-#include <vtkIdList.h>
+#if HS_VTK
+# include <vtkSmartPointer.h>
+# include <vtkXMLUnstructuredGridReader.h>
+# include <vtkUnstructuredGrid.h>
+# include <vtkCellData.h>
+# include <vtkPointData.h>
+# include <vtkCellTypes.h>
+# include <vtkCellIterator.h>
+# include <vtkIdList.h>
+#endif
 
 namespace hs {
   namespace loader {
@@ -37,6 +39,9 @@ namespace hs {
 
     void VTUContent::executeLoad(OnePartition &dataRank)
     {
+#if !HS_VTK
+      throw std::runtime_error("need VTK support to be built in to read vtu files");
+#else
       std::cout << "#hs.vtu: loading " << fileName << std::endl;
 
       auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
@@ -244,6 +249,7 @@ namespace hs {
 
       dataRank.unsts.push_back({mesh, box3f()});
       std::cout << "#hs.vtu: loaded successfully" << std::endl;
+#endif
     }
     
   }

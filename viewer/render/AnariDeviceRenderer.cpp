@@ -30,7 +30,7 @@ namespace hm {
 
     anari.device = 0;
 #if HS_MPI
-    if (hayMaker->world.size > 1) {
+    if (hayMaker->world->size > 1) {
       std::cout << "#hm: compiled with MPI support and running in MPI mode: trying to load anari mpi device" << std::endl;
       anari.device = anari::newDevice(hayMaker->library, "mpi");//"default");
       if (!anari.device) {
@@ -265,7 +265,8 @@ namespace hm {
         :"perspective";
       anari.camera = anari::newObject<anari::Camera>
         (anari.device, cameraType);
-      anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+      anari.cameraType = camera.type;
+       anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
       anari::commitParameters(anari.device, anari.frame);
       anariRelease(anari.device,anari.camera);
       anari.cameraType == camera.type;

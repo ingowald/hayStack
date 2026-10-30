@@ -40,6 +40,13 @@ namespace hm {
     float allReduceMin(float value) const override
     { dummyReduce(value); return value; }
     void barrier() const override {}
+
+    void  allGather(const size_t &ulong,
+                    std::vector<size_t> &allUlongs) const override
+    {
+      assert(allUlongs.size() == 1);
+      allUlongs[0] = ulong;
+    }
     
     void bc_send(const void *data, size_t size) const override
     {

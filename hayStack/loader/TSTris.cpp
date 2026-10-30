@@ -36,10 +36,20 @@ namespace hs {
                               const ResourceSpecifier &data,
                               int default_mappedValues)
     {
-      for (int i=0;i<data.numParts;i++)
-        loader->addContent
-          (new TSTriContent(data,getFileSize(data.where),i,
-                            default_mappedValues));
+      if (data.where == "defaults") {
+        default_stride = data.get_int("stride",default_stride);
+        default_sidx   = data.get_int("sidx",default_sidx);
+        default_cidx   = data.get_int("cidx",default_cidx);
+        ColorMappingMetaContent::default_domain
+          = data.get_vec2f("map",ColorMappingMetaContent::default_domain);
+        ColorMappingMetaContent::default_cmIndex
+          = data.get_int("cmidx",ColorMappingMetaContent::default_cmIndex);
+      } else {
+        for (int i=0;i<data.numParts;i++)
+          loader->addContent
+            (new TSTriContent(data,getFileSize(data.where),i,
+                              default_mappedValues));
+      }
     }
     
     size_t TSTriContent::projectedSize() 
@@ -66,6 +76,10 @@ namespace hs {
 
       return (end-begin)*/* "some" estimate of cost of one triangle...*/50;
     }
+
+    int TSTriContent::default_sidx   = -1;
+    int TSTriContent::default_cidx   = -1;
+    int TSTriContent::default_stride = 3;
     
     void   TSTriContent::executeLoad(OnePartition &dataGroup) 
     {
@@ -75,16 +89,16 @@ namespace hs {
 
       /* number of scalar values for each sphere, first three are
          always x,y,z position */
-      int stride = data.get_int("stride",3);
+      int stride = data.get_int("stride",default_stride);
       
       /* index of scalar to be used for color mapping; '-1' means 'no
          color mapping' */
-      int sidx   = data.get_int("sidx",-1);
+      int sidx   = data.get_int("sidx", default_sidx);
       assert(sidx < stride);
 
       /* index of rgb 'c'olor to be used for color mapping; '-1' means 'no
          color in particle' */
-      int cidx   = data.get_int("cidx",-1);
+      int cidx   = data.get_int("cidx",default_cidx);
 
       FILE *file = fopen(data.where.c_str(),"rb");
       ColorMapper colorMapper(data);
@@ -157,6 +171,9 @@ namespace hs {
         throw std::runtime_error
           ("triangles: index overrun - too many triangles in a single file");
 
+      if (!inputRange.empty())
+        printf("#hs: ts.tris: input scalar range in file was %f %f\n",
+               inputRange.lower,inputRange.upper);
       mesh->indices.resize(my_count);
       for (int i=0;i<(int)my_count;i++)
         mesh->indices[i] = 3*i + vec3i(0,1,2);

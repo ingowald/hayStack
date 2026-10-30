@@ -54,6 +54,8 @@ set(LOADER_SOURCES
   loader/TriangleMesh.cpp
   loader/VTPContent.h
   loader/VTPContent.cpp
+  loader/VTUContent.h
+  loader/VTUContent.cpp
   loader/GESTS.h
   loader/GESTS.cpp
   loader/RAWVolumeContent.h
@@ -91,9 +93,6 @@ else()
 endif()
 
 if (VTK_FOUND)
-  list(APPEND LOADER_SOURCES
-    loader/VTUContent.h loader/VTUContent.cpp
-  )
   target_compile_definitions(hs-config INTERFACE -DHS_VTK=1)
   target_link_libraries(hs-config INTERFACE# ${VTK_LIBRARIES}
     VTK::CommonCore

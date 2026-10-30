@@ -54,7 +54,7 @@ namespace hm {
     //    CmdLineCamera camera;
     hs::Camera camera;
     bool denoise = true;
-    // std::vector<CmdLineCamera> cameraPath;
+    std::vector<hs::Camera> cameraPath;
     // struct {
     //   vec3f vp0, vp1;
     //   vec3f vi0, vi1;
@@ -128,14 +128,15 @@ namespace hm {
     std::vector<char> hostName(10000);
     gethostname(hostName.data(),hostName.size());
     size_t hash = computeHashFromString(hostName.data());
-    std::vector<size_t> allHostNames(world->size);
-    MPI_Allgather(&hash,sizeof(hash),MPI_BYTE,
-                  allHostNames.data(),sizeof(hash),MPI_BYTE,
-                  world->comm);
+    std::vector<size_t> allHostHashes(world->size);
+    world->allGather(hash,allHostHashes);
+    // MPI_Allgather(&hash,sizeof(hash),MPI_BYTE,
+    //               allHostHashes.data(),sizeof(hash),MPI_BYTE,
+    //               world->comm);
     localRank = 0;
     localSize = 0;
     for (int i=0;i<world->size;i++) {
-      if (allHostNames[i] != hash) continue;
+      if (allHostHashes[i] != hash) continue;
       localSize++;
       if (i < world->rank) localRank++;
     }
@@ -212,29 +213,31 @@ namespace hm {
   //   }
   // }
 
-  // void addCamerasFromFile(const std::string &fileName)
-  // {
-  //   std::ifstream in(fileName.c_str());
-  //   std::string line;
-  //   while (in.good()) {
-  //     std::getline(in,line);
-  //     CmdLineCamera c;
-  //     int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f --fovy %f",
-  //                     &c.vp.x,
-  //                     &c.vp.y,
-  //                     &c.vp.z,
-  //                     &c.vi.x,
-  //                     &c.vi.y,
-  //                     &c.vi.z,
-  //                     &c.vu.x,
-  //                     &c.vu.y,
-  //                     &c.vu.z,
-  //                     &c.fovy);
-  //     if (rc != 10)
-  //       break;
-  //     fromCL.cameraPath.push_back(c);
-  //   }
-  // }
+  void addCamerasFromFile(const std::string &fileName)
+  {
+    std::ifstream in(fileName.c_str());
+    if (!in)
+      throw std::runtime_error("could not open cameras from '"+fileName+"'");
+    std::string line;
+    while (in.good()) {
+      std::getline(in,line);
+      hs::Camera c = fromCL.camera;
+      int rc = sscanf(line.c_str(),"--camera %f %f %f %f %f %f %f %f %f -fovy %f",
+                      &c.vp.x,
+                      &c.vp.y,
+                      &c.vp.z,
+                      &c.vi.x,
+                      &c.vi.y,
+                      &c.vi.z,
+                      &c.vu.x,
+                      &c.vu.y,
+                      &c.vu.z,
+                      &c.perspective.fovy);
+      if (rc != 10)
+        break;
+      fromCL.cameraPath.push_back(c);
+    }
+  }
   
 }
 
@@ -354,6 +357,8 @@ int main(int ac, char **av)
       fromCL.camera.vp = get3f(av,i);
       fromCL.camera.vi = get3f(av,i);
       fromCL.camera.vu = get3f(av,i);
+    } else if (arg == "--cameras-from-file") {
+      hm::addCamerasFromFile(av[++i]);
     } else if (arg == "-fovy") {
       fromCL.camera.perspective.fovy = std::stof(av[++i]);
       fromCL.camera.type = hs::Camera::PERSPECTIVE;
@@ -561,6 +566,31 @@ int main(int ac, char **av)
     renderer->resetAccumulation();
   }
 
+  if (!fromCL.cameraPath.empty()) {
+    std::cout << "rendering camera path sequence" << std::endl;
+    for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {
+      // hs::Camera camera;
+      auto camera = fromCL.cameraPath[frameID];
+      // camera.vi = c.vi;
+      // camera.vp = c.vp;
+      // camera.vu = c.vu;
+      // camera.fovy = c.fovy;
+      renderer->setCamera(camera);
+      renderer->renderFrame();
+      stbi_flip_vertically_on_write(true);
+      char suffix[100];
+      sprintf(suffix,"_frame%05i.png",frameID);
+      std::string fileName = fromCL.outFileName+std::string(suffix);
+      std::cout << " ... saving frame " << fileName << std::endl;
+      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+                     pixels.data(),fbSize.x*sizeof(uint32_t));
+    }
+    renderer->terminate();
+    world->barrier();
+    Comm::mpiFinalize();
+    exit(0);
+  }
+  
   if (fromCL.measure) {
     int numFramesRendered = 0;
     const int measure_warmup_frames = 2;

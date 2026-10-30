@@ -13,10 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(HS_MPI    "Enable MPI support in haystack" OFF)
-
-option(HS_IMGUI "Use Imgui in Non-QT viewer?" ON)
-option(HS_USE_MULTI_SCATTERING
-  "Use Barney principled volumes and volume multi-scattering" OFF)
 option(HS_VIEWER "Build hsViewer" ON)
 
 if (NOT (TARGET miniScene))
@@ -32,7 +28,7 @@ if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 endif()
 
-if (HS_IMGUI)
+if (HS_VIEWER)
   add_subdirectory(submodules/owl   EXCLUDE_FROM_ALL)
   add_subdirectory(submodules/glfwViewer   EXCLUDE_FROM_ALL)
 endif()

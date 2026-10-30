@@ -219,11 +219,14 @@ following arguments are recognized:
 - load `.tstri1` files with haystack:
 
 ```
-hsOffline lander-iso_vortMag_2.4_mapped_w/*tstri1 \
+hsOffline \
+	cm://defaults:cmidx=0 \
+	ts.tri://defaults:stride=4:sidx=3:map=-4,+4 \
+	lander-iso_vortMag_2.4_mapped_w/*tstri1 \
 	-os 1600 1200
 	-o lander-iso_vortMag_2.4_mapped_w.png
 ```
-File format for this data: `.tstri1` is 
+File format for this data: 
 - all binary file, one triangle after another
 - each triangle is three vertices, no connectivity
 - each vertex is three floats position, plus one float scalar
