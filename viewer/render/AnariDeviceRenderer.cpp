@@ -265,7 +265,8 @@ namespace hm {
         :"perspective";
       anari.camera = anari::newObject<anari::Camera>
         (anari.device, cameraType);
-      anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+      anari.cameraType = camera.type;
+       anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
       anari::commitParameters(anari.device, anari.frame);
       anariRelease(anari.device,anari.camera);
       anari.cameraType == camera.type;
