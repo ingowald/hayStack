@@ -523,12 +523,8 @@ int main(int ac, char **av)
 
   // const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
   const BoundsData worldBounds = renderer->getWorldBounds();
-  PING; PRINT(worldBounds.spatial);
   bool modelHasVolumeData = !worldBounds.scalars.empty();
 
-  PING;
-  PRINT(fromCL.camera.vp);
-  PRINT(fromCL.camera.vi);
   if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -539,7 +535,6 @@ int main(int ac, char **av)
       = worldBounds.spatial.center()
       + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
     fromCL.camera.vi = worldBounds.spatial.center();
-    PING; PRINT(fromCL.camera.vi);
   }
 
   

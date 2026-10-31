@@ -155,7 +155,6 @@ namespace hm {
   {
     BoundsData bb = localPartitions->getBounds();
 
-    PING; PRINT(bb.spatial);
     bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
     bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
     bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
@@ -166,7 +165,6 @@ namespace hm {
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
     }  
-    PING; PRINT(bb.spatial);    
     return bb;
   }
   

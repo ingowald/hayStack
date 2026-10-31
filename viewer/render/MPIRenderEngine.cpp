@@ -147,7 +147,6 @@ namespace hm {
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
-    PING;
     int cmd = RESET_ACCUMULATION;
     sendToWorkers(cmd);
     sendEndOfMessage();
@@ -156,12 +155,10 @@ namespace hm {
     // and do our own....
     // ------------------------------------------------------------------
     if (passThrough) passThrough->resetAccumulation();
-    PING;
   }
 
   void WorkerLoop::cmd_resetAccumulation()
   {
-    PING;
     // ------------------------------------------------------------------
     // get args....
     // ------------------------------------------------------------------
@@ -170,9 +167,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    PING;
     renderer->resetAccumulation();
-    PING;
   }
 
   // ==================================================================
@@ -199,8 +194,6 @@ namespace hm {
     bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
     bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
 
-    PING; PRINT(bb.spatial);
-    
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
     }
@@ -269,7 +262,6 @@ namespace hm {
 
   void MPIRenderEngine::renderFrame()
   {
-    PING;
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
@@ -277,17 +269,11 @@ namespace hm {
     sendToWorkers(cmd);
     sendEndOfMessage();
       
-    PING;
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) {
-      PING;
+    if (passThrough) 
       passThrough->renderFrame();
-      // fb.color = passThrough->fb.color;
-      PING;
-    }
-    PING;
   }
 
   void WorkerLoop::cmd_renderFrame()
@@ -300,10 +286,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    PING;
-    PRINT(renderer);
     renderer->renderFrame();
-    PING;
     
     // throw std::runtime_error("HARD EXIT FOR DEBUG");
   }
@@ -512,7 +495,6 @@ namespace hm {
     while (1) {
       int cmd = -1;
       fromMaster(cmd);
-      PING; PRINT(cmd);
       switch(cmd) {
       case SET_CAMERA:
         cmd_setCamera();

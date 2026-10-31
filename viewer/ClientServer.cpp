@@ -67,28 +67,29 @@ namespace hm {
 
   SocketComm::SocketComm(const std::string &server, int port)
   {
-    PING;
     fd = socket(AF_INET,SOCK_STREAM,0);
-
-    PING;
+    if (fd == -1)
+      throw std::runtime_error("socketcomm: could not create socket");
+    
     struct hostent *he = gethostbyname(server.c_str());
     assert(he);
 
-    PING;
     struct sockaddr_in sa;
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
-    // sa.sin_addr.s_addr = INADDR_ANY;
     memcpy(&sa.sin_addr.s_addr,he->h_addr,sizeof(sa.sin_addr.s_addr));
     sa.sin_port = htons(port);
-    connect(fd,(struct sockaddr*)&sa,sizeof(sa));
+    int rc = connect(fd,(struct sockaddr*)&sa,sizeof(sa));
+    if (rc != 0)
+      perror("socketcomm: error in connect()");
     onClientSide = true;
-    PING;
   }
   
   SocketComm::SocketComm()
   {
     fd = socket(AF_INET,SOCK_STREAM,0);
+    if (fd == -1)
+      throw std::runtime_error("socketcomm: could not create socket");
     
     int opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -96,13 +97,12 @@ namespace hm {
     port = 8628;
     struct sockaddr_in sa;
     memset(&sa, 0, sizeof(sa));
-    sa.sin_family = AF_INET;                 // IPv4
-    sa.sin_addr.s_addr = INADDR_ANY;          // Bind to all available network interfaces
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
     sa.sin_port = htons(port);      
 
     bind(fd,(struct sockaddr*)&sa,sizeof(sa));
     port = ntohs(sa.sin_port);
-    PRINT(port);
     onClientSide = false;
 
     listen(fd,1);
@@ -120,7 +120,8 @@ namespace hm {
     : backend(new HSServerREI(this,_backend))
   {
     SocketComm::SP boundSocket = std::make_shared<SocketComm>();
-    std::cout << "server running on port " << boundSocket->port << std::endl;
+    std::cout << "#hs: server running on port "
+              << boundSocket->port << std::endl;
 
     comm = std::make_shared<SocketComm>(boundSocket);
     MPIRenderEngine::runWorker(comm,backend);
@@ -130,28 +131,23 @@ namespace hm {
   HSClient::HSClient(const std::string &server, int port)
     : MPIRenderEngine(std::make_shared<SocketComm>(server,port),nullptr)
   {
-    std::cout << "#hsc: hs client created..." << std::endl;
-    // socket_comm = 
+    std::cout << "#hsc: remote render client successfully connected to "
+              << server << "::" << port << std::endl;
   }
 
   void HSClient::resize(const vec2i &fbSize, uint32_t *hostRgba)
   {
     this->fbSize = fbSize;
-    // fb.color.resize(fbSize.x*fbSize.y);
     this->hostRgba = hostRgba;
     MPIRenderEngine::resize(fbSize,hostRgba);
   }
   
   void HSClient::renderFrame()
   {
-    PING;
-    PRINT(fbSize);
     MPIRenderEngine::renderFrame();
     size_t sizeOfPixel = 4;
     size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
-    PING;
     SocketComm *sc = (SocketComm *)this->comm.get();
-    std::cout << "client RECV " << numBytes << std::endl;
     uint8_t *ptr = (uint8_t*)hostRgba;
     size_t nltr = numBytes;
     while (nltr) {
@@ -162,29 +158,20 @@ namespace hm {
       ptr += nr;
       nltr -= nr;
     }
-    // recv(comm->fd,fb.color.data(),numBytes,0);
-    PING;
   }
 
   HSServerREI::HSServerREI(HSServer *server,
                            RenderEngineInterface *pt)
     : PassthroughREI(pt),
       server(server)
-  {
-    PING; PRINT(this);
-  }
+  {}
   
   void HSServerREI::renderFrame()
   {
-    PING;
     PassthroughREI::renderFrame();
-    PING;
     auto fbSize = server->fb.size;
     size_t sizeOfPixel = 4;
     size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
-    PRINT(fbSize);
-    PRINT(server->fb.color.size());
-    std::cout << "server SEND " << numBytes << std::endl;
     
     size_t numLeftToSend = numBytes;
     uint8_t *ptr = (uint8_t *)server->fb.color.data();
@@ -195,7 +182,6 @@ namespace hm {
       ptr += numSent;
       numLeftToSend -= numSent;
     }
-    // send(server->comm->fd,server->fb.color.data(),numBytes,0);
   }
   
   void HSServerREI::resize(const vec2i &fbSize, uint32_t *fbPointer)
@@ -203,7 +189,7 @@ namespace hm {
     PING;
     server->fb.color.resize(fbSize.x*fbSize.y);
     server->fb.size = fbSize;
-    PassthroughREI::resize(fbSize,server->fb.color.data());//fbPointer);
+    PassthroughREI::resize(fbSize,server->fb.color.data());
   }
   
 }
