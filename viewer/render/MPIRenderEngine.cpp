@@ -49,11 +49,11 @@ namespace hm {
     void runWorker();
     
   private:
-    template<typename T>
-    void sendToWorkers(const std::vector<T> &t);
+    // template<typename T>
+    // void sendToWorkers(const std::vector<T> &t);
     
-    template<typename T>
-    void sendToWorkers(const T &t);
+    // template<typename T>
+    // void sendToWorkers(const T &t);
     
     /*! @{ command handlers - each corresponds to exactly one command
         sent my the master */
@@ -147,6 +147,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
+    PING;
     int cmd = RESET_ACCUMULATION;
     sendToWorkers(cmd);
     sendEndOfMessage();
@@ -155,10 +156,12 @@ namespace hm {
     // and do our own....
     // ------------------------------------------------------------------
     if (passThrough) passThrough->resetAccumulation();
+    PING;
   }
 
   void WorkerLoop::cmd_resetAccumulation()
   {
+    PING;
     // ------------------------------------------------------------------
     // get args....
     // ------------------------------------------------------------------
@@ -167,7 +170,9 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
+    PING;
     renderer->resetAccumulation();
+    PING;
   }
 
   // ==================================================================
@@ -193,11 +198,12 @@ namespace hm {
     bb.scalars.upper = comm->allReduceMax(bb.scalars.upper);
     bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
     bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
+
+    PING; PRINT(bb.spatial);
     
     if (bb.spatial.empty()) {
       bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
     }
-    PING; PRINT(bb.spatial);
     
     return bb;
   }
@@ -213,7 +219,6 @@ namespace hm {
     // and execute
     // ------------------------------------------------------------------
     BoundsData bb = renderer->getWorldBounds();
-    PING; PRINT(bb.spatial);
 
     bb.spatial.lower = comm->allReduceMin(bb.spatial.lower);
     bb.spatial.upper = comm->allReduceMax(bb.spatial.upper);
@@ -221,7 +226,6 @@ namespace hm {
     bb.scalars.upper = comm->allReduceMax(bb.scalars.upper);
     bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
     bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
-    PING; PRINT(bb.spatial);
   }
 
 
@@ -265,6 +269,7 @@ namespace hm {
 
   void MPIRenderEngine::renderFrame()
   {
+    PING;
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
@@ -272,10 +277,17 @@ namespace hm {
     sendToWorkers(cmd);
     sendEndOfMessage();
       
+    PING;
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->renderFrame();
+    if (passThrough) {
+      PING;
+      passThrough->renderFrame();
+      // fb.color = passThrough->fb.color;
+      PING;
+    }
+    PING;
   }
 
   void WorkerLoop::cmd_renderFrame()
@@ -288,14 +300,18 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
+    PING;
+    PRINT(renderer);
     renderer->renderFrame();
-
+    PING;
+    
     // throw std::runtime_error("HARD EXIT FOR DEBUG");
   }
 
   // ==================================================================
 
-  void MPIRenderEngine::resize(const vec2i &newSize, uint32_t *appFB)
+  void MPIRenderEngine::resize(const vec2i &newSize,
+                               uint32_t *fbPointer)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -308,7 +324,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->resize(newSize,appFB);
+    if (passThrough) passThrough->resize(newSize,fbPointer);
 
     comm->barrier();
   }
@@ -496,6 +512,7 @@ namespace hm {
     while (1) {
       int cmd = -1;
       fromMaster(cmd);
+      PING; PRINT(cmd);
       switch(cmd) {
       case SET_CAMERA:
         cmd_setCamera();

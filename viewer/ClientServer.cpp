@@ -20,9 +20,7 @@ namespace hm {
     {
       if (onClientSide) {
         recv(fd,&value,sizeof(value),0);
-        PING; PRINT(value);
       } else {
-        PING; PRINT(value);
         send(fd,&value,sizeof(value),0);
       }
     }
@@ -69,22 +67,23 @@ namespace hm {
 
   SocketComm::SocketComm(const std::string &server, int port)
   {
-    fd = socket(AF_INET,SOCK_STREAM,0);
     PING;
+    fd = socket(AF_INET,SOCK_STREAM,0);
 
+    PING;
     struct hostent *he = gethostbyname(server.c_str());
     assert(he);
 
+    PING;
     struct sockaddr_in sa;
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     // sa.sin_addr.s_addr = INADDR_ANY;
     memcpy(&sa.sin_addr.s_addr,he->h_addr,sizeof(sa.sin_addr.s_addr));
     sa.sin_port = htons(port);
-    PING;
     connect(fd,(struct sockaddr*)&sa,sizeof(sa));
-    PING;
     onClientSide = true;
+    PING;
   }
   
   SocketComm::SocketComm()
@@ -111,22 +110,20 @@ namespace hm {
   
   SocketComm::SocketComm(SocketComm::SP boundSocket)
   {
-    PING;
     fd = accept(boundSocket->fd,0,0);
-    PING;
     onClientSide = false;
   }
   
   
   
-  HSServer::HSServer(RenderEngineInterface *backend)
-    : backend(backend)
+  HSServer::HSServer(RenderEngineInterface *_backend)
+    : backend(new HSServerREI(this,_backend))
   {
     SocketComm::SP boundSocket = std::make_shared<SocketComm>();
     std::cout << "server running on port " << boundSocket->port << std::endl;
 
-    SocketComm::SP connection = std::make_shared<SocketComm>(boundSocket);
-    MPIRenderEngine::runWorker(connection,backend);
+    comm = std::make_shared<SocketComm>(boundSocket);
+    MPIRenderEngine::runWorker(comm,backend);
   }
 
   
@@ -134,22 +131,79 @@ namespace hm {
     : MPIRenderEngine(std::make_shared<SocketComm>(server,port),nullptr)
   {
     std::cout << "#hsc: hs client created..." << std::endl;
+    // socket_comm = 
   }
-
-  // BoundsData HSClient::getWorldBounds() override
-  // {
-    
-  // }
 
   void HSClient::resize(const vec2i &fbSize, uint32_t *hostRgba)
   {
-    PING;
     this->fbSize = fbSize;
+    // fb.color.resize(fbSize.x*fbSize.y);
     this->hostRgba = hostRgba;
+    MPIRenderEngine::resize(fbSize,hostRgba);
   }
   
   void HSClient::renderFrame()
   {
+    PING;
+    PRINT(fbSize);
+    MPIRenderEngine::renderFrame();
+    size_t sizeOfPixel = 4;
+    size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
+    PING;
+    SocketComm *sc = (SocketComm *)this->comm.get();
+    std::cout << "client RECV " << numBytes << std::endl;
+    uint8_t *ptr = (uint8_t*)hostRgba;
+    size_t nltr = numBytes;
+    while (nltr) {
+      size_t nr = recv(sc->fd,ptr,nltr,0);
+      if (nr == 0) {
+        throw std::runtime_error("received incomplete frame");
+      }
+      ptr += nr;
+      nltr -= nr;
+    }
+    // recv(comm->fd,fb.color.data(),numBytes,0);
+    PING;
+  }
+
+  HSServerREI::HSServerREI(HSServer *server,
+                           RenderEngineInterface *pt)
+    : PassthroughREI(pt),
+      server(server)
+  {
+    PING; PRINT(this);
+  }
+  
+  void HSServerREI::renderFrame()
+  {
+    PING;
+    PassthroughREI::renderFrame();
+    PING;
+    auto fbSize = server->fb.size;
+    size_t sizeOfPixel = 4;
+    size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
+    PRINT(fbSize);
+    PRINT(server->fb.color.size());
+    std::cout << "server SEND " << numBytes << std::endl;
+    
+    size_t numLeftToSend = numBytes;
+    uint8_t *ptr = (uint8_t *)server->fb.color.data();
+    while (numLeftToSend > 0) {
+      size_t numSent = send(server->comm->fd,ptr,numLeftToSend,0);
+      if (numSent == 0)
+        throw std::runtime_error("could not send anything!?");
+      ptr += numSent;
+      numLeftToSend -= numSent;
+    }
+    // send(server->comm->fd,server->fb.color.data(),numBytes,0);
+  }
+  
+  void HSServerREI::resize(const vec2i &fbSize, uint32_t *fbPointer)
+  {
+    PING;
+    server->fb.color.resize(fbSize.x*fbSize.y);
+    server->fb.size = fbSize;
+    PassthroughREI::resize(fbSize,server->fb.color.data());//fbPointer);
   }
   
 }

@@ -71,12 +71,14 @@ target_compile_definitions(hsServer PUBLIC -DHS_SERVER=1)
 # ==================================================================
 if (TARGET hayStackViewer)
   add_executable(hsClient
-    remoteViewer.cpp
+    main.cpp #remoteViewer.cpp
     ClientServer.cpp
   )
   target_link_libraries(hsClient
     PUBLIC
     hayStackViewer
+    hayStackDataLoader
     hayMaker
   )
+  target_compile_definitions(hsClient PUBLIC -DHS_CLIENT=1)
 endif()

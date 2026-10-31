@@ -94,6 +94,35 @@ namespace hm {
     }
   }
 
+#if 0
+  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
+  {
+    MPIRenderEngine::resize(fbSize);
+    this->fbSize = fbSize;
+    this->hostRGBA = hostRGBA;
+    for (auto dev : perDevice) {
+      auto device = dev->anari.device;
+      auto frame = dev->anari.frame;
+      dev->fbSize = fbSize;
+      anari::setParameter(device, frame,
+                          "size",
+                          (const anari::math::uint2&)fbSize);
+      anari::setParameter(device, frame,
+                          "channel.color",
+                          ANARI_UFIXED8_RGBA_SRGB);
+      static bool have_depth = getenv("HS_HAVE_DEPTH");
+      if (have_depth)
+        anari::setParameter(device, frame,
+                            "channel.depth", ANARI_FLOAT32);
+#ifdef TEST_IDCHANNEL
+      anari::setParameter(device, frame,
+                          TEST_IDCHANNEL, ANARI_UINT32);
+#endif
+
+      anari::commitParameters(device, frame);
+    }
+  }
+#else
   void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
   {
     this->fbSize = fbSize;
@@ -120,7 +149,7 @@ namespace hm {
       anari::commitParameters(device, frame);
     }
   }
-  
+#endif
 
   BoundsData HayMaker::getWorldBounds()
   {

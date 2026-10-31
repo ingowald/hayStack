@@ -9,15 +9,33 @@
 
 namespace hm {
 
+  struct SocketComm;
+
   struct HSServer {
     HSServer(RenderEngineInterface *backend);
     RenderEngineInterface *const backend;
+
+    struct {
+      vec2i size;
+      std::vector<uint32_t> color;
+    } fb;
+    std::shared_ptr<SocketComm> comm;
+  };
+  
+  struct HSServerREI : public PassthroughREI {
+    HSServerREI(HSServer *server,
+                RenderEngineInterface *pt);
+    void renderFrame() override;
+    void resize(const vec2i &fbSize, uint32_t *fbPointer) override;
+    HSServer *const server;
   };
 
   struct HSClient : public MPIRenderEngine {
     HSClient(const std::string &server, int port);
     
-    void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
+    void resize(const vec2i &fbSize,
+                uint32_t *fbPointer) override;
+    // void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void renderFrame() override;
     // BoundsData getWorldBounds() override;
 

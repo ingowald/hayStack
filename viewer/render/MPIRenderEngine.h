@@ -19,7 +19,8 @@ namespace hm {
                     RenderEngineInterface *passThrough = 0);
     
     void renderFrame() override;
-    void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
+    void resize(const vec2i &fbSize,
+                uint32_t *fbPointer) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
     void setTransferFunction(const TransferFunction &xf) override;
@@ -43,13 +44,14 @@ namespace hm {
 
     void checkEndOfMessage();
     void sendEndOfMessage();
-    
-    std::shared_ptr<Comm> comm;
-    
+
     /*! passthrough-renderer on master node */
     RenderEngineInterface *passThrough = 0;
 
     int eomIdentifierBase = 0x12345;
+  protected:
+    std::shared_ptr<Comm> comm;
+    
   };
 
 }

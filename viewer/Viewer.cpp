@@ -270,8 +270,13 @@ namespace hm {
     windowSize = newSize;
     const int panelWidth = panelWidthFor(newSize.x);
     const owl::common::vec2i renderSize(newSize.x - panelWidth, newSize.y);
+#if 0
+    OWLViewer::resize(renderSize,renderer->fb.color.data());
+    renderer->resize((const mini::common::vec2i&)renderSize);
+#else
     OWLViewer::resize(renderSize);
     renderer->resize((const mini::common::vec2i&)renderSize,fbPointer);
+#endif
   }
   
   void Viewer::render() 

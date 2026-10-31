@@ -49,8 +49,10 @@ namespace hm {
              hs::LocalPartitions *localPartitions,
              const std::vector<DeviceConfig> &deviceConfigs);
 
-    void resize(const vec2i &fbSize, uint32_t *hostRgba);
-    void renderFrame();
+    void resize(const vec2i &fbSize,
+                uint32_t *fbPointer) override;
+    // void resize(const vec2i &fbSize, uint32_t *hostRgba);
+    void renderFrame() override;
     void resetAccumulation();
     void setCamera(const Camera &camera);
     void finalizeRender();
@@ -73,6 +75,7 @@ namespace hm {
 
     uint32_t     *hostRGBA   = 0;
     vec2i         fbSize;
+    
     /*! whether we have to re-commit the model next frame */
     bool          dirty = true;
 

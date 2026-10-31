@@ -3,10 +3,10 @@
 
 #include "viewer/render/HayMaker.h"
 #include "hayStack/loader/DataLoader.h"
-#if HS_SERVER
+#if HS_SERVER || HS_CLIENT
 # include "viewer/ClientServer.h"
 #endif
-#if HS_VIEWER
+#if HS_VIEWER || HS_CLIENT
 # include "viewer/Viewer.h"
 #else
 # define STB_IMAGE_WRITE_IMPLEMENTATION 1
@@ -33,6 +33,12 @@ namespace hm {
         on choesn dpmode */
     int ndg = 0;
 
+    struct {
+      int port = 8628;
+      std::string server = "localhost";
+    } remote;
+    int maxVolumeBounces = 1;
+    
     bool forceSingleGPU = false;
     
     DPMode dpMode = DPMODE_NOT_SPECIFIED;
@@ -268,6 +274,9 @@ int main(int ac, char **av)
       loader.addContent(arg);
     } else if (arg == "--no-bg") {
       fromCL.bgColor = ::mini::common::vec4f(0.f);
+    } else if (arg == "--connect") {
+      fromCL.remote.server = av[++i];
+      fromCL.remote.port = std::stoi(av[++i]);
     } else if (arg == "--denoise" || arg == "-denoise") {
       fromCL.denoise = true;
     } else if (arg == "--no-denoise" || arg == "-no-denoise"
@@ -298,7 +307,6 @@ int main(int ac, char **av)
       fromCL.ambientRadiance = std::stof(av[++i]);
     } else if (arg == "-spp" || arg == "-ppp" || arg == "--paths-per-pixel") {
       fromCL.spp = std::stoi(av[++i]);
-#if HS_USE_MULTI_SCATTERING
     } else if (arg == "--no-multi-scatter") {
       fromCL.scatterSettings.enabled = false;
     } else if (arg == "--max-volume-bounces") {
@@ -307,7 +315,6 @@ int main(int ac, char **av)
       fromCL.scatterSettings.medium.anisotropy = std::stof(av[++i]);
     } else if (arg == "--emission-strength") {
       fromCL.scatterSettings.medium.emissionStrength = std::stof(av[++i]);
-#endif
     } else if (arg == "-mum" || arg == "--merge-unstructured-meshes" || arg == "--merge-umeshes") {
       fromCL.mergeUnstructuredMeshes = true;
     } else if (arg == "--no-mum") {
@@ -457,6 +464,12 @@ int main(int ac, char **av)
   globalRenderSettings.defaultColorMapIndex = fromCL.cmID;
   globalRenderSettings.denoise = fromCL.denoise;
   
+  RenderEngineInterface *renderer = nullptr;
+
+#if HS_CLIENT
+  HSClient remote(fromCL.remote.server,fromCL.remote.port);
+  renderer = &remote;
+#else
   HayMaker *hayMaker
     = new HayMaker(// mpi/peers:
                    world,
@@ -490,7 +503,6 @@ int main(int ac, char **av)
   
   world->barrier();
 
-  RenderEngineInterface *renderer = nullptr;
   if (world->size == 1)
     // no MPI, render direcftly
     renderer = hayMaker;
@@ -505,13 +517,18 @@ int main(int ac, char **av)
     
     exit(0);
   }
+# endif
 
 
 
   // const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
   const BoundsData worldBounds = renderer->getWorldBounds();
+  PING; PRINT(worldBounds.spatial);
   bool modelHasVolumeData = !worldBounds.scalars.empty();
-  
+
+  PING;
+  PRINT(fromCL.camera.vp);
+  PRINT(fromCL.camera.vi);
   if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
@@ -522,6 +539,7 @@ int main(int ac, char **av)
       = worldBounds.spatial.center()
       + mini::common::vec3f(-.3f, .7f, +1.f) * worldBounds.spatial.span();
     fromCL.camera.vi = worldBounds.spatial.center();
+    PING; PRINT(fromCL.camera.vi);
   }
 
   
@@ -530,7 +548,7 @@ int main(int ac, char **av)
   // connect, and then 'forward' all viewer-specific commands as if we
   // were a local viewer
   HSServer hsServer__create_waitForClient_and_run(renderer);
-#elif HS_VIEWER
+#elif HS_VIEWER || HS_CLIENT
   Viewer viewer(worldBounds,
                 fromCL.scatterSettings,
                 renderer,//&world,
@@ -553,9 +571,13 @@ int main(int ac, char **av)
 #else
 
   auto &fbSize = fromCL.fbSize;
+#if 0
+  renderer->resize((const mini::common::vec2i&)fbSize);
+  std::vector<uint32_t> &pixels = renderer->fb.color;
+#else
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
   renderer->resize((const mini::common::vec2i&)fbSize,pixels.data());
-
+#endif
   hs::Camera camera = fromCL.camera;;
   // camera.vp = fromCL.camera.vp;
   // camera.vu = fromCL.camera.vu;

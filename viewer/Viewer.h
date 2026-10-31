@@ -16,11 +16,7 @@ namespace hm {
     Viewer(BoundsData worldBounds,
            VolumeScatterSettings scatterSettings,
            RenderEngineInterface *const renderer,
-           Camera defaultCamera
-           
-           // ,
-           // hs::Comm::SP comm
-          );
+           Camera defaultCamera);
 
     const BoundsData worldBounds;
     
