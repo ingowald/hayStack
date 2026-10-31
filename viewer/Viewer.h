@@ -10,6 +10,9 @@
 
 namespace hm {
   using namespace hs;
+
+  using owl2i = owl::common::vec2i;
+  using owl2f = owl::common::vec2f;
   
   struct Viewer : public owl::viewer::OWLViewer
   {
@@ -24,67 +27,27 @@ namespace hm {
     int controlPanelWidth = 320;
     owl::common::vec2i windowSize { 0, 0 };
 
-    int panelWidthFor(int width) const
-    {
-      if (!uiIsOn)
-        return 0;
-      return std::min(controlPanelWidth,
-                      std::max(0, width - /* minimum render canvas size */320));
-    }
-
-    void toggleUI()
-    {
-      if (worldBounds.scalars.empty())
-        return;
-      uiIsOn = !uiIsOn;
-      if (windowSize.x > 0 && windowSize.y > 0)
-        resize(windowSize);
-    }
+    void toggleUI();
+    int panelWidthFor(int width) const;
     
     void runImgui() override;
 
-    // void colorMapChanged();
-    // void rangeChanged();
-    // void opacityScaleChanged();
-    owl::common::vec2i viewportMousePosition(
-      const owl::common::vec2i &position) const
-    {
-      return { position.x - panelWidthFor(windowSize.x), position.y };
-    }
-
-    void mouseMotion(const owl::common::vec2i &position) override
-    {
-      OWLViewer::mouseMotion(viewportMousePosition(position));
-    }
-
-    void mouseButtonLeft(const owl::common::vec2i &position,
-                         bool pressed) override
-    {
-      OWLViewer::mouseButtonLeft(viewportMousePosition(position), pressed);
-    }
-
-    void mouseButtonCenter(const owl::common::vec2i &position,
-                           bool pressed) override
-    {
-      OWLViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
-    }
-
-    void mouseButtonRight(const owl::common::vec2i &position,
-                          bool pressed) override
-    {
-      OWLViewer::mouseButtonRight(viewportMousePosition(position), pressed);
-    }
+    owl2i viewportMousePosition(const owl2i &position) const;
+    void mouseMotion(const owl2i &position) override;
+    void mouseButtonLeft(const owl2i &position, bool pressed) override;
+    void mouseButtonCenter(const owl2i &position, bool pressed) override;
+    void mouseButtonRight(const owl2i &position, bool pressed) override;
 
     void screenShot();
     
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const owl::common::vec2i &where) override;
+    void key(char key, const owl2i &where) override;
 
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const owl::common::vec2i &newSize) override;
+    void resize(const owl2i &newSize) override;
 
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override;
@@ -113,7 +76,9 @@ namespace hm {
     // the objec that stores the _haystack_ idea of what a xf is (with
     // domain, color, and alpha)
     hs::TransferFunction xf;
-    hs::Camera defaultCamera;
+    hs::Camera currentCamera;
+
+    std::vector<float> fbDepth;
   };
 
 }

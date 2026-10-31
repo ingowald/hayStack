@@ -18,6 +18,7 @@ namespace hm {
     struct {
       vec2i size;
       std::vector<uint32_t> color;
+      std::vector<float> depth;
     } fb;
     std::shared_ptr<SocketComm> comm;
   };
@@ -26,7 +27,9 @@ namespace hm {
     HSServerREI(HSServer *server,
                 RenderEngineInterface *pt);
     void renderFrame() override;
-    void resize(const vec2i &fbSize, uint32_t *fbPointer) override;
+    void resize(const vec2i &fbSize,
+                uint32_t *fbColor,
+                float *fbDepth) override;
     HSServer *const server;
   };
 
@@ -34,13 +37,15 @@ namespace hm {
     HSClient(const std::string &server, int port);
     
     void resize(const vec2i &fbSize,
-                uint32_t *fbPointer) override;
+                uint32_t *fbColor,
+                float *fbDepth) override;
     // void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void renderFrame() override;
     // BoundsData getWorldBounds() override;
 
     vec2i     fbSize;
-    uint32_t *hostRgba;
+    uint32_t *hostColor;
+    float    *hostDepth;
   };
   
 }

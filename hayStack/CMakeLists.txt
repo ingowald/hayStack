@@ -128,7 +128,8 @@ add_library(hayStack
   MPIWrappers.cpp
   
   HayStack.h
-
+  HayStack.cpp
+  
   # one logical parition of the data
   OnePartition.h
   OnePartition.cpp

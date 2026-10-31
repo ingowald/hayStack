@@ -566,13 +566,9 @@ int main(int ac, char **av)
 #else
 
   auto &fbSize = fromCL.fbSize;
-#if 0
-  renderer->resize((const mini::common::vec2i&)fbSize);
-  std::vector<uint32_t> &pixels = renderer->fb.color;
-#else
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
-  renderer->resize((const mini::common::vec2i&)fbSize,pixels.data());
-#endif
+  std::vector<float> depth(fbSize.x*fbSize.y);
+  renderer->resize((const mini::common::vec2i&)fbSize,pixels.data(),depth.data());
   hs::Camera camera = fromCL.camera;;
   // camera.vp = fromCL.camera.vp;
   // camera.vu = fromCL.camera.vu;

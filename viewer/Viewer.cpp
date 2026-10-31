@@ -10,38 +10,119 @@
 
 namespace hm {
 
+  using owl3f = owl::common::vec3f;
+  
   Viewer::Viewer(BoundsData worldBounds,
                  VolumeScatterSettings scatterSettings,
                  RenderEngineInterface *const renderer,
-                 Camera defaultCamera
-                 // ,
-                 // hs::Comm::SP comm
-                )
+                 Camera defaultCamera)
     : renderer(renderer),
-      // world(world),
       scatterSettings(scatterSettings),
       worldBounds(worldBounds),
-      defaultCamera(defaultCamera)
+      currentCamera(defaultCamera)
   {
     xf.domain = worldBounds.scalars;
     uiIsOn = !worldBounds.scalars.empty();
     emissionXF.domain = worldBounds.scalars;
   }
 
+
+  owl2i Viewer::viewportMousePosition(const owl2i &position) const
+  {
+    return { position.x - panelWidthFor(windowSize.x), position.y };
+  }
+
+  void Viewer::mouseMotion(const owl::common::vec2i &position) 
+  {
+    owl2i translated = viewportMousePosition(position);
+
+    if (leftButton.isPressed && leftButton.shiftWhenPressed)
+      return;
+    
+    OWLViewer::mouseMotion(translated);
+  }
+
+  void Viewer::mouseButtonLeft(const owl::common::vec2i &position,
+                               bool pressed) 
+  {
+    owl2i translated = viewportMousePosition(position);
+    
+    if (leftButton.shiftWhenPressed) {
+      // check if this is a click, or a release
+      if (pressed) {
+        owl2f relativePositionInViewport
+          = (owl2f(translated)+owl2f(.5f)) / owl2f(fbSize);
+        float aspect = fbSize.x / (float)fbSize.y;
+        int iy = fbSize.y-1-translated.y;
+        int pixelID = translated.x + fbSize.x*iy;
+        relativePositionInViewport.y = 1.f-relativePositionInViewport.y;
+        float depth = fbDepth[pixelID];
+        if (depth > 1e20f) {
+          std::cout << "pick-click on pixel, but nothing pickable there..." << std::endl;
+        }
+        else {
+          vec3f pickedPos = currentCamera
+            .reproject((const vec2f&)relativePositionInViewport,
+                       depth,aspect);
+           
+          if (leftButton.ctrlWhenPressed) {
+            std::cout << "pick pos: " << pickedPos << std::endl;
+          } else {
+            owl::viewer::Camera &fc = getCamera();
+            fc.setOrientation((const owl3f&)currentCamera.vp,
+                              (const owl3f&)pickedPos,
+                              (const owl3f&)currentCamera.vu,
+                    /*ignore*/1.f);
+            updateCamera();
+          }
+        } 
+      }
+    }
+    else
+      OWLViewer::mouseButtonLeft(translated, pressed);
+  }
+
+  void Viewer::mouseButtonCenter(const owl::common::vec2i &position,
+                                 bool pressed) 
+  {
+    OWLViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
+  }
+
+  void Viewer::mouseButtonRight(const owl::common::vec2i &position,
+                                bool pressed) 
+  {
+    OWLViewer::mouseButtonRight(viewportMousePosition(position), pressed);
+  }
+
+  int Viewer::panelWidthFor(int width) const
+  {
+    if (!uiIsOn)
+      return 0;
+    int pw = std::min(controlPanelWidth,
+                      std::max(0, width - /* minimum render canvas size */320));
+    return pw;
+  }
+  
+  void Viewer::toggleUI()
+  {
+    uiIsOn = !uiIsOn;
+    resize(windowSize);
+  }
+  
   void Viewer::runImgui() 
   {
-    if (!uiIsOn) return;
-
+    // this is in 'imgui pixels', not physical pixels!
     const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     const float panelWidth = float(panelWidthFor(int(displaySize.x)));
     const float maxPanelWidth = std::max(300.f, displaySize.x - 320.f);
+
     ImGui::GetIO().ConfigWindowsResizeFromEdges = true;
-    ImGui::GetBackgroundDrawList()->AddImage(
-                                             reinterpret_cast<void *>(fbTexture),
-                                             ImVec2(panelWidth, 0.f),
-                                             displaySize,
-                                             ImVec2(0.f, 1.f),
-                                             ImVec2(1.f, 0.f));
+      ImGui::GetBackgroundDrawList()
+      ->AddImage(reinterpret_cast<void *>(fbTexture),
+        /*lower*/ImVec2(panelWidth, 0.f),
+        /*upper*/displaySize,
+                 ImVec2(0.f, 1.f),
+                 ImVec2(1.f, 0.f));
     ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(panelWidth, displaySize.y),
                              ImGuiCond_FirstUseEver);
@@ -49,70 +130,73 @@ namespace hm {
                                         ImVec2(maxPanelWidth,
                                                displaySize.y));
     ImGui::SetNextWindowBgAlpha(1.f);
-    ImGui::Begin("HayStack/Imgui", nullptr,
-                 ImGuiWindowFlags_NoMove
-                 | ImGuiWindowFlags_NoCollapse
-                 | ImGuiWindowFlags_NoSavedSettings);
+    if (uiIsOn) {
 
-    const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
-    if (resizedPanelWidth != controlPanelWidth) {
-      controlPanelWidth = resizedPanelWidth;
-      if (windowSize.x > 0 && windowSize.y > 0)
-        resize(windowSize);
-    }
+      ImGui::Begin("HayStack/Imgui", nullptr,
+                   ImGuiWindowFlags_NoMove
+                   | ImGuiWindowFlags_NoCollapse
+                   | ImGuiWindowFlags_NoSavedSettings);
+
+      const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
+      if (resizedPanelWidth != controlPanelWidth) {
+        controlPanelWidth = resizedPanelWidth;
+        if (windowSize.x > 0 && windowSize.y > 0)
+          resize(windowSize);
+      }
       
-    if (worldBounds.scalars.empty()) {
-      ImGui::Text("(no volume data)");
-    } else {
-      ImGui::Text("scalar range [%f .. %f]",
-                  worldBounds.scalars.lower,
-                  worldBounds.scalars.upper);
-      ImGui::PushID("opacityTransferFunction");
-      const bool opacityChanged = xfEditor.runUI();
-      ImGui::PopID();
-      if (opacityChanged)
-        xfDirty = true;
-#if HS_USE_MULTI_SCATTERING
-      ImGui::Separator();
-      if (ImGui::CollapsingHeader("Volume rendering",
-                                  ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
-          scatterDirty = true;
-        if (ImGui::SliderInt("Volume bounces",
-                             &scatterSettings.maxVolumeBounces, 1, 64))
-          scatterDirty = true;
-        if (ImGui::SliderFloat("Anisotropy",
-                               &scatterSettings.medium.anisotropy,
-                               -.99f, .99f))
-          scatterDirty = true;
-      }
-      if (ImGui::CollapsingHeader("Emission",
-                                  ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::DragFloat("Emission strength",
-                             &scatterSettings.medium.emissionStrength,
-                             .001f, 0.f, 3.f, "%.4f"))
-          scatterDirty = true;
-        ImGui::PushID("emissionTransferFunction");
-        const bool emissionChanged = emissionXfEditor.runUI(false);
+      if (worldBounds.scalars.empty()) {
+        ImGui::Text("(no volume data)");
+      } else {
+        ImGui::Text("scalar range [%f .. %f]",
+                    worldBounds.scalars.lower,
+                    worldBounds.scalars.upper);
+        ImGui::PushID("opacityTransferFunction");
+        const bool opacityChanged = xfEditor.runUI();
         ImGui::PopID();
-        if (emissionChanged)
-          emissionXfDirty = true;
-      }
+        if (opacityChanged)
+          xfDirty = true;
+#if HS_USE_MULTI_SCATTERING
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Volume rendering",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
+            scatterDirty = true;
+          if (ImGui::SliderInt("Volume bounces",
+                               &scatterSettings.maxVolumeBounces, 1, 64))
+            scatterDirty = true;
+          if (ImGui::SliderFloat("Anisotropy",
+                                 &scatterSettings.medium.anisotropy,
+                                 -.99f, .99f))
+            scatterDirty = true;
+        }
+        if (ImGui::CollapsingHeader("Emission",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::DragFloat("Emission strength",
+                               &scatterSettings.medium.emissionStrength,
+                               .001f, 0.f, 3.f, "%.4f"))
+            scatterDirty = true;
+          ImGui::PushID("emissionTransferFunction");
+          const bool emissionChanged = emissionXfEditor.runUI(false);
+          ImGui::PopID();
+          if (emissionChanged)
+            emissionXfDirty = true;
+        }
 #endif
         
-      if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
-                             worldBounds.scalars.lower,
-                             worldBounds.scalars.upper))
-        xfDirty = true;
-      if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
-                             worldBounds.scalars.lower,
-                             worldBounds.scalars.upper))
-        xfDirty = true;
-      if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
-                             0.f,200.f))
-        xfDirty = true;
+        if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
+                               worldBounds.scalars.lower,
+                               worldBounds.scalars.upper))
+          xfDirty = true;
+        if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
+                               worldBounds.scalars.lower,
+                               worldBounds.scalars.upper))
+          xfDirty = true;
+        if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
+                               0.f,200.f))
+          xfDirty = true;
+      }
+      ImGui::End();
     }
-    ImGui::End();
   }
   
   void Viewer::screenShot()
@@ -143,15 +227,7 @@ namespace hm {
   {
     switch(key) {
     case 'C': {
-      // for anybody deriving from this class: if you do not like
-      // this output, simply intercept the 'C' key in your derived
-      // 'key()' method before calling this...
-      hs::Camera camera;
-      OWLViewer::getCameraOrientation
-        ((owl::common::vec3f&)camera.vp,
-         (owl::common::vec3f&)camera.vi,
-         (owl::common::vec3f&)camera.vu,
-         camera.perspective.fovy);
+      hs::Camera &camera = currentCamera;
       vec3f vp = camera.vp;
       vec3f vi = camera.vi;
       vec3f vu = camera.vu;
@@ -171,6 +247,9 @@ namespace hm {
                   << " " << vu.x << " " << vu.y << " " << vu.z
                   << " -fovy " << camera.perspective.fovy
                   << std::endl;
+        // printf("-dof %f %f\n",
+        //        currentCamera.lensRadius,
+        //        currentCamera.focalLength);
       } else {
         std::cout << "- height:" << camera.ortho.height << std::endl;
         std::cout << "(suggested cmdline format, for apps that support this:) "
@@ -188,35 +267,15 @@ namespace hm {
     case '!':
       screenShot();
       break;
-    case '*': {
-      hs::Camera camera;
-      OWLViewer::getCameraOrientation
-        ((owl::common::vec3f&)camera.vp,
-         (owl::common::vec3f&)camera.vi,
-         (owl::common::vec3f&)camera.vu,
-         camera.perspective.fovy);
-    } break;
-    case 'P': {
-      char *fl = getenv("BARNEY_FOCAL_LENGTH");
-      std::cout << "export BARNEY_FOCAL_LENGTH=" << (fl != nullptr ? fl : "0") << std::endl;
-      char *lr = getenv("BARNEY_LENS_RADIUS");
-      std::cout << "export BARNEY_LENS_RADIUS=" << (lr != nullptr ? lr : "0") << std::endl;
-      break;
-    }
     case '9': case '0':
     case '(': case ')': {
       char* flc = getenv("BARNEY_FOCAL_LENGTH");
       float ratio = (key == '(' || key == '9') ? (0.9f) : (1.1f);
       if (key == '9' || key == '0')
-        ratio = (ratio - 1.f) * 0.1f + 1.f; 
-      float fl = (flc == nullptr) ? 1.f : std::stof(flc) * ratio;
-#ifdef _WIN32
-      _putenv_s("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str());
-#else        
-      setenv("BARNEY_FOCAL_LENGTH", std::to_string(fl).c_str(), 1);
-#endif        
-      std::cout << "Focal length is set to: " << fl << '\n';
-      renderer->resetAccumulation();
+        ratio = (ratio - 1.f) * 0.1f + 1.f;
+      currentCamera.focalLength *= ratio;
+      renderer->setCamera(currentCamera);
+      accumDirty = true;
       break;
     }
     case '{': case '}':
@@ -224,37 +283,34 @@ namespace hm {
       char* lrc = getenv("BARNEY_LENS_RADIUS");
       float ratio = (key == '[' || key == '{') ? (0.9f) : (1.1f);
       if (key == '[' || key == ']')
-        ratio = (ratio - 1.f) * 0.1f + 1.f; 
-      float lr = (lrc == nullptr) ? 1.f : std::stof(lrc) * ratio;
-#ifdef _WIN32
-      _putenv_s("BARNEY_LENS_RADIUS", std::to_string(lr).c_str());
-#else        
-      setenv("BARNEY_LENS_RADIUS", std::to_string(lr).c_str(), 1);
-#endif        
-      std::cout << "Lens radius is set to: " << lr << '\n';
-      renderer->resetAccumulation();
+        ratio = (ratio - 1.f) * 0.1f + 1.f;
+      if (currentCamera.lensRadius == 0.f)
+        currentCamera.lensRadius
+          = .001f*length(currentCamera.vi-currentCamera.vp);
+      else
+        currentCamera.lensRadius *= ratio;
+      renderer->setCamera(currentCamera);
+      accumDirty = true;
       break;
     }
-
-    case 'T':
+    case 'T': {
       std::cout << "(T) : dumping transfer function" << std::endl;
-      {
-        hs::VolumeTransferFunctionSet set;
-        set.opacity = xf;
-        set.emission = emissionXF;
-        set.scatterSettings = scatterSettings;
-        set.save("hayThere.xf");
-      }
-      break;
+      hs::VolumeTransferFunctionSet set;
+      set.opacity = xf;
+      set.emission = emissionXF;
+      set.scatterSettings = scatterSettings;
+      set.save("hayThere.xf");
+    }; break;
 
-    default: OWLViewer::key(key,where);
+    default:
+      OWLViewer::key(key,where);
     };
   }
 
   
   void Viewer::cameraChanged() 
   {  
-    hs::Camera camera = defaultCamera;
+    hs::Camera &camera = currentCamera;
     float ignore;
     OWLViewer::getCameraOrientation
       ((owl::common::vec3f&)camera.vp,
@@ -265,18 +321,19 @@ namespace hm {
     accumDirty = true;
   }
 
-  void Viewer::resize(const owl::common::vec2i &newSize) 
+  void Viewer::resize(const owl::common::vec2i &_newSize) 
   {
-    windowSize = newSize;
+    owl2i newSize = owl2i(rcp(uiPixelScale)*owl2f(_newSize));
+    
+    windowSize = _newSize;
     const int panelWidth = panelWidthFor(newSize.x);
     const owl::common::vec2i renderSize(newSize.x - panelWidth, newSize.y);
-#if 0
-    OWLViewer::resize(renderSize,renderer->fb.color.data());
-    renderer->resize((const mini::common::vec2i&)renderSize);
-#else
     OWLViewer::resize(renderSize);
-    renderer->resize((const mini::common::vec2i&)renderSize,fbPointer);
-#endif
+    fbDepth.resize(renderSize.x*renderSize.y);
+    renderer->resize((const mini::common::vec2i&)renderSize,
+                     fbPointer,
+                     fbDepth.data()
+                    );
   }
   
   void Viewer::render() 

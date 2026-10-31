@@ -20,7 +20,8 @@ namespace hm {
     
     void renderFrame() override;
     void resize(const vec2i &fbSize,
-                uint32_t *fbPointer) override;
+                uint32_t *fbColor,
+                float *fbDepth) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
     void setTransferFunction(const TransferFunction &xf) override;

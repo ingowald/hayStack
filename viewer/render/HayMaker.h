@@ -50,7 +50,8 @@ namespace hm {
              const std::vector<DeviceConfig> &deviceConfigs);
 
     void resize(const vec2i &fbSize,
-                uint32_t *fbPointer) override;
+                uint32_t *fbColor,
+                float *fbDepth) override;
     // void resize(const vec2i &fbSize, uint32_t *hostRgba);
     void renderFrame() override;
     void resetAccumulation();
@@ -73,7 +74,8 @@ namespace hm {
     
     inline int numDevices() const { return perDevice.size(); }
 
-    uint32_t     *hostRGBA   = 0;
+    uint32_t     *hostColor = 0;
+    float        *hostDepth = 0;
     vec2i         fbSize;
     
     /*! whether we have to re-commit the model next frame */

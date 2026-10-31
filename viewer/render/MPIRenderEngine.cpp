@@ -294,7 +294,8 @@ namespace hm {
   // ==================================================================
 
   void MPIRenderEngine::resize(const vec2i &newSize,
-                               uint32_t *fbPointer)
+                               uint32_t *fbPointer,
+                               float *fbDepth)
   {
     // ------------------------------------------------------------------
     // send request....
@@ -307,7 +308,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->resize(newSize,fbPointer);
+    if (passThrough) passThrough->resize(newSize,fbPointer,fbDepth);
 
     comm->barrier();
   }
@@ -324,7 +325,7 @@ namespace hm {
     // and execute
     // ------------------------------------------------------------------
     
-    renderer->resize(newSize,nullptr);
+    renderer->resize(newSize,nullptr,nullptr);
 
     comm->barrier();
   }

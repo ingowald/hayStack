@@ -135,11 +135,14 @@ namespace hm {
               << server << "::" << port << std::endl;
   }
 
-  void HSClient::resize(const vec2i &fbSize, uint32_t *hostRgba)
+  void HSClient::resize(const vec2i &fbSize,
+                        uint32_t *fbColor,
+                        float *fbDepth)
   {
     this->fbSize = fbSize;
-    this->hostRgba = hostRgba;
-    MPIRenderEngine::resize(fbSize,hostRgba);
+    this->hostColor = fbColor;
+    this->hostDepth = fbDepth;
+    MPIRenderEngine::resize(fbSize,fbColor,fbDepth);
   }
   
   void HSClient::renderFrame()
@@ -148,15 +151,29 @@ namespace hm {
     size_t sizeOfPixel = 4;
     size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
     SocketComm *sc = (SocketComm *)this->comm.get();
-    uint8_t *ptr = (uint8_t*)hostRgba;
-    size_t nltr = numBytes;
-    while (nltr) {
-      size_t nr = recv(sc->fd,ptr,nltr,0);
-      if (nr == 0) {
-        throw std::runtime_error("received incomplete frame");
+    {    
+      uint8_t *ptr = (uint8_t*)hostColor;
+      size_t nltr = numBytes;
+      while (nltr) {
+        size_t nr = recv(sc->fd,ptr,nltr,0);
+        if (nr == 0) {
+          throw std::runtime_error("received incomplete frame");
+        }
+        ptr += nr;
+        nltr -= nr;
       }
-      ptr += nr;
-      nltr -= nr;
+    }
+    {
+      uint8_t *ptr = (uint8_t*)hostDepth;
+      size_t nltr = numBytes;
+      while (nltr) {
+        size_t nr = recv(sc->fd,ptr,nltr,0);
+        if (nr == 0) {
+          throw std::runtime_error("received incomplete frame");
+        }
+        ptr += nr;
+        nltr -= nr;
+      }
     }
   }
 
@@ -172,24 +189,41 @@ namespace hm {
     auto fbSize = server->fb.size;
     size_t sizeOfPixel = 4;
     size_t numBytes = fbSize.x*fbSize.y*sizeOfPixel;
-    
-    size_t numLeftToSend = numBytes;
-    uint8_t *ptr = (uint8_t *)server->fb.color.data();
-    while (numLeftToSend > 0) {
-      size_t numSent = send(server->comm->fd,ptr,numLeftToSend,0);
-      if (numSent == 0)
-        throw std::runtime_error("could not send anything!?");
-      ptr += numSent;
-      numLeftToSend -= numSent;
+
+    {
+      size_t numLeftToSend = numBytes;
+      uint8_t *ptr = (uint8_t *)server->fb.color.data();
+      while (numLeftToSend > 0) {
+        size_t numSent = send(server->comm->fd,ptr,numLeftToSend,0);
+        if (numSent == 0)
+          throw std::runtime_error("could not send anything!?");
+        ptr += numSent;
+        numLeftToSend -= numSent;
+      }
+    }
+    {
+      size_t numLeftToSend = numBytes;
+      uint8_t *ptr = (uint8_t *)server->fb.depth.data();
+      while (numLeftToSend > 0) {
+        size_t numSent = send(server->comm->fd,ptr,numLeftToSend,0);
+        if (numSent == 0)
+          throw std::runtime_error("could not send anything!?");
+        ptr += numSent;
+        numLeftToSend -= numSent;
+      }
     }
   }
   
-  void HSServerREI::resize(const vec2i &fbSize, uint32_t *fbPointer)
+  void HSServerREI::resize(const vec2i &fbSize,
+                           uint32_t *fbColor,
+                           float *fbDepth)
   {
-    PING;
     server->fb.color.resize(fbSize.x*fbSize.y);
+    server->fb.depth.resize(fbSize.x*fbSize.y);
     server->fb.size = fbSize;
-    PassthroughREI::resize(fbSize,server->fb.color.data());
+    PassthroughREI::resize(fbSize,
+                           server->fb.color.data(),
+                           server->fb.depth.data());
   }
   
 }

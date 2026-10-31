@@ -29,7 +29,9 @@ namespace hm {
     
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize,
-                        uint32_t *fbPointer) {}
+                        uint32_t *fbColor,
+                        float *fbDepth)
+    {}
     // { fb.color.resize(fbSize.x*fbSize.y); fb.color.size = fbSize; }
     virtual void resetAccumulation() {}
     virtual void setCamera(const hs::Camera &camera) {}
@@ -76,9 +78,10 @@ namespace hm {
       override
     { pt->renderFrame(); }
     void resize(const vec2i &fbSize,
-                uint32_t *fbPointer)
+                uint32_t *fbColor,
+                float *fbDepth)
       override
-    { pt->resize(fbSize,fbPointer); }
+    { pt->resize(fbSize,fbColor,fbDepth); }
     void resetAccumulation()
       override
     { pt->resetAccumulation(); }

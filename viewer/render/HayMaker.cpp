@@ -94,12 +94,13 @@ namespace hm {
     }
   }
 
-#if 0
-  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
+  void HayMaker::resize(const vec2i &fbSize,
+                        uint32_t *hostColor,
+                        float *hostDepth)
   {
-    MPIRenderEngine::resize(fbSize);
     this->fbSize = fbSize;
-    this->hostRGBA = hostRGBA;
+    this->hostColor = hostColor;
+    this->hostDepth = hostDepth;
     for (auto dev : perDevice) {
       auto device = dev->anari.device;
       auto frame = dev->anari.frame;
@@ -110,8 +111,7 @@ namespace hm {
       anari::setParameter(device, frame,
                           "channel.color",
                           ANARI_UFIXED8_RGBA_SRGB);
-      static bool have_depth = getenv("HS_HAVE_DEPTH");
-      if (have_depth)
+      if (hostDepth)
         anari::setParameter(device, frame,
                             "channel.depth", ANARI_FLOAT32);
 #ifdef TEST_IDCHANNEL
@@ -122,34 +122,6 @@ namespace hm {
       anari::commitParameters(device, frame);
     }
   }
-#else
-  void HayMaker::resize(const vec2i &fbSize, uint32_t *hostRGBA)
-  {
-    this->fbSize = fbSize;
-    this->hostRGBA = hostRGBA;
-    for (auto dev : perDevice) {
-      auto device = dev->anari.device;
-      auto frame = dev->anari.frame;
-      dev->fbSize = fbSize;
-      anari::setParameter(device, frame,
-                          "size",
-                          (const anari::math::uint2&)fbSize);
-      anari::setParameter(device, frame,
-                          "channel.color",
-                          ANARI_UFIXED8_RGBA_SRGB);
-      static bool have_depth = getenv("HS_HAVE_DEPTH");
-      if (have_depth)
-        anari::setParameter(device, frame,
-                            "channel.depth", ANARI_FLOAT32);
-#ifdef TEST_IDCHANNEL
-      anari::setParameter(device, frame,
-                          TEST_IDCHANNEL, ANARI_UINT32);
-#endif
-
-      anari::commitParameters(device, frame);
-    }
-  }
-#endif
 
   BoundsData HayMaker::getWorldBounds()
   {
@@ -174,45 +146,28 @@ namespace hm {
     if (perDevice[0]->anari.world == 0)
       renderInitialAnariWorld();
     
-    const char *channelName = "channel.color";
-#ifdef TEST_IDCHANNEL
-    channelName = TEST_IDCHANNEL;
-#endif
-    
     for (auto dev : perDevice)
       dev->renderFrame();
-
+    
     auto dev0 = perDevice[0];
-    auto fb = anari::map<uint32_t>(dev0->anari.device,
-                                   dev0->anari.frame,
-                                   channelName);
+    auto fb_color = anari::map<uint32_t>(dev0->anari.device,
+                                         dev0->anari.frame,
+                                         "channel.color");
+    auto fb_depth = anari::map<float>(dev0->anari.device,
+                                      dev0->anari.frame,
+                                      "channel.depth");
+    
 
-    if (fb.width != fbSize.x || fb.height != fbSize.y)
+    if (fb_color.width != fbSize.x || fb_color.height != fbSize.y)
       std::cout << "resized frame or unsupported channel type!?" << std::endl;
     else {
-      if (hostRGBA) {
-#ifdef TEST_IDCHANNEL
-        const uint64_t FNV_basis = 0xcbf29ce484222325ULL;
-        const uint64_t FNV_prime = 0x100000001b3ULL;
-        for (int i=0;i<fb.width*fb.height;i++) {
-          uint32_t ID = fb.data[i];
-          uint64_t s = FNV_basis + FNV_prime * ID;
-          
-          s = s * FNV_prime ^ ID;
-          int r = s & 0xff;
-          s = s * FNV_prime ^ ID;
-          int g = s & 0xff;
-          s = s * FNV_prime ^ ID;
-          int b = s & 0xff;
-          uint32_t rgba = b<<0 | g<<8 | r<<16 | 0xff<<24;
-          hostRGBA[i] = rgba;
-        }
-#else
-        memcpy(hostRGBA,fb.data,fbSize.x*fbSize.y*sizeof(uint32_t));
-#endif
-      }
+      if (hostColor) 
+        memcpy(hostColor,fb_color.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+      if (hostDepth)
+        memcpy(hostDepth,fb_depth.data,fbSize.x*fbSize.y*sizeof(float));
     }
-    anari::unmap(dev0->anari.device,dev0->anari.frame,channelName);
+    anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.color");
+    anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.depth");
   }
   
   void HayMaker::resetAccumulation()
@@ -236,25 +191,6 @@ namespace hm {
     }
   }
   
-  
-  // // BoundsData HayMaker::getWorldBounds() const
-  // void HayMaker::computeWorldBounds() 
-  // {
-  //   BoundsData bb = localPartitions->getBounds();
-  //   bb.spatial.lower = world->allReduceMin(bb.spatial.lower);
-  //   bb.spatial.upper = world->allReduceMax(bb.spatial.upper);
-  //   bb.scalars.lower = world->allReduceMin(bb.scalars.lower);
-  //   bb.scalars.upper = world->allReduceMax(bb.scalars.upper);
-  //   bb.mapped.lower = world->allReduceMin(bb.mapped.lower);
-  //   bb.mapped.upper = world->allReduceMax(bb.mapped.upper);
-    
-  //   if (bb.spatial.empty()) {
-  //     bb.spatial = {vec3f(-1.f),vec3f(+1.f)};
-  //   }  
-    
-  //   this->worldBounds = bb;
-  // }
-
   void HayMaker::renderInitialAnariWorld()
   {
     for (auto dev : perDevice)
@@ -278,13 +214,6 @@ namespace hm {
     for (auto dev : perDevice)
       dev->setVolumeScatterSettings(settings);
   }
-  
-  // hs::VolumeScatterSettings HayMaker::getVolumeScatterSettings() const
-  // {
-  //   if (perDevice.empty())
-  //     return {};
-  //   return perDevice[0]->volumeScatterSettings;
-  // }
   
 }
 
