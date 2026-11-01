@@ -76,7 +76,7 @@ namespace hs {
       }
 
       if (mapColors.empty() && cmIndex >= 0)
-        mapColors = ColorMap::get(cmIndex);
+        mapColors = ColorMapLibrary::getMap(cmIndex);
     }
     
     bool ColorMapper::valid() const

@@ -4,8 +4,10 @@
 add_library(hs-config INTERFACE)
 target_include_directories(hs-config INTERFACE
   ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/3rdParty
   ${PROJECT_SOURCE_DIR}/3rdParty/nanovdb/include
 )
+target_link_libraries(hs-config INTERFACE hs_stb_image)
 
 if (HS_USE_MULTI_SCATTERING)
   target_compile_definitions(hs-config INTERFACE HS_USE_MULTI_SCATTERING=1)

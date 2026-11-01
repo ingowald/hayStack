@@ -5,16 +5,13 @@
 
 #include "viewer/render/RenderEngineInterface.h"
 #include "viewer/render/RenderEngineInterface.h"
-#include "owlViewer/OWLViewer.h"
+#include "ui/GLFWBaseViewer.h"
 #include "TransferFunctionEditor.h"
 
 namespace hm {
   using namespace hs;
 
-  using owl2i = owl::common::vec2i;
-  using owl2f = owl::common::vec2f;
-  
-  struct Viewer : public owl::viewer::OWLViewer
+  struct Viewer : public viewer::GLFWBaseViewer
   {
     Viewer(BoundsData worldBounds,
            VolumeScatterSettings scatterSettings,
@@ -25,29 +22,29 @@ namespace hm {
     
     bool uiIsOn = true;
     int controlPanelWidth = 320;
-    owl::common::vec2i windowSize { 0, 0 };
+    vec2i windowSize { 0, 0 };
 
     void toggleUI();
     int panelWidthFor(int width) const;
     
     void runImgui() override;
 
-    owl2i viewportMousePosition(const owl2i &position) const;
-    void mouseMotion(const owl2i &position) override;
-    void mouseButtonLeft(const owl2i &position, bool pressed) override;
-    void mouseButtonCenter(const owl2i &position, bool pressed) override;
-    void mouseButtonRight(const owl2i &position, bool pressed) override;
+    vec2i viewportMousePosition(const vec2i &position) const;
+    void mouseMotion(const vec2i &position) override;
+    void mouseButtonLeft(const vec2i &position, bool pressed) override;
+    void mouseButtonCenter(const vec2i &position, bool pressed) override;
+    void mouseButtonRight(const vec2i &position, bool pressed) override;
 
     void screenShot();
     
     
     /*! this gets called when the user presses a key on the keyboard ... */
-    void key(char key, const owl2i &where) override;
+    void key(char key, const vec2i &where) override;
 
     /*! window notifies us that we got resized. We HAVE to override
       this to know our actual render dimensions, and get pointer
       to the device frame buffer that the viewer cated for us */
-    void resize(const owl2i &newSize) override;
+    void resize(const vec2i &newSize) override;
 
     /*! gets called whenever the viewer needs us to re-render out widget */
     void render() override;

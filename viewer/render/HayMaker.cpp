@@ -83,14 +83,12 @@ namespace hm {
     // BoundsData bb = worldBounds;//getWorldBounds();
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
-      hs::ColorMap::init();
-      int cmID = globalRenderSettings.defaultColorMapIndex
-        % hs::ColorMap::maps.size();
+      hs::ColorMapLibrary::init();
+      int cmID = globalRenderSettings.defaultColorMapIndex;
       std::cout << "#hs: using scalar-mapping color map #" << cmID
-                << " : " << hs::ColorMap::maps[cmID].first << std::endl;
+                << " : " << hs::ColorMapLibrary::getMapName(cmID) << std::endl;
       for (auto pd : perDevice)
-        pd->createDefaultColorMapper(bb.mapped,
-                                     hs::ColorMap::maps[cmID].second);
+        pd->createDefaultColorMapper(bb.mapped,ColorMapLibrary::getMap(cmID));
     }
   }
 

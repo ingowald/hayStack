@@ -179,17 +179,18 @@ namespace hm {
   {
     if (!field)
       return {};
-#if HS_USE_MULTI_SCATTERING
-    auto volume = anari::newObject<anari::Volume>(anari.device,
-                                                  "principledVolume");
-    anari::setAndReleaseParameter(anari.device, volume, "value", field);
-    applyPrincipledScatterParams(volume, scatter);
-    principledScatterByVolume[volume] = scatter;
-#else
-    auto volume = anari::newObject<anari::Volume>(anari.device,
-                                                  "transferFunction1D");
-    anari::setAndReleaseParameter(anari.device, volume, "value", field);
-#endif
+    anari::Volume volume;
+    if (hayMaker->globalRenderSettings.enablePrincipledVolumes) {
+      volume = anari::newObject<anari::Volume>(anari.device,
+                                               "principledVolume");
+      anari::setAndReleaseParameter(anari.device, volume, "value", field);
+      applyPrincipledScatterParams(volume, scatter);
+      principledScatterByVolume[volume] = scatter;
+    } else {
+      volume = anari::newObject<anari::Volume>(anari.device,
+                                               "transferFunction1D");
+      anari::setAndReleaseParameter(anari.device, volume, "value", field);
+    }
     anari::commitParameters(anari.device, volume);
     return volume;
   }
@@ -348,13 +349,11 @@ namespace hm {
       if (createdVolume)
         rootVolumes.push_back(createdVolume);
     }
-#if HS_USE_MULTI_SCATTERING
     for (auto vol : myData.nanovdbVolumes) {
       anari::Volume createdVolume = create(*vol);
       if (createdVolume)
         rootVolumes.push_back(createdVolume);
     }
-#endif
     // ------------------------------------------------------------------
     // render all *UN*-structured volumes
     // -----------------------------------------------------------------
@@ -577,12 +576,8 @@ namespace hm {
       return;
 
     for (auto vol : rootVolumes) {
-#if HS_USE_MULTI_SCATTERING
       auto principledIt = principledScatterByVolume.find(vol);
       const bool isPrincipled = principledIt != principledScatterByVolume.end();
-#else
-      const bool isPrincipled = false;
-#endif
       int N = xf.colorMap.size();
       auto colorArray = anari::newArray1D(anari.device,ANARI_FLOAT32_VEC3,N);
       auto alphaArray = anari::newArray1D(anari.device,ANARI_FLOAT32,N);
@@ -748,7 +743,6 @@ namespace hm {
     return createVolume(field, volumeScatterSettings.medium);
   }
 
-#if HS_USE_MULTI_SCATTERING
   anari::Volume AnariDeviceRenderer::create(const NanoVDBVolume &vol)
   {
     auto field = anari::newObject<anari::SpatialField>(anari.device,
@@ -758,7 +752,6 @@ namespace hm {
     anari::commitParameters(anari.device, field);
     return createVolume(field, volumeScatterSettings.medium);
   }
-#endif
 
   void AnariDeviceRenderer
   ::createDefaultColorMapper(const range1f &inputRange,

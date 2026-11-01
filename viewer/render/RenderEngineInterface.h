@@ -25,8 +25,6 @@ namespace hm {
       setVolumeScatterSettings(xf.scatterSettings);
     }
 
-    virtual BoundsData getWorldBounds() = 0;
-    
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize,
                         uint32_t *fbColor,
@@ -40,17 +38,12 @@ namespace hm {
                            const std::vector<hs::PointLight> &pointLights,
                            const std::vector<hs::DirLight> &dirLights) {}
 
-
-    // struct {
-    //   std::vector<uint32_t> color;
-    //   vec2i size;
-    // } fb;
-    
     // ==================================================================
     // scene query interface - how the viewer/remoteViewer/offlineApp
     // can figure out what's there to set/modify
     // ==================================================================
-
+    virtual BoundsData getWorldBounds() = 0;
+    
   };
 
 

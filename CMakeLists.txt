@@ -12,8 +12,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
 option(HS_MPI    "Enable MPI support in haystack" OFF)
-option(HS_VIEWER "Build hsViewer" ON)
 
 if (NOT (TARGET miniScene))
   add_subdirectory(submodules/miniScene    EXCLUDE_FROM_ALL)
@@ -28,18 +31,23 @@ if (NOT (TARGET umesh))
   add_subdirectory(submodules/umesh        EXCLUDE_FROM_ALL)
 endif()
 
-if (HS_VIEWER)
-  add_subdirectory(submodules/owl   EXCLUDE_FROM_ALL)
-  add_subdirectory(submodules/glfwViewer   EXCLUDE_FROM_ALL)
-endif()
+# ------------------------------------------------------------------
+# include stb - also need that in other places, probably move this to
+# haystack
+# ------------------------------------------------------------------
+#if (NOT(TARGET stb_image))
+  add_subdirectory(3rdParty/stb_image)
+#endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+#if (HS_VIEWER)
+#  add_subdirectory(submodules/owl   EXCLUDE_FROM_ALL)
+#  add_subdirectory(submodules/glfwViewer   EXCLUDE_FROM_ALL)
+#endif()
 
 add_subdirectory(hayStack)
-if (HS_VIEWER)
-  add_subdirectory(viewer)
-endif()
+#if (HS_VIEWER)
+add_subdirectory(viewer)
+#endif()
 add_subdirectory(tools)
 

@@ -458,6 +458,7 @@ int main(int ac, char **av)
   }
 
   GlobalRenderSettings globalRenderSettings;
+  globalRenderSettings.enablePrincipledVolumes = fromCL.scatterSettings.enabled;
   globalRenderSettings.samplesPerPixel = fromCL.spp;
   globalRenderSettings.ambientRadiance = fromCL.ambientRadiance;
   globalRenderSettings.bgColor = fromCL.bgColor;
@@ -554,9 +555,9 @@ int main(int ac, char **av)
   viewer.enableInspectMode();
   viewer.setWorldScale(length(worldBounds.spatial.span()));
   viewer.setCameraOrientation
-    (/*origin   */(const owl::common::vec3f &)fromCL.camera.vp,
-     /*lookat   */(const owl::common::vec3f &)fromCL.camera.vi,
-     /*up-vector*/(const owl::common::vec3f &)fromCL.camera.vu,
+    (/*origin   */fromCL.camera.vp,
+     /*lookat   */fromCL.camera.vi,
+     /*up-vector*/fromCL.camera.vu,
 /*fovy(deg)*//*ignore now ,we handle that differently*/fromCL.camera.perspective.fovy);
 
   if (!fromCL.xfFileName.empty())
@@ -570,11 +571,6 @@ int main(int ac, char **av)
   std::vector<float> depth(fbSize.x*fbSize.y);
   renderer->resize((const mini::common::vec2i&)fbSize,pixels.data(),depth.data());
   hs::Camera camera = fromCL.camera;;
-  // camera.vp = fromCL.camera.vp;
-  // camera.vu = fromCL.camera.vu;
-  // camera.vi = fromCL.camera.vi;
-  // camera.fovy = fromCL.camera.fovy;
-  // camera.nearClip = fromCL.camera.nearClip;
   renderer->setCamera(camera);
   
   if (!fromCL.xfFileName.empty()) {

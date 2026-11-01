@@ -6,9 +6,6 @@
 namespace hs {
   namespace viewer {
 
-    using namespace owl::common;
-    using owl::viewer::ColorMapLibrary;
-
     namespace {
       uint32_t make8Bit(float value)
       {
@@ -34,11 +31,9 @@ namespace hs {
       }
     }
 
-    ColorMapLibrary TransferFunctionEditor::colorMapLibrary;
-
     TransferFunctionEditor::TransferFunctionEditor()
     {
-      colorMap = colorMapLibrary.getMap(0);
+      colorMap = ColorMapLibrary::getMap(0);
       updateTexture();
     }
 
@@ -61,7 +56,8 @@ namespace hs {
       x1 = std::min(width, std::max(0, x1));
 
       if (x0 == x1) {
-        colorMap[x0].w = button == 0
+        colorMap[x0].w
+          = (button == 0)
           ? newPos.y
           : (newPos.y > .35f ? 1.f : 0.f);
       } else {
@@ -125,7 +121,7 @@ namespace hs {
 
     void TransferFunctionEditor::changeColorScheme(int newID)
     {
-      auto newMap = colorMapLibrary.getMap(newID);
+      auto newMap = ColorMapLibrary::getMap(newID);
       if (newMap.size() != colorMap.size())
         newMap = newMap.resampledTo(colorMap.size());
       for (int i = 0; i < int(colorMap.size()); ++i)
@@ -159,15 +155,17 @@ namespace hs {
 
     bool TransferFunctionEditor::runUI(bool showColorMapSelector)
     {
+      int down0 = ImGui::IsMouseDown(0);
+      int down1 = ImGui::IsMouseDown(1);
       const ImGuiIO &io = ImGui::GetIO();
 
       ImGui::Text("TransferFct (draw w/ left/right mouse btn");
       if (showColorMapSelector) {
         const char *colorMapName = colorMapID == -1
           ? "custom"
-          : colorMapLibrary.getMapName(colorMapID).c_str();
+          : ColorMapLibrary::getMapName(colorMapID).c_str();
         if (ImGui::BeginCombo("Colormap", colorMapName)) {
-          const std::vector<std::string> mapNames = colorMapLibrary.getNames();
+          const std::vector<std::string> mapNames = ColorMapLibrary::getNames();
           for (size_t i = 0; i < mapNames.size(); ++i) {
             if (ImGui::Selectable(mapNames[i].c_str(), colorMapID == int(i)))
               changeColorScheme(int(i));
@@ -192,10 +190,14 @@ namespace hs {
                         ImColor(180, 180, 180, 255));
       ImGui::InvisibleButton("tfn_canvas", cvt(canvasSize));
 
-      if (!io.MouseDown[0] && !io.MouseDown[1])
+      if (!down0/*io.MouseDown[0]*/ && !down1/*io.MouseDown[1]*/)
         clickedOnItem = false;
-      if (ImGui::IsItemHovered() && (io.MouseDown[0] || io.MouseDown[1]))
+      if (ImGui::IsItemHovered() && (down0/*io.MouseDown[0]*/ || down1/*io.MouseDown[1]*/))
         clickedOnItem = true;
+
+      // printf("mousedown %i %i clicked %i\n",
+      //        down0,down1,//(int)io.MouseDown[0],(int)io.MouseDown[1],
+      //        (int)clickedOnItem);
 
       const ImVec2 minimum = ImGui::GetItemRectMin();
       const ImVec2 maximum = ImGui::GetItemRectMax();
@@ -208,13 +210,14 @@ namespace hs {
           = (cvt(clippedMousePosition) - cvt(viewOffset)) / cvt(viewScale);
         mousePosition.x = clamp(mousePosition.x, 0.f, 1.f);
         mousePosition.y = clamp(mousePosition.y, 0.f, 1.f);
-        if (io.MouseDown[0])
+        if (down0)//io.MouseDown[0])
           mouseDrag(mousePosition, 0);
-        else if (ImGui::IsMouseDown(1))
+        else if (down1)//ImGui::IsMouseDown(1))
           mouseDrag(mousePosition, 1);
         else
           mouseDragEnd();
       } else {
+        if (lastDragPos.x != -1) std::cout << "end drag" << std::endl;
         mouseDragEnd();
       }
 

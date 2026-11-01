@@ -4,6 +4,7 @@
 #pragma once
 
 #include "miniScene/common/math/box.h"
+#include "miniScene/common/math/AffineSpace.h"
 #include <string.h>
 #include <mutex>
 #include <vector>
@@ -13,7 +14,6 @@
 
 namespace hs {
   using namespace mini::common;
-  // using namespace owl::common;
 
 #define HAYSTACK_NYI() throw std::runtime_error(std::string(__PRETTY_FUNCTION__)+" not yet implemented")
 

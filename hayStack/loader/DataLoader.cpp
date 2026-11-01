@@ -260,7 +260,7 @@ namespace hs {
     LocalPartitions *DataLoader::loadData(int numDataRanks,
                                           int dataPerRank)
     {
-      ColorMap::init();
+      ColorMapLibrary::init();
       if (dataPerRank == 0) {
         if (workers->size < numDataRanks) {
           dataPerRank = numDataRanks / workers->size;

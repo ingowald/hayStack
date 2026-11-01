@@ -10,8 +10,6 @@
 
 namespace hm {
 
-  using owl3f = owl::common::vec3f;
-  
   Viewer::Viewer(BoundsData worldBounds,
                  VolumeScatterSettings scatterSettings,
                  RenderEngineInterface *const renderer,
@@ -27,31 +25,31 @@ namespace hm {
   }
 
 
-  owl2i Viewer::viewportMousePosition(const owl2i &position) const
+  vec2i Viewer::viewportMousePosition(const vec2i &position) const
   {
     return { position.x - panelWidthFor(windowSize.x), position.y };
   }
 
-  void Viewer::mouseMotion(const owl::common::vec2i &position) 
+  void Viewer::mouseMotion(const vec2i &position) 
   {
-    owl2i translated = viewportMousePosition(position);
+    vec2i translated = viewportMousePosition(position);
 
     if (leftButton.isPressed && leftButton.shiftWhenPressed)
       return;
     
-    OWLViewer::mouseMotion(translated);
+    GLFWBaseViewer::mouseMotion(translated);
   }
 
-  void Viewer::mouseButtonLeft(const owl::common::vec2i &position,
+  void Viewer::mouseButtonLeft(const vec2i &position,
                                bool pressed) 
   {
-    owl2i translated = viewportMousePosition(position);
+    vec2i translated = viewportMousePosition(position);
     
     if (leftButton.shiftWhenPressed) {
       // check if this is a click, or a release
       if (pressed) {
-        owl2f relativePositionInViewport
-          = (owl2f(translated)+owl2f(.5f)) / owl2f(fbSize);
+        vec2f relativePositionInViewport
+          = (vec2f(translated)+vec2f(.5f)) / vec2f(fbSize);
         float aspect = fbSize.x / (float)fbSize.y;
         int iy = fbSize.y-1-translated.y;
         int pixelID = translated.x + fbSize.x*iy;
@@ -62,16 +60,16 @@ namespace hm {
         }
         else {
           vec3f pickedPos = currentCamera
-            .reproject((const vec2f&)relativePositionInViewport,
+            .reproject(relativePositionInViewport,
                        depth,aspect);
            
           if (leftButton.ctrlWhenPressed) {
             std::cout << "pick pos: " << pickedPos << std::endl;
           } else {
-            owl::viewer::Camera &fc = getCamera();
-            fc.setOrientation((const owl3f&)currentCamera.vp,
-                              (const owl3f&)pickedPos,
-                              (const owl3f&)currentCamera.vu,
+            viewer::Camera &fc = getCamera();
+            fc.setOrientation(currentCamera.vp,
+                              pickedPos,
+                              currentCamera.vu,
                     /*ignore*/1.f);
             updateCamera();
           }
@@ -79,19 +77,19 @@ namespace hm {
       }
     }
     else
-      OWLViewer::mouseButtonLeft(translated, pressed);
+      GLFWBaseViewer::mouseButtonLeft(translated, pressed);
   }
 
-  void Viewer::mouseButtonCenter(const owl::common::vec2i &position,
+  void Viewer::mouseButtonCenter(const vec2i &position,
                                  bool pressed) 
   {
-    OWLViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
+    GLFWBaseViewer::mouseButtonCenter(viewportMousePosition(position), pressed);
   }
 
-  void Viewer::mouseButtonRight(const owl::common::vec2i &position,
+  void Viewer::mouseButtonRight(const vec2i &position,
                                 bool pressed) 
   {
-    OWLViewer::mouseButtonRight(viewportMousePosition(position), pressed);
+    GLFWBaseViewer::mouseButtonRight(viewportMousePosition(position), pressed);
   }
 
   int Viewer::panelWidthFor(int width) const
@@ -155,7 +153,7 @@ namespace hm {
         ImGui::PopID();
         if (opacityChanged)
           xfDirty = true;
-#if HS_USE_MULTI_SCATTERING
+#if 1 //HS_USE_MULTI_SCATTERING
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Volume rendering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -214,16 +212,16 @@ namespace hm {
     xf              = set.opacity;
     scatterSettings = set.scatterSettings;
     emissionXF      = set.emission;
-    emissionXfEditor.setColorAndAlpha((const owl::common::vec4f *)emissionXF.colorMap.data(),
+    emissionXfEditor.setColorAndAlpha(emissionXF.colorMap.data(),
                                       emissionXF.colorMap.size());
-    xfEditor.setColorAndAlpha((const owl::common::vec4f*)xf.colorMap.data(),
+    xfEditor.setColorAndAlpha(xf.colorMap.data(),
                               xf.colorMap.size());
     scatterDirty = true;
     emissionXfDirty = true;
     xfDirty = true;
   }
   
-  void Viewer::key(char key, const owl::common::vec2i &where) 
+  void Viewer::key(char key, const vec2i &where) 
   {
     switch(key) {
     case 'C': {
@@ -303,7 +301,7 @@ namespace hm {
     }; break;
 
     default:
-      OWLViewer::key(key,where);
+      GLFWBaseViewer::key(key,where);
     };
   }
 
@@ -312,25 +310,25 @@ namespace hm {
   {  
     hs::Camera &camera = currentCamera;
     float ignore;
-    OWLViewer::getCameraOrientation
-      ((owl::common::vec3f&)camera.vp,
-       (owl::common::vec3f&)camera.vi,
-       (owl::common::vec3f&)camera.vu,
+    GLFWBaseViewer::getCameraOrientation
+      ((vec3f&)camera.vp,
+       (vec3f&)camera.vi,
+       (vec3f&)camera.vu,
        ignore);
     renderer->setCamera(camera);
     accumDirty = true;
   }
 
-  void Viewer::resize(const owl::common::vec2i &_newSize) 
+  void Viewer::resize(const vec2i &_newSize) 
   {
-    owl2i newSize = owl2i(rcp(uiPixelScale)*owl2f(_newSize));
+    vec2i newSize = vec2i(rcp(uiPixelScale)*vec2f(_newSize));
     
     windowSize = _newSize;
     const int panelWidth = panelWidthFor(newSize.x);
-    const owl::common::vec2i renderSize(newSize.x - panelWidth, newSize.y);
-    OWLViewer::resize(renderSize);
+    const vec2i renderSize(newSize.x - panelWidth, newSize.y);
+    GLFWBaseViewer::resize(renderSize);
     fbDepth.resize(renderSize.x*renderSize.y);
-    renderer->resize((const mini::common::vec2i&)renderSize,
+    renderer->resize(renderSize,
                      fbPointer,
                      fbDepth.data()
                     );
@@ -340,9 +338,9 @@ namespace hm {
   {
     if (xfDirty) {
       auto cm = xfEditor.getColorMap();
-      xf.set((const mini::vec4f*)cm.data(),
+      xf.set(cm.data(),
              cm.size());
-      emissionXfEditor.setColorOnly((const owl::common::vec4f *)cm.data(), cm.size());
+      emissionXfEditor.setColorOnly(cm.data(), cm.size());
       emissionXfDirty = true;
         
       renderer->setTransferFunction(xf);
@@ -357,7 +355,7 @@ namespace hm {
     }
     if (emissionXfDirty) {
       auto cm = emissionXfEditor.getColorMap();
-      emissionXF.set((const mini::vec4f *)cm.data(), cm.size());
+      emissionXF.set(cm.data(), cm.size());
       emissionXF.domain = xf.domain;
       renderer->setEmissionTransferFunction(emissionXF);
       emissionXfDirty = false;

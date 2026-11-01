@@ -27,6 +27,7 @@ namespace hm {
     int defaultColorMapIndex = 0;
 
     bool denoise = true;
+    bool enablePrincipledVolumes = true;
   };
   
   struct DeviceConfig {

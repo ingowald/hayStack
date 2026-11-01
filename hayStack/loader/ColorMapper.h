@@ -34,9 +34,11 @@ namespace hs {
       /*! the expected input range for the color mapping; and value
           outside this range will be clamped to this range */
       range1f inputRange;
+      
       /*! the from-file map of colors to map to; if empty we'll use
           mapping by temperature_to_rgb() */
       std::vector<vec4f> mapColors;
+      
       /*! maps to one of the pre-builtin color maps (paraview etc);
           this will get used if no 'map-file' was specified. if set to
           -1, we'll use temperature_to_rgb mapping */
