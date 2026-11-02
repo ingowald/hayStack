@@ -50,13 +50,13 @@ namespace hm {
     
     void bc_send(const void *data, size_t size) const override
     {
-      assert(!onClientSide);
+      assert(onClientSide);
       send(fd,data,size,0);
     }
     
     void bc_recv(void *data, size_t size) const override
     {
-      assert(onClientSide);
+      assert(!onClientSide);
       recv(fd,data,size,0);
     }
     
