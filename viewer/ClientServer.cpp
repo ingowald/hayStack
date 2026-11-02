@@ -137,12 +137,13 @@ namespace hm {
 
   void HSClient::resize(const vec2i &fbSize,
                         uint32_t *fbColor,
+                        bool hasDepth,
                         float *fbDepth)
   {
     this->fbSize = fbSize;
     this->hostColor = fbColor;
     this->hostDepth = fbDepth;
-    MPIRenderEngine::resize(fbSize,fbColor,fbDepth);
+    MPIRenderEngine::resize(fbSize,fbColor,hasDepth,fbDepth);
   }
   
   void HSClient::renderFrame()
@@ -163,6 +164,7 @@ namespace hm {
         nltr -= nr;
       }
     }
+    if (hostDepth)
     {
       uint8_t *ptr = (uint8_t*)hostDepth;
       size_t nltr = numBytes;
@@ -201,6 +203,7 @@ namespace hm {
         numLeftToSend -= numSent;
       }
     }
+    if (!server->fb.depth.empty())
     {
       size_t numLeftToSend = numBytes;
       uint8_t *ptr = (uint8_t *)server->fb.depth.data();
@@ -216,13 +219,16 @@ namespace hm {
   
   void HSServerREI::resize(const vec2i &fbSize,
                            uint32_t *fbColor,
+                           bool hasDepth,
                            float *fbDepth)
   {
     server->fb.color.resize(fbSize.x*fbSize.y);
-    server->fb.depth.resize(fbSize.x*fbSize.y);
+    if (hasDepth)
+      server->fb.depth.resize(fbSize.x*fbSize.y);
     server->fb.size = fbSize;
     PassthroughREI::resize(fbSize,
                            server->fb.color.data(),
+                           hasDepth,
                            server->fb.depth.data());
   }
   

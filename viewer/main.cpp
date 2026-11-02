@@ -409,6 +409,7 @@ int main(int ac, char **av)
 #if HS_MPI
   determineLocalProcessID(world,localRank,localSize);
 #endif
+  world->barrier();
   std::vector<int> gpuIDs;
   for (int i=0;i<world->size;i++) {
     world->barrier();
@@ -480,6 +481,23 @@ int main(int ac, char **av)
                    
                    deviceConfigs);
 
+  world->barrier();
+  if (world->size == 1)
+    // no MPI, render directly
+    renderer = hayMaker;
+  else if (world->rank == 0) {
+    // we're in MPI mode, _and_ the rank that runs the viewer
+    renderer = new MPIRenderEngine(world,hayMaker);
+  } else {
+    // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
+    MPIRenderEngine::runWorker(world,hayMaker);
+    world->barrier(); /*! <-- will match the one after viewer or
+                          offline terminates */
+    Comm::mpiFinalize();
+    
+    exit(0);
+  }
+
   hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
   hayMaker->setEmissionTransferFunction(
     haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
@@ -489,12 +507,12 @@ int main(int ac, char **av)
   }
                    
 
-  world->barrier();
+  // world->barrier();
   if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: creating context"
               << MINI_TERMINAL_DEFAULT << std::endl;
-  world->barrier();
+  // world->barrier();
   if (world->rank == 0)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: building data groups"
@@ -502,27 +520,12 @@ int main(int ac, char **av)
   if (hayMaker)
     hayMaker->renderInitialAnariWorld();
   
-  world->barrier();
+  // world->barrier();
 
-  if (world->size == 1)
-    // no MPI, render direcftly
-    renderer = hayMaker;
-  else if (world->rank == 0)
-    // we're in MPI mode, _and_ the rank that runs the viewer
-    renderer = new MPIRenderEngine(world,hayMaker);
-  else {
-    // we're in MPI mode, but one of the passive workers (ie NOT running the viewer)
-    MPIRenderEngine::runWorker(world,hayMaker);
-    world->barrier();
-    Comm::mpiFinalize();
-    
-    exit(0);
-  }
 # endif
 
 
 
-  // const BoundsData worldBounds = hayMaker->worldBounds;//getWorldBounds();
   const BoundsData worldBounds = renderer->getWorldBounds();
   bool modelHasVolumeData = !worldBounds.scalars.empty();
 
@@ -569,7 +572,9 @@ int main(int ac, char **av)
   auto &fbSize = fromCL.fbSize;
   std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
   std::vector<float> depth(fbSize.x*fbSize.y);
-  renderer->resize((const mini::common::vec2i&)fbSize,pixels.data(),depth.data());
+  renderer->resize((const mini::common::vec2i&)fbSize,pixels.data(),
+                   /*hasDepth*/true,
+                   depth.data());
   hs::Camera camera = fromCL.camera;;
   renderer->setCamera(camera);
   
@@ -641,17 +646,17 @@ int main(int ac, char **av)
       }
     }
   }
-  for (int i=0;i<fromCL.numFramesAccum;i++) 
+  for (int i=0;i<fromCL.numFramesAccum;i++) {
     renderer->renderFrame();
+  }
 
   stbi_flip_vertically_on_write(true);
   std::cout << "saving in " << fromCL.outFileName.c_str() << std::endl;
   stbi_write_png(fromCL.outFileName.c_str(),fbSize.x,fbSize.y,4,
                  pixels.data(),fbSize.x*sizeof(uint32_t));
 
-  renderer->terminate();
 #endif
-
+  renderer->terminate();
   world->barrier();
   Comm::mpiFinalize();
 

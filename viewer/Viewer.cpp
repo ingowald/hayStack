@@ -330,6 +330,7 @@ namespace hm {
     fbDepth.resize(renderSize.x*renderSize.y);
     renderer->resize(renderSize,
                      fbPointer,
+                     true,
                      fbDepth.data()
                     );
   }

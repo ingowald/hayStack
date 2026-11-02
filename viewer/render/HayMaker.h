@@ -52,6 +52,11 @@ namespace hm {
 
     void resize(const vec2i &fbSize,
                 uint32_t *fbColor,
+                /* iw - whether we need to render with depth
+                   channel. mind we can NOT get that from testing
+                   fbDepth for being a nullptr, because on client it
+                   may be null anyway */
+                bool hasDepth,
                 float *fbDepth) override;
     // void resize(const vec2i &fbSize, uint32_t *hostRgba);
     void renderFrame() override;
