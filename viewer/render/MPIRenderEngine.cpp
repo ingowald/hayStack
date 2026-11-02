@@ -36,7 +36,9 @@ namespace hm {
       passThrough(passThrough)
   {
     int handShake = 29031974;
-    comm->barrier();
+    
+    comm->barrier(); /* <-- this matches the barrier at the beginning
+                        of runWorker() */
     sendToWorkers(handShake);
   }
 
@@ -295,6 +297,7 @@ namespace hm {
 
   void MPIRenderEngine::resize(const vec2i &newSize,
                                uint32_t *fbPointer,
+                               bool needDepth,
                                float *fbDepth)
   {
     // ------------------------------------------------------------------
@@ -303,12 +306,14 @@ namespace hm {
     int cmd = RESIZE;
     sendToWorkers(cmd);
     sendToWorkers(newSize);
+    int hasDepth = needDepth;
+    sendToWorkers(hasDepth);
     sendEndOfMessage();
     
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    if (passThrough) passThrough->resize(newSize,fbPointer,fbDepth);
+    if (passThrough) passThrough->resize(newSize,fbPointer,needDepth,fbDepth);
 
     comm->barrier();
   }
@@ -320,12 +325,14 @@ namespace hm {
     // ------------------------------------------------------------------
     vec2i newSize;
     fromMaster(newSize);
+    int hasDepth;
+    fromMaster(hasDepth);
     checkEndOfMessage();
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
     
-    renderer->resize(newSize,nullptr,nullptr);
+    renderer->resize(newSize,nullptr,hasDepth,nullptr);
 
     comm->barrier();
   }

@@ -94,6 +94,7 @@ namespace hm {
 
   void HayMaker::resize(const vec2i &fbSize,
                         uint32_t *hostColor,
+                        bool hasDepth,
                         float *hostDepth)
   {
     this->fbSize = fbSize;
@@ -109,7 +110,7 @@ namespace hm {
       anari::setParameter(device, frame,
                           "channel.color",
                           ANARI_UFIXED8_RGBA_SRGB);
-      if (hostDepth)
+      if (hasDepth)
         anari::setParameter(device, frame,
                             "channel.depth", ANARI_FLOAT32);
 #ifdef TEST_IDCHANNEL
@@ -162,25 +163,29 @@ namespace hm {
     
     for (auto dev : perDevice)
       dev->renderFrame();
+
     
     auto dev0 = perDevice[0];
     auto fb_color = anari::map<uint32_t>(dev0->anari.device,
                                          dev0->anari.frame,
                                          "channel.color");
+    if (fb_color.width != fbSize.x || fb_color.height != fbSize.y) {
+      std::cout << "resized frame or unsupported channel type!?" << std::endl;
+      anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.color");
+      return;
+    }
+
+    if (hostColor) 
+      memcpy(hostColor,fb_color.data,fbSize.x*fbSize.y*sizeof(uint32_t));
+    anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.color");
+    
     auto fb_depth = anari::map<float>(dev0->anari.device,
                                       dev0->anari.frame,
                                       "channel.depth");
+    if (hostDepth)
+      memcpy(hostDepth,fb_depth.data,fbSize.x*fbSize.y*sizeof(float));
     
-
-    if (fb_color.width != fbSize.x || fb_color.height != fbSize.y)
-      std::cout << "resized frame or unsupported channel type!?" << std::endl;
-    else {
-      if (hostColor) 
-        memcpy(hostColor,fb_color.data,fbSize.x*fbSize.y*sizeof(uint32_t));
-      if (hostDepth)
-        memcpy(hostDepth,fb_depth.data,fbSize.x*fbSize.y*sizeof(float));
-    }
-    anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.color");
+    
     anari::unmap(dev0->anari.device,dev0->anari.frame,"channel.depth");
   }
   

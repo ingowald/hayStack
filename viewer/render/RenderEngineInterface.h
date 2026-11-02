@@ -28,6 +28,7 @@ namespace hm {
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize,
                         uint32_t *fbColor,
+                        bool needDepth,
                         float *fbDepth)
     {}
     // { fb.color.resize(fbSize.x*fbSize.y); fb.color.size = fbSize; }
@@ -72,9 +73,10 @@ namespace hm {
     { pt->renderFrame(); }
     void resize(const vec2i &fbSize,
                 uint32_t *fbColor,
+                bool needDepth,
                 float *fbDepth)
       override
-    { pt->resize(fbSize,fbColor,fbDepth); }
+    { pt->resize(fbSize,fbColor,needDepth,fbDepth); }
     void resetAccumulation()
       override
     { pt->resetAccumulation(); }

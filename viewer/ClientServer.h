@@ -29,6 +29,7 @@ namespace hm {
     void renderFrame() override;
     void resize(const vec2i &fbSize,
                 uint32_t *fbColor,
+                bool hasDepth,
                 float *fbDepth) override;
     HSServer *const server;
   };
@@ -38,6 +39,7 @@ namespace hm {
     
     void resize(const vec2i &fbSize,
                 uint32_t *fbColor,
+                bool hasDepth,
                 float *fbDepth) override;
     // void resize(const vec2i &fbSize, uint32_t *hostRgba) override;
     void renderFrame() override;

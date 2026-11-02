@@ -21,6 +21,7 @@ namespace hm {
     void renderFrame() override;
     void resize(const vec2i &fbSize,
                 uint32_t *fbColor,
+                bool hasDepth,
                 float *fbDepth) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
