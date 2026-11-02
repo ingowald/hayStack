@@ -223,7 +223,7 @@ hsOffline \
 	cm://defaults:cmidx=0 \
 	ts.tri://defaults:stride=4:sidx=3:map=-4,+4 \
 	lander-iso_vortMag_2.4_mapped_w/*tstri1 \
-	-os 1600 1200
+	-os 1600 1200 \
 	-o lander-iso_vortMag_2.4_mapped_w.png
 ```
 File format for this data: 
