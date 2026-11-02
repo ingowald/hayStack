@@ -17,22 +17,21 @@
 #include "hayStack/MPIWrappers.h"
 #if HS_MPI
 # include <mpi.h>
-#endif
-
-#if !HS_MPI
-# define HS_FAKE_MPI 1
-#endif
-
-#if HS_FAKE_MPI
-#define HS_MPI_CALL(fctCall)  
-#define MPI_Comm int
-#define MPI_COMM_NULL 0
-#define MPI_Request int
-#else
-#define HS_MPI_CALL(fctCall)                                            \
+# define HS_MPI_CALL(fctCall)                                            \
   { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) throw hs::mpi::Exception(__PRETTY_FUNCTION__,rc); }
-#define HS_MPI_NOTHROW(fctCall)                                            \
+# define HS_MPI_NOTHROW(fctCall)                                            \
   { int rc = MPI_##fctCall; if (rc != MPI_SUCCESS) { std::cerr << "haystack mpi error at " << __PRETTY_FUNCTION__ << std::endl; exit(1); }}
+#else
+# define HS_MPI_CALL(fctCall)    /* ignore */
+# define HS_MPI_NOTHROW(fctCall) /* ignore */
+# define MPI_Comm int
+# define MPI_COMM_NULL 0
+# define MPI_Request int
+# define MPI_INT /*ignore*/-1
+# define MPI_FLOAT /*ignore*/-1
+# define MPI_SUM /*ignore*/-1
+# define MPI_MIN /*ignore*/-1
+# define MPI_MAX /*ignore*/-1
 #endif
 
 
@@ -51,9 +50,7 @@ namespace hs {
 
 
   namespace mpi {
-#if HS_FAKE_MPI
-    inline std::string mpiErrorString(int rc) { return "HS_FAKE_MPI"; }
-#else
+#if HS_MPI
     inline std::string mpiErrorString(int rc)
     {
       char s[MPI_MAX_ERROR_STRING];
@@ -62,12 +59,12 @@ namespace hs {
       MPI_Error_string(rc,s,&len);
       return s;
     }
-#endif  
     struct Exception : public std::runtime_error {
       Exception(const std::string &where, int rc)
         : std::runtime_error("#hs.mpi (@"+where+") : " + mpiErrorString(rc))
       {}
     };
+#endif  
     struct Comm : public hs::Comm {
       Comm();
       ~Comm() override;
@@ -128,11 +125,10 @@ namespace hs {
         0, and match a bc_send on rank 0 */
       void bc_recv(void *ptr, size_t numBytes) const override;
 
-#if HS_MPI
       MPI_Comm comm = MPI_COMM_NULL;
-#endif
     };
 
+#if HS_MPI
     template<typename T>
     inline void Comm::recv(int fromRank, int tag,
                            T *buffer, int numItems, MPI_Request &req)
@@ -173,86 +169,115 @@ namespace hs {
                          nullptr,numItemsSentOnEachRank*sizeof(T),MPI_BYTE,
                          0,comm));
     }
+#endif    
     
-
-    
-    Comm::Comm()
-    {
-#if HS_FAKE_MPI
-      rank = 0;
-      size = 1;
-#else
-      HS_MPI_CALL(Comm_dup(MPI_COMM_WORLD,&comm));
-      HS_MPI_CALL(Comm_rank(comm,&rank));
-      HS_MPI_CALL(Comm_size(comm,&size));
-#endif
-    }
-
     /*! master's send side of broadcast - must be done on rank 0,
       and matched by bc_recv on all workers */
     void Comm::bc_send(const void *data, size_t numBytes) const
     {
+#if HS_MPI
       HS_MPI_CALL(Bcast((void *)data,numBytes,MPI_BYTE,0,comm));
+#else
+      /* nothing changes with one rank */
+#endif
     }
     
     /*! receive side of a broadcast - must be called on all ranks >
       0, and match a bc_send on rank 0 */
     void Comm::bc_recv(void *data, size_t numBytes) const
     {
+#if HS_MPI
       HS_MPI_CALL(Bcast(data,numBytes,MPI_BYTE,0,comm));
+#else
+      /* nothing changes with one rank */
+#endif
     }
+
     
+    Comm::Comm()
+    {
+#if HS_MPI
+      HS_MPI_CALL(Comm_dup(MPI_COMM_WORLD,&comm));
+      HS_MPI_CALL(Comm_rank(comm,&rank));
+      HS_MPI_CALL(Comm_size(comm,&size));
+#else
+      rank = 0;
+      size = 1;
+#endif
+    }
+
     void Comm::assertValid() const
     {
-#if HS_FAKE_MPI
-      // no mpi...
-#else
+#if HS_MPI
       if (comm == MPI_COMM_NULL)
         throw std::runtime_error(std::string(__PRETTY_FUNCTION__)
                                  +" : not a valid mpi communicator"); 
 #endif
     }
+
+
+#if HS_MPI
+    template<typename T>
+    T AllReduce1(T value, int type, int op, MPI_Comm comm)
+    {
+      T result = value;
+      HS_MPI_CALL(Allreduce(&value,&result,1,type,op,comm));
+      return result;
+    }
+#else
+    template<typename T>
+    T AllReduce1(T value, int type, int op, MPI_Comm comm)
+    {
+      return value;
+    }
+#endif
     
     int Comm::allReduceAdd(int value) const
     {
-      int result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_SUM,comm));
-      return result;
+      return AllReduce1(value,MPI_INT,MPI_SUM,comm);
+      // int result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_SUM,comm));
+      // return result;
     }
 
     float Comm::allReduceAdd(float value) const
     {
-      float result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_SUM,comm));
-      return result;
+      return AllReduce1(value,MPI_FLOAT,MPI_SUM,comm);
+      // float result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_SUM,comm));
+      // return result;
     }
 
     int Comm::allReduceMin(int value) const
     {
-      int result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MIN,comm));
-      return result;
+      return AllReduce1(value,MPI_INT,MPI_MIN,comm);
+      // int result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MIN,comm));
+      // return result;
     }
 
     int Comm::allReduceMax(int value) const
     {
-      int result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MAX,comm));
-      return result;
-    }
+      return AllReduce1(value,MPI_INT,MPI_MAX,comm);
+      // int result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_INT,MPI_MAX,comm));
+      // return result;
+     }
     
     float Comm::allReduceMax(float value) const
     {
-      float result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MAX,comm));
-      return result;
+      return AllReduce1(value,MPI_FLOAT,MPI_MAX,comm);
+      // float result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MAX,comm));
+      // return result;
     }
     
     float Comm::allReduceMin(float value) const
     {
-      float result = value;
-      HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MIN,comm));
-      return result;
+      return AllReduce1(value,MPI_FLOAT,MPI_MIN,comm);
+      // float result = value;
+      // HS_MPI_CALL(Allreduce(&value,&result,1,MPI_FLOAT,MPI_MIN,comm));
+      // return result;
     }
 
     void Comm::allGather(int *allValues, int myValue)
@@ -279,9 +304,14 @@ namespace hs {
     void Comm::allGather(const size_t &ulong,
                          std::vector<size_t> &allUlongs) const
     {
+#if HS_MPI
       MPI_Allgather(&ulong,sizeof(ulong),MPI_BYTE,
                     allUlongs.data(),sizeof(ulong),MPI_BYTE,
                     comm);
+#else
+      assert(allUlongs.size() == 1);
+      allUlongs[0] = ulong;
+#endif
     }
   }
 

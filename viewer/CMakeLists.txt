@@ -4,7 +4,6 @@
 option(HS_VIEWER "Build hsViewer" ON)
 option(HS_CLIENT_SERVER "Build hsClient/hsServer" ON)
 
-
 add_subdirectory(render)
 
 

@@ -156,6 +156,12 @@ namespace hm {
       anari::World    world    = 0;
       anari::Renderer renderer = 0;
       anari::Frame    frame    = 0;
+#if HS_EXP_ALTFRAME
+      struct {
+        anari::Frame    frame    = 0;
+        anari::Camera   camera   = 0;
+      } alt;
+#endif
       anari::Camera   camera   = 0;
       Camera::Type    cameraType;
     } anari;

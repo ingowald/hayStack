@@ -118,6 +118,22 @@ namespace hm {
 #endif
 
       anari::commitParameters(device, frame);
+
+#if HS_EXP_ALTFRAME
+      auto alt_frame = dev->anari.alt.frame;
+      anari::setParameter(device, alt_frame,
+                          "size",
+                          (const anari::math::uint2&)alt_fbSize);
+      anari::setParameter(device, alt_frame,
+                          "channel.color",
+                          ANARI_UFIXED8_RGBA_SRGB);
+      if (hostDepth)
+        anari::setParameter(device, alt_frame,
+                            "channel.depth", ANARI_FLOAT32);
+      anari::commitParameters(device, alt_frame);
+#endif
+      
+      
     }
   }
 

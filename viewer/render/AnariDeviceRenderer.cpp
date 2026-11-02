@@ -127,6 +127,16 @@ namespace hm {
     // anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
     anari::setParameter(anari.device, anari.frame, "renderer", anari.renderer);
     anari::commitParameters(anari.device, anari.frame);
+#if HS_EXP_ALTFRAME
+    anari.alt.frame = anari::newObject<anari::Frame>(anari.device);
+
+    anari::setParameter(anari.device, anari.alt.frame, "world",    anari.world);
+    // anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+    anari::setParameter(anari.device, anari.alt.frame, "renderer", anari.renderer);
+    anari::setParameter(anari.device, anari.alt.frame,
+                        "hidden",    int(1));
+    anari::commitParameters(anari.device, anari.alt.frame);
+#endif
   }
   
   void AnariDeviceRenderer::renderFrame()
@@ -136,6 +146,9 @@ namespace hm {
       dirty = false;
     }
     anari::render(anari.device, anari.frame);
+#if HS_EXP_ALTFRAME
+    anari::render(anari.device, anari.alt.frame);
+#endif
   }
 
   void AnariDeviceRenderer
@@ -267,18 +280,24 @@ namespace hm {
       anari.camera = anari::newObject<anari::Camera>
         (anari.device, cameraType);
       anari.cameraType = camera.type;
-       anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
+      anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
       anari::commitParameters(anari.device, anari.frame);
       anariRelease(anari.device,anari.camera);
-      anari.cameraType == camera.type;
+#if HS_EXP_ALTFRAME
+      anari.alt.camera = anari::newObject<anari::Camera>
+        (anari.device, cameraType);
+      anari::setParameter(anari.device, anari.alt.frame, "camera",   anari.alt.camera);
+      anari::commitParameters(anari.device, anari.alt.frame);
+      anariRelease(anari.device,anari.alt.camera);
+#endif      
     }
 
     float aspect = fbSize.x / (float)fbSize.y;
+    vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(anari.device, anari.camera,
                         "aspect",    aspect);
     anari::setParameter(anari.device, anari.camera,
                         "position",  (const anari::math::float3&)camera.vp);
-    vec3f camera_dir = normalize(camera.vi - camera.vp);
     anari::setParameter(anari.device, anari.camera,
                         "direction", (const anari::math::float3&)camera_dir);
     anari::setParameter(anari.device, anari.camera,
@@ -293,6 +312,27 @@ namespace hm {
     anari::setParameter(anari.device, anari.camera,
                         "nearClip",   camera.nearClip);
     anari::commitParameters(anari.device, anari.camera);
+#if HS_EXP_ALTFRAME
+    float alt_aspect = hayMaker->alt_fbSize.x / (float)hayMaker->alt_fbSize.y;
+    anari::setParameter(anari.device, anari.alt.camera,
+                        "aspect",    alt_aspect);
+    anari::setParameter(anari.device, anari.alt.camera,
+                        "position",  (const anari::math::float3&)camera.vp);
+    anari::setParameter(anari.device, anari.alt.camera,
+                        "direction", (const anari::math::float3&)camera_dir);
+    anari::setParameter(anari.device, anari.alt.camera,
+                        "up",        (const anari::math::float3&)camera.vu);
+    if (camera.type == Camera::ORTHO) {
+      anari::setParameter(anari.device, anari.alt.camera,
+                          "height",  camera.ortho.height);
+    } else {
+      anari::setParameter(anari.device, anari.alt.camera,
+                          "fovy",    radians(camera.perspective.fovy));
+    }
+    anari::setParameter(anari.device, anari.alt.camera,
+                        "nearClip",   camera.nearClip);
+    anari::commitParameters(anari.device, anari.alt.camera);
+#endif
   }
   
   void AnariDeviceRenderer::renderInitialAnariWorld()

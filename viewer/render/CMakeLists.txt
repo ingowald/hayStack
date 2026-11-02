@@ -3,6 +3,8 @@
 
 find_package(anari 0.13.0 REQUIRED)
 
+option(HS_EXP_ALTFRAME "Haystack second-frame test" OFF)
+
 add_library(hayMaker
   AnariDeviceRenderer.h
   AnariDeviceRenderer.cpp
@@ -22,3 +24,6 @@ target_link_libraries(hayMaker
   hayStack
   anari::anari
 )
+if (HS_EXP_ALTFRAME)
+  target_compile_definitions(hayMaker PUBLIC HS_EXP_ALTFRAME=1)
+endif()

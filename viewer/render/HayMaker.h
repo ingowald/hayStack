@@ -91,6 +91,9 @@ namespace hm {
     hs::LocalPartitions *const localPartitions;
     GlobalRenderSettings globalRenderSettings;
     const std::vector<DeviceConfig> deviceConfigs;
+#if HS_EXP_ALTFRAME
+    vec2i alt_fbSize{1600,200};
+#endif
   private:
     // void computeWorldBounds();
   };
