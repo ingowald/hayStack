@@ -218,7 +218,7 @@ namespace hs {
 
 #if HS_MPI
     template<typename T>
-    T AllReduce1(T value, int type, int op, MPI_Comm comm)
+    T AllReduce1(T value, MPI_Datatype type, MPI_Op op, MPI_Comm comm)
     {
       T result = value;
       HS_MPI_CALL(Allreduce(&value,&result,1,type,op,comm));
