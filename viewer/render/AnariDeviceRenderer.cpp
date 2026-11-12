@@ -134,7 +134,7 @@ namespace hm {
     // anari::setParameter(anari.device, anari.frame, "camera",   anari.camera);
     anari::setParameter(anari.device, anari.alt.frame, "renderer", anari.renderer);
     anari::setParameter(anari.device, anari.alt.frame,
-                        "hidden",    int(1));
+                        "isAltFrame",    int(1));
     anari::commitParameters(anari.device, anari.alt.frame);
 #endif
   }

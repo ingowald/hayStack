@@ -97,7 +97,7 @@ namespace hm {
     GlobalRenderSettings globalRenderSettings;
     const std::vector<DeviceConfig> deviceConfigs;
 #if HS_EXP_ALTFRAME
-    vec2i alt_fbSize{1600,200};
+    vec2i alt_fbSize{2*1600,1*1200};
 #endif
   private:
     // void computeWorldBounds();
