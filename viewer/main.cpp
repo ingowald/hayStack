@@ -498,13 +498,19 @@ int main(int ac, char **av)
     exit(0);
   }
 
-  hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
-  hayMaker->setEmissionTransferFunction(
-    haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
+  // hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
+  // hayMaker->setEmissionTransferFunction(
+  //   haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
 
+  // if (!fromCL.xfFileName.empty()) {
+  //   hayMaker->setTransferFunction(cliVolumeXfs.opacity);
+  // }
   if (!fromCL.xfFileName.empty()) {
-    hayMaker->setTransferFunction(cliVolumeXfs.opacity);
+    auto xf = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
+    renderer->setTransferFunctionSet(xf);
+    renderer->resetAccumulation();
   }
+
                    
 
   // world->barrier();
@@ -578,12 +584,6 @@ int main(int ac, char **av)
   hs::Camera camera = fromCL.camera;;
   renderer->setCamera(camera);
   
-  if (!fromCL.xfFileName.empty()) {
-    auto xf = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
-    renderer->setTransferFunctionSet(xf);
-    renderer->resetAccumulation();
-  }
-
   if (!fromCL.cameraPath.empty()) {
     std::cout << "rendering camera path sequence" << std::endl;
     for (int frameID=0;frameID<fromCL.cameraPath.size();frameID++) {

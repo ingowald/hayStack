@@ -18,12 +18,7 @@ namespace hm {
     virtual void setEmissionTransferFunction(const hs::TransferFunction &xf) {}
     virtual void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) {}
 
-    void setTransferFunctionSet(const VolumeTransferFunctionSet &xf)
-    {
-      setTransferFunction(xf.opacity);
-      setTransferFunction(xf.emission);
-      setVolumeScatterSettings(xf.scatterSettings);
-    }
+    void setTransferFunctionSet(const VolumeTransferFunctionSet &xf);
 
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize,
@@ -95,4 +90,11 @@ namespace hm {
     RenderEngineInterface *const pt;
   };
   
+  inline void RenderEngineInterface
+  ::setTransferFunctionSet(const VolumeTransferFunctionSet &xf)
+  {
+    setTransferFunction(xf.opacity);
+    setEmissionTransferFunction(xf.emission);
+    setVolumeScatterSettings(xf.scatterSettings);
+  }
 }

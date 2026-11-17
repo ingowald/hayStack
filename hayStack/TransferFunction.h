@@ -19,6 +19,7 @@ namespace hs {
     { colorMap = { data, data+size }; };
       
     range1f getDomain() const;
+    std::string toString() const;
     
     std::vector<mini::common::vec4f> colorMap
     //       = { mini::common::vec4f(1.f, 1.f, 1.f, 0.f),

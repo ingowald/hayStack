@@ -29,7 +29,6 @@ namespace hs {
       gridSpacing = dataURL.get_vec3f("spacing",gridSpacing);
 
       fieldName = dataURL.get("field","");
-      PING; PRINT(fieldName);
       
       showVolume = isnan(iso0) || dataURL.has("showVolume");
       showBlockDebug = dataURL.has("dbg");
@@ -55,7 +54,6 @@ namespace hs {
       tamr::Model::SP model = tamr::Model::load(fileName);
 
       int fieldID=-1;
-      PING; PRINT(fieldName);
       if (fieldName == "")
         fieldID = 0;
       else {
@@ -66,7 +64,6 @@ namespace hs {
         if (fieldID == -1)
           throw std::runtime_error("field '"+fieldName+"' not found in this tamr file");
       }
-      PING; PRINT(fieldID);
 
       TAMRVolume::SP content
         = std::make_shared<TAMRVolume>(model,

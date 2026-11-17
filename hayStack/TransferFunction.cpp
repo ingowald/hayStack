@@ -9,6 +9,21 @@ namespace hs {
   const size_t xfSingleFileFormatMagic = 0x1235abc000;
   const size_t xfSetFileFormatMagic = 0x1235abc101;
   
+  std::string TransferFunction::toString() const
+  {
+    std::stringstream ss;
+    ss << "TransferFunction{domain=" << domain
+       << ",dens="<<baseDensity
+       << ",cmap]{cnt=" << colorMap.size() << ":";
+    for (int i=0;i<std::min(3,(int)colorMap.size());i++)
+      ss << colorMap[i] << ",";
+    ss << "...,";
+    if (!colorMap.empty())
+      ss << colorMap.back();
+    ss << "}}";
+    return ss.str();
+  }
+  
   void TransferFunction::write(std::ostream &out) const
   {
     out.write((const char *)&this->baseDensity, sizeof(this->baseDensity));
