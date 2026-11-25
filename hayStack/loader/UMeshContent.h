@@ -25,7 +25,9 @@ namespace hs {
     /*! a 'umesh' file of unstructured mesh data */
     struct SpatiallyPartitionedUMeshContent : public LoadableContent {
       SpatiallyPartitionedUMeshContent(const std::string umeshFileName,
-                                       const box3f &domain);
+                                       const box3f &domain,
+                                       /*! name of transfer function to use for this volume */
+                                       const std::string &xfName);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
       std::string toString() override;
@@ -35,6 +37,7 @@ namespace hs {
       const std::string fileName;
       const size_t      fileSize;
       const box3f       domain;
+      const std::string xfName;
     };
 
   }

@@ -27,6 +27,7 @@ namespace hm {
     SET_EMISSION_XF,
     RESET_ACCUMULATION,
     SET_VOLUME_SCATTER,
+    GATHER_XF_NAMES,
     MAX_VALID_COMMANDS
   } CommandTag;
   
@@ -61,6 +62,7 @@ namespace hm {
         sent my the master */
     void cmd_terminate();
     void cmd_getWorldBounds();
+    void cmd_gatherXFNames();
     void cmd_renderFrame();
     void cmd_resize();
     void cmd_resetAccumulation();
@@ -221,6 +223,39 @@ namespace hm {
     bb.scalars.upper = comm->allReduceMax(bb.scalars.upper);
     bb.mapped.lower  = comm->allReduceMin(bb.mapped.lower);
     bb.mapped.upper  = comm->allReduceMax(bb.mapped.upper);
+  }
+
+  // ==================================================================
+  std::set<std::string> MPIRenderEngine::gatherXFNames()
+  {
+    // ------------------------------------------------------------------
+    // send request....
+    // ------------------------------------------------------------------
+    int cmd = GATHER_XF_NAMES;
+    sendToWorkers(cmd);
+    sendEndOfMessage();
+
+    // ------------------------------------------------------------------
+    // and do our own....
+    // ------------------------------------------------------------------
+    std::set<std::string> xfNames;
+    if (passThrough)
+      xfNames = passThrough->gatherXFNames();
+    return comm->allReduceUnion(xfNames);
+  }
+
+  void WorkerLoop::cmd_gatherXFNames()
+  {
+    // ------------------------------------------------------------------
+    // get args....
+    // ------------------------------------------------------------------
+    checkEndOfMessage();
+    ;
+    // ------------------------------------------------------------------
+    // and execute
+    // ------------------------------------------------------------------
+    std::set<std::string> xfNames = renderer->gatherXFNames();
+    comm->allReduceUnion(xfNames);
   }
 
 
@@ -509,6 +544,9 @@ namespace hm {
         break;
       case GET_WORLD_BOUNDS:
         cmd_getWorldBounds();
+        break;
+      case GATHER_XF_NAMES:
+        cmd_gatherXFNames();
         break;
       case TERMINATE:
         cmd_terminate();

@@ -5,13 +5,14 @@
 
 // #include "barney.h"
 #include "hayStack/HayStack.h"
+#include "hayStack/Volume.h"
 
 namespace hs {
 
   /*! like all other things in haystack, this is designed to be able
       to store *ONE RANK'S PART* of what may - across all ranks - be a
       logically much larger volume */
-  struct StructuredVolume {
+  struct StructuredVolume : public Volume {
     typedef std::shared_ptr<StructuredVolume> SP;
     
     //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
@@ -22,8 +23,10 @@ namespace hs {
                      std::vector<uint8_t> &rawData,
                      std::vector<uint8_t> &rawDataRGB,
                      const vec3f &gridOrigin,
-                     const vec3f &gridSpacing)
-      : dims(dims),
+                     const vec3f &gridSpacing,
+                     const std::string &xfName = "defaultVolume")
+      : Volume(xfName),
+        dims(dims),
         texelFormat(texelFormat),//scalarType(scalarType),
         rawData(std::move(rawData)),
         rawDataRGB(std::move(rawDataRGB)),
@@ -31,8 +34,8 @@ namespace hs {
         gridSpacing(gridSpacing)
     {}
 
-    box3f getBounds() const;
-    range1f getValueRange() const;
+    box3f getBounds() const override;
+    range1f getValueRange() const override;
 
     /*! dimensions of grid of scalars in rawData */
     vec3i      dims;

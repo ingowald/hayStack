@@ -1129,9 +1129,9 @@ namespace hm {
   }
   
   anari::Volume AnariDeviceRenderer
-  ::create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain)
+  ::create(const UMeshVolume::SP &vol)
   {
-    auto mesh = meshAndDomain.first;
+    auto mesh = vol->mesh;
     assert(mesh);
 
 #if 1

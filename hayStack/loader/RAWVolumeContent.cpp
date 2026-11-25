@@ -24,14 +24,16 @@ namespace hs {
                                        vec3i fullVolumeDims,
                                        const std::string &texelFormat,
                                        int numChannels,
-                                       float isoValue)
+                                       float isoValue,
+                                       const std::string &xfName)
       : fileName(fileName),
         thisPartID(thisPartID),
         cellRange(cellRange),
         fullVolumeDims(fullVolumeDims),
         texelFormat(texelFormat),
         numChannels(numChannels),
-        isoValue(isoValue)
+        isoValue(isoValue),
+        xfName(xfName)
     {}
 
     void splitKDTree(std::vector<box3i> &regions,
@@ -158,13 +160,15 @@ namespace hs {
       std::string isoString = dataURL.get("iso",dataURL.get("isoValue"));
       if (!isoString.empty())
         isoValue = std::stof(isoString);
+      std::string xfName = dataURL.get("xf","defaultVolume");
     
       for (int i=0;i<dataURL.numParts;i++) {
         loader->addContent(new RAWVolumeContent(dataURL.where,i,
                                                 regions[i],
                                                 dims,texelFormat,//scalarType,
                                                 numChannels,
-                                                isoValue));
+                                                isoValue,
+                                                xfName));
       }
     }
   
@@ -310,9 +314,10 @@ namespace hs {
         if (!mesh->indices.empty())
           dataGroup.minis.push_back(model);
       } else {
-        dataGroup.structuredVolumes.push_back
-          (std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,rawDataRGB,
-                                              gridOrigin,gridSpacing));
+        auto vol = std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,rawDataRGB,
+                                                      gridOrigin,gridSpacing,
+                                                      xfName);
+        dataGroup.structuredVolumes.push_back(vol);
       }
     }
   

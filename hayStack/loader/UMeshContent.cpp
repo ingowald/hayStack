@@ -36,7 +36,7 @@ namespace hs {
       mesh->hexes.clear();
       mesh->wedges.clear();
 #endif
-      dataRank.unsts.push_back({mesh,box3f()});
+      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(mesh));
 
       if (1 && (mesh->triangles.size() || mesh->quads.size())) {
         std::cout << "#hs: umesh seems to have surface triangles - extracting those." << std::endl;
@@ -68,15 +68,18 @@ namespace hs {
   
     SpatiallyPartitionedUMeshContent
     ::SpatiallyPartitionedUMeshContent(const std::string umeshFileName,
-                                       const box3f &domain)
+                                       const box3f &domain,
+                                       const std::string &xfName)
       : fileName(umeshFileName),
         fileSize(getFileSize(umeshFileName)),
-        domain(domain)
+        domain(domain),
+        xfName(xfName)
     {}
     
     void SpatiallyPartitionedUMeshContent::create(DataLoader *loader,
                                                   const ResourceSpecifier &dataURL)
     {
+      const std::string xfName = dataURL.get("xf","defaultVolume");
       const std::string domainsFileName = dataURL.where+".domains";
       size_t domainsFileSize = getFileSize(domainsFileName.c_str());
       int numParts = (domainsFileSize - 2*sizeof(size_t)) / (sizeof(box3f)+sizeof(range1f));
@@ -100,7 +103,8 @@ namespace hs {
         char suffix[100];
         snprintf(suffix,sizeof(suffix),"_%05i",i);
         std::string partFileName = dataURL.where+suffix+".umesh";
-        loader->addContent(new SpatiallyPartitionedUMeshContent(partFileName,domains[i]));
+        loader->addContent(new SpatiallyPartitionedUMeshContent(partFileName,domains[i],
+                                                                xfName));
 
         // umesh::UMesh::SP mesh = umesh::UMesh::loadFrom(partFileName);
         // loader->dataRanks.unsts.push_back({mesh,domains[i]});
@@ -119,7 +123,8 @@ namespace hs {
     
     void SpatiallyPartitionedUMeshContent::executeLoad(OnePartition &dataRank) 
     {
-      dataRank.unsts.push_back({umesh::UMesh::loadFrom(fileName),domain});
+      dataRank.unsts.push_back
+        (std::make_shared<UMeshVolume>(umesh::UMesh::loadFrom(fileName),domain,xfName));
     }
 
   }  

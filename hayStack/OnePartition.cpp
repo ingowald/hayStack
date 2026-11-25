@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/OnePartition.h"
+#include <map>
 
 namespace hs {
 
@@ -22,13 +23,19 @@ namespace hs {
       // dont have any unstructured meshes - done.
       return;
     
-    std::vector<umesh::UMesh::SP> unsts;
-    for (auto _unst : this->unsts)
-      unsts.push_back(_unst.first);
-    umesh::UMesh::SP merged = umesh::mergeMeshes(unsts);
-    std:: cout << "done merging, got " << merged->toString() << std::endl;
+    // can only merge meshes that use the same transfer function, so
+    // group by xfName, and merge each group separately
+    std::map<std::string,std::vector<umesh::UMesh::SP>> meshesByXF;
+    for (auto unst : this->unsts)
+      meshesByXF[unst->xfName].push_back(unst->mesh);
     this->unsts.clear();
-    this->unsts.push_back({merged,box3f()});
+    for (auto &it : meshesByXF) {
+      umesh::UMesh::SP merged = umesh::mergeMeshes(it.second);
+      std:: cout << "done merging, got " << merged->toString()
+                 << " (xf '" << it.first << "')" << std::endl;
+      this->unsts.push_back
+        (std::make_shared<UMeshVolume>(merged,box3f(),it.first));
+    }
   }
       
   BoundsData OnePartition::getBounds() const
@@ -37,15 +44,10 @@ namespace hs {
     for (auto mini : minis)
       if (mini)
         bounds.spatial.extend(mini->getBounds());
-    for (auto &_unst : unsts) {
-      auto unst = _unst.first;
-      if (unst) {
-        umesh::box3f bb = unst->getBounds();
-        if (!_unst.second.empty())
-          bb = (const umesh::box3f &)_unst.second;
-        bounds.spatial.extend((const box3f&)bb);
-        umesh::range1f sr = unst->getValueRange();
-        bounds.scalars.extend((const range1f&)sr);
+    for (auto &unst : unsts) {
+      if (unst && unst->mesh) {
+        bounds.spatial.extend(unst->getBounds());
+        bounds.scalars.extend(unst->getValueRange());
       }
     }
     for (auto &triangleMesh : triangleMeshes)
@@ -78,6 +80,20 @@ namespace hs {
     }
 #endif
     return bounds;
+  }
+
+  std::set<std::string> OnePartition::gatherXFNames() const
+  {
+    std::set<std::string> xfNames;
+    for (auto &vol : structuredVolumes)
+      xfNames.insert(vol->xfName);
+    for (auto &vol : nanovdbVolumes)
+      xfNames.insert(vol->xfName);
+    for (auto &vol : amr)
+      xfNames.insert(vol->xfName);
+    for (auto &vol : unsts)
+      xfNames.insert(vol->xfName);
+    return xfNames;
   }
 
 } // ::hs

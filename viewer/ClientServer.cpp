@@ -47,6 +47,25 @@ namespace hm {
       assert(allUlongs.size() == 1);
       allUlongs[0] = ulong;
     }
+
+    /*! like dummyReduce: server side sends its bytes, client side
+        receives them and appends them to its own */
+    void  allGather(const std::vector<uint8_t> &myBytes,
+                    std::vector<uint8_t> &allBytes) const override
+    {
+      allBytes = myBytes;
+      if (onClientSide) {
+        size_t count = 0;
+        recv(fd,&count,sizeof(count),MSG_WAITALL);
+        std::vector<uint8_t> remote(count);
+        if (count) recv(fd,remote.data(),count,MSG_WAITALL);
+        allBytes.insert(allBytes.end(),remote.begin(),remote.end());
+      } else {
+        size_t count = myBytes.size();
+        send(fd,&count,sizeof(count),0);
+        if (count) send(fd,myBytes.data(),count,0);
+      }
+    }
     
     void bc_send(const void *data, size_t size) const override
     {

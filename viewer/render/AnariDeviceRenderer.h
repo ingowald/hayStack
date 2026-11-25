@@ -106,7 +106,7 @@ namespace hm {
     create(const hs::TAMRVolume &input);
     
     anari::Volume
-    create(const std::pair<umesh::UMesh::SP,box3f> &meshAndDomain);
+    create(const UMeshVolume::SP &vol);
 
     using Surfaces = std::vector<anari::Surface>;
     Surfaces create(const hs::SphereSet &content);

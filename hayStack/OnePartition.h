@@ -13,8 +13,10 @@
 #include "hayStack/StructuredVolume.h"
 #include "hayStack/TAMRVolume.h"
 #include "hayStack/NanoVDBVolume.h"
+#include "hayStack/UMeshVolume.h"
 #include <miniScene/Scene.h>
 #include <umesh/UMesh.h>
+#include <set>
 
 namespace hs {
 
@@ -69,11 +71,14 @@ namespace hs {
 
     OnePartition(const PartitionsIndex &partitionsIndex);
     BoundsData getBounds() const;
+
+    /*! returns the set of all (distinct) transfer function names
+        used by any of the volumes in this partition */
+    std::set<std::string> gatherXFNames() const;
     
     mini::Material::SP                defaultMaterial;
     std::vector<mini::Scene::SP>      minis;
-    /*! mesh AND domain. domain being empty means 'no clip box' */
-    std::vector<std::pair<umesh::UMesh::SP,box3f>> unsts;
+    std::vector<UMeshVolume::SP>      unsts;
     std::vector<TriangleMesh::SP>     triangleMeshes;
     std::vector<SphereSet::SP>        sphereSets;
     std::vector<Cylinders::SP>        cylinderSets;

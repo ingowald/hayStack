@@ -19,6 +19,8 @@
 #include "hayStack/common.h"
 #include <stdexcept>
 #include <unistd.h>
+#include <set>
+#include <string>
 
 namespace hs {
 
@@ -42,6 +44,11 @@ namespace hs {
     virtual float allReduceMin(float value) const = 0;
     virtual void  allGather(const size_t &ulong,
                             std::vector<size_t> &allUlongs) const = 0;
+    /*! gathers a variable number of bytes from each rank, and
+        returns (on every rank) the concatenation of all ranks'
+        bytes */
+    virtual void allGather(const std::vector<uint8_t> &myBytes,
+                           std::vector<uint8_t> &allBytes) const = 0;
     virtual void barrier() const = 0;
     
     /*! may only be called on 'master rank' (ie, rank 0 in a mpi
@@ -56,6 +63,9 @@ namespace hs {
     
     vec3f allReduceMax(vec3f value) const;
     vec3f allReduceMin(vec3f value) const;
+
+    /*! returns the union of all ranks' sets of strings */
+    std::set<std::string> allReduceUnion(const std::set<std::string> &mine) const;
 
     int rank = 0;
     int size = 1;

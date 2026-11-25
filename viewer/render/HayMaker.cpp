@@ -155,6 +155,11 @@ namespace hm {
     return bb;
   }
   
+  std::set<std::string> HayMaker::gatherXFNames()
+  {
+    return world->allReduceUnion(localPartitions->gatherXFNames());
+  }
+
   void HayMaker::renderFrame()
   {
     assert(!perDevice.empty());

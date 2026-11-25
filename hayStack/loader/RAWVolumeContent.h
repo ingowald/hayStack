@@ -22,7 +22,9 @@ namespace hs {
                        /*! if not NaN, we'll actually not store the
                          volume, but run iso-value extraction and use
                          the resulting surface(s) */
-                       const float isoValue);
+                       const float isoValue,
+                       /*! name of transfer function to use for this volume */
+                       const std::string &xfName);
     
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
@@ -38,6 +40,7 @@ namespace hs {
       const int           numChannels;
       const std::string   texelFormat;
       const float         isoValue;
+      const std::string   xfName;
     };
   
   }

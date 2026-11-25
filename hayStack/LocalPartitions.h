@@ -36,6 +36,10 @@ namespace hs {
       negative side effects on performance */
     void mergeUnstructuredMeshes();
 
+    /*! returns the set of all (distinct) transfer function names
+        used by any of the volumes in any of this rank's partitions */
+    std::set<std::string> gatherXFNames() const;
+
     OnePartition *get(int localPartitionIndex) const;
 
     /*! these are (only) the current rank's partitions; there might be

@@ -48,7 +48,7 @@ namespace hm {
 #if HS_USE_MULTI_SCATTERING
     anari::Volume create(const NanoVDBVolume::SP &v);
 #endif
-    anari::Volume create(const std::pair<umesh::UMesh::SP,box3f> &v);
+    anari::Volume create(const UMeshVolume::SP &v);
 
     // void setColorMapping(anari::Material mat, const std::string &colorName);
     // void setScalarMapping(anari::Material mat, const std::string &colorName);

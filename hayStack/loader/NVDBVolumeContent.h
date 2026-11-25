@@ -23,11 +23,14 @@ namespace loader {
     NVDBVolumeContent(const std::string &fileName,
                       int thisPartID,
                       const box3i &cellRange,
-                      vec3i fullIndexDims)
+                      vec3i fullIndexDims,
+                      /*! name of transfer function to use for this volume */
+                      const std::string &xfName)
       : fileName(fileName),
         thisPartID(thisPartID),
         cellRange(cellRange),
-        fullIndexDims(fullIndexDims)
+        fullIndexDims(fullIndexDims),
+        xfName(xfName)
     {}
 
     static void create(DataLoader *loader,
@@ -78,9 +81,11 @@ namespace loader {
           std::cout << " #" << i << " : " << regions[i] << std::endl;
       }
 
+      std::string xfName = dataURL.get("xf","defaultVolume");
       for (int i = 0; i < dataURL.numParts; ++i) {
         loader->addContent(new NVDBVolumeContent(dataURL.where, i,
-                                                 regions[i], fullDims));
+                                                 regions[i], fullDims,
+                                                 xfName));
       }
     }
 
@@ -107,7 +112,7 @@ namespace loader {
            + fileName + "': " + e.what());
       }
 
-      auto vol = std::make_shared<NanoVDBVolume>();
+      auto vol = std::make_shared<NanoVDBVolume>(xfName);
       vol->fileName = fileName;
       vol->partID = thisPartID;
       vol->cellRange = cellRange;
@@ -146,6 +151,7 @@ namespace loader {
     const int thisPartID;
     const vec3i fullIndexDims;
     const box3i cellRange;
+    const std::string xfName;
 
   private:
     static int argMaxDim(vec3i size)

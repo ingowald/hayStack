@@ -247,7 +247,7 @@ namespace hs {
                 << mesh->bounds.upper.x << " " << mesh->bounds.upper.y << " " << mesh->bounds.upper.z
                 << "]" << std::endl;
 
-      dataRank.unsts.push_back({mesh, box3f()});
+      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(mesh));
       std::cout << "#hs.vtu: loaded successfully" << std::endl;
 #endif
     }

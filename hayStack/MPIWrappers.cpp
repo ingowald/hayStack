@@ -48,6 +48,27 @@ namespace hs {
     return vec3f(allReduceMax(v.x),allReduceMax(v.y),allReduceMax(v.z));
   }
 
+  std::set<std::string> Comm::allReduceUnion(const std::set<std::string> &mine) const
+  {
+    // serialize as sequence of 0-terminated strings
+    std::vector<uint8_t> myBytes;
+    for (auto &s : mine) {
+      myBytes.insert(myBytes.end(),s.begin(),s.end());
+      myBytes.push_back(0);
+    }
+    std::vector<uint8_t> allBytes;
+    allGather(myBytes,allBytes);
+
+    std::set<std::string> result;
+    size_t begin = 0;
+    for (size_t i=0;i<allBytes.size();i++)
+      if (allBytes[i] == 0) {
+        result.insert(std::string((const char *)allBytes.data()+begin,i-begin));
+        begin = i+1;
+      }
+    return result;
+  }
+
 
   namespace mpi {
 #if HS_MPI
@@ -86,6 +107,8 @@ namespace hs {
       float allReduceAdd(float value) const override;
       void  allGather(const size_t &ulong,
                       std::vector<size_t> &allUlongs) const override;
+      void  allGather(const std::vector<uint8_t> &myBytes,
+                      std::vector<uint8_t> &allBytes) const override;
       void barrier() const override;
 
       void allGather(int *allValues, int myValue);
@@ -311,6 +334,25 @@ namespace hs {
 #else
       assert(allUlongs.size() == 1);
       allUlongs[0] = ulong;
+#endif
+    }
+
+    void Comm::allGather(const std::vector<uint8_t> &myBytes,
+                         std::vector<uint8_t> &allBytes) const
+    {
+#if HS_MPI
+      int myCount = (int)myBytes.size();
+      std::vector<int> counts(size);
+      HS_MPI_CALL(Allgather(&myCount,1,MPI_INT,counts.data(),1,MPI_INT,comm));
+      std::vector<int> displs(size);
+      int total = 0;
+      for (int r=0;r<size;r++) { displs[r] = total; total += counts[r]; }
+      allBytes.resize(total);
+      HS_MPI_CALL(Allgatherv(myBytes.data(),myCount,MPI_BYTE,
+                             allBytes.data(),counts.data(),displs.data(),MPI_BYTE,
+                             comm));
+#else
+      allBytes = myBytes;
 #endif
     }
   }

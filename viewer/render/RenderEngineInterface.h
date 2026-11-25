@@ -5,6 +5,8 @@
 
 #include "hayStack/TransferFunction.h"
 #include "hayStack/VolumeScatter.h"
+#include <set>
+#include <string>
 
 /* parallel renderer abstraction */
 namespace hm {
@@ -39,6 +41,10 @@ namespace hm {
     // can figure out what's there to set/modify
     // ==================================================================
     virtual BoundsData getWorldBounds() = 0;
+
+    /*! returns the set of all (distinct) transfer function names
+        used by any of the volumes in the scene */
+    virtual std::set<std::string> gatherXFNames() = 0;
     
   };
 
@@ -62,6 +68,10 @@ namespace hm {
     BoundsData getWorldBounds()
       override
     { return pt->getWorldBounds(); }
+
+    std::set<std::string> gatherXFNames()
+      override
+    { return pt->gatherXFNames(); }
     
     void renderFrame()
       override

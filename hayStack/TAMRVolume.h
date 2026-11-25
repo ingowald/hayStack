@@ -19,6 +19,7 @@
 #pragma once
 
 #include "hayStack/HayStack.h"
+#include "hayStack/Volume.h"
 #include "hayStack/Cylinders.h"
 #include <tinyAMR/Model.h>
 
@@ -26,7 +27,7 @@ namespace hs {
 
   /*! wraps around a tiny-amr model, and adds getBoudn() and
       getValueRange() */
-  struct TAMRVolume {
+  struct TAMRVolume : public Volume {
     typedef std::shared_ptr<TAMRVolume> SP;
     
     TAMRVolume(tamr::Model::SP model,
@@ -41,8 +42,10 @@ namespace hs {
                vec4f color3,
                bool showVolume,
                const vec3f &gridOrigin=vec3f(0.f),
-               const vec3f &gridSpacing=vec3f(1.f))
-      : model(model),
+               const vec3f &gridSpacing=vec3f(1.f),
+               const std::string &xfName="defaultVolume")
+      : Volume(xfName),
+        model(model),
         fieldID(fieldID),
         iso0(iso0),
         iso1(iso1),
@@ -57,8 +60,8 @@ namespace hs {
         gridSpacing(gridSpacing)
     {}
 
-    box3f getBounds() const;
-    range1f getValueRange() const;
+    box3f getBounds() const override;
+    range1f getValueRange() const override;
 
     /*! wireframe outline of each AMR block (for tamr://...:dbg) */
     static Cylinders::SP createBlockDebugCylinders(const tamr::Model::SP &model);

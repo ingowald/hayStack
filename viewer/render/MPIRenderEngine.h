@@ -37,6 +37,7 @@ namespace hm {
                           RenderEngineInterface *client);
 
     BoundsData getWorldBounds() override;
+    std::set<std::string> gatherXFNames() override;
   private:
     template<typename T>
     void sendToWorkers(const std::vector<T> &t);

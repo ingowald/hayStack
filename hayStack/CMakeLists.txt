@@ -145,11 +145,13 @@ add_library(hayStack
   Capsules.cpp
   Spheres.h
   Spheres.cpp
+  Volume.h
   StructuredVolume.h
   StructuredVolume.cpp
   TAMRVolume.h
   TAMRVolume.cpp
   NanoVDBVolume.h
+  UMeshVolume.h
   VolumeScatter.h
   ColorMap.h
   ColorMap.cpp

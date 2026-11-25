@@ -72,4 +72,15 @@ namespace hs {
       part->mergeUnstructuredMeshes();
   }
 
+  std::set<std::string> LocalPartitions::gatherXFNames() const
+  {
+    std::set<std::string> xfNames;
+    for (auto part : myPartitions) {
+      if (!part) continue;
+      std::set<std::string> partXFNames = part->gatherXFNames();
+      xfNames.insert(partXFNames.begin(),partXFNames.end());
+    }
+    return xfNames;
+  }
+
 } // ::hs
