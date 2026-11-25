@@ -11,15 +11,18 @@ namespace hs {
 
     /*! a 'umesh' file of unstructured mesh data */
     struct UMeshContent : public LoadableContent {
-      UMeshContent(const std::string &fileName);
+      UMeshContent(const ResourceSpecifier &dataURL);
       static void create(DataLoader *loader,
-                         const std::string &dataURL);
+                         const ResourceSpecifier &dataURL);
       std::string toString() override;
       size_t projectedSize() override;
       void   executeLoad(OnePartition &dataGroup) override;
 
+      const ResourceSpecifier dataURL;
       const std::string fileName;
       const size_t      fileSize;
+      /*! name of transfer function to use for this volume */
+      const std::string xfName;
     };
 
     /*! a 'umesh' file of unstructured mesh data */

@@ -17,14 +17,14 @@ namespace hs {
     
     //    typedef enum { FLOAT, UINT8, UINT16 } ScalarType;
 
-    StructuredVolume(vec3i dims,
+    StructuredVolume(const std::string &xfName,
+                     vec3i dims,
                      const std::string &texelFormat,//BNDataType texelFormat,
                      // ScalarType scalarType,
                      std::vector<uint8_t> &rawData,
                      std::vector<uint8_t> &rawDataRGB,
                      const vec3f &gridOrigin,
-                     const vec3f &gridSpacing,
-                     const std::string &xfName = "defaultVolume")
+                     const vec3f &gridSpacing)
       : Volume(xfName),
         dims(dims),
         texelFormat(texelFormat),//scalarType(scalarType),

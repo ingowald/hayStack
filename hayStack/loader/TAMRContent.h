@@ -36,7 +36,7 @@ namespace hs {
       vec3f             gridOrigin {0.f};
       vec3f             gridSpacing {1.f};
       bool              showVolume = true;
-      std::string       xfName = "defaultVolume";
+      std::string       xfName = "xf0";
     };
 
   }

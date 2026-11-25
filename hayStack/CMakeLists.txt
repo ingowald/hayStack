@@ -58,8 +58,6 @@ set(LOADER_SOURCES
   loader/VTPContent.cpp
   loader/VTUContent.h
   loader/VTUContent.cpp
-  loader/GESTS.h
-  loader/GESTS.cpp
   loader/RAWVolumeContent.h
   loader/RAWVolumeContent.cpp
   loader/TAMRContent.h

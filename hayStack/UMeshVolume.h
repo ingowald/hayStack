@@ -14,10 +14,10 @@ namespace hs {
   struct UMeshVolume : public Volume {
     typedef std::shared_ptr<UMeshVolume> SP;
 
-    UMeshVolume(umesh::UMesh::SP mesh,
+    UMeshVolume(const std::string &xfName,
+                umesh::UMesh::SP mesh,
                 /*! domain being empty means 'no clip box' */
-                const box3f &domain = box3f(),
-                const std::string &xfName = "defaultVolume")
+                const box3f &domain = box3f())
       : Volume(xfName),
         mesh(mesh),
         domain(domain)

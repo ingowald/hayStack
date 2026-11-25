@@ -14,7 +14,7 @@ namespace hs {
   struct Volume {
     typedef std::shared_ptr<Volume> SP;
 
-    Volume(const std::string &xfName = "defaultVolume")
+    Volume(const std::string &xfName)
       : xfName(xfName)
     {}
     virtual ~Volume() = default;

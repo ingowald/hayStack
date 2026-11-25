@@ -160,7 +160,7 @@ namespace hs {
       std::string isoString = dataURL.get("iso",dataURL.get("isoValue"));
       if (!isoString.empty())
         isoValue = std::stof(isoString);
-      std::string xfName = dataURL.get("xf","defaultVolume");
+      std::string xfName = dataURL.get("xf","xf0");
     
       for (int i=0;i<dataURL.numParts;i++) {
         loader->addContent(new RAWVolumeContent(dataURL.where,i,
@@ -314,9 +314,9 @@ namespace hs {
         if (!mesh->indices.empty())
           dataGroup.minis.push_back(model);
       } else {
-        auto vol = std::make_shared<StructuredVolume>(numVoxels,texelFormat,rawData,rawDataRGB,
-                                                      gridOrigin,gridSpacing,
-                                                      xfName);
+        auto vol = std::make_shared<StructuredVolume>(xfName,
+                                                      numVoxels,texelFormat,rawData,rawDataRGB,
+                                                      gridOrigin,gridSpacing);
         dataGroup.structuredVolumes.push_back(vol);
       }
     }

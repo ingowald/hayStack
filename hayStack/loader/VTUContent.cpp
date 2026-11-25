@@ -17,13 +17,15 @@
 namespace hs {
   namespace loader {
     
-    VTUContent::VTUContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
+    VTUContent::VTUContent(const ResourceSpecifier &dataURL)
+      : dataURL(dataURL),
+        fileName(dataURL.where),
+        fileSize(getFileSize(dataURL.where)),
+        xfName(dataURL.get("xf","xf0"))
     {}
 
     void VTUContent::create(DataLoader *loader,
-                            const std::string &dataURL)
+                            const ResourceSpecifier &dataURL)
     {
       loader->addContent(new VTUContent(dataURL));
     }
@@ -247,7 +249,7 @@ namespace hs {
                 << mesh->bounds.upper.x << " " << mesh->bounds.upper.y << " " << mesh->bounds.upper.z
                 << "]" << std::endl;
 
-      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(mesh));
+      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(xfName,mesh));
       std::cout << "#hs.vtu: loaded successfully" << std::endl;
 #endif
     }

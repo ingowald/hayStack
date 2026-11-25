@@ -34,7 +34,7 @@ namespace hs {
       std:: cout << "done merging, got " << merged->toString()
                  << " (xf '" << it.first << "')" << std::endl;
       this->unsts.push_back
-        (std::make_shared<UMeshVolume>(merged,box3f(),it.first));
+        (std::make_shared<UMeshVolume>(it.first,merged,box3f()));
     }
   }
       

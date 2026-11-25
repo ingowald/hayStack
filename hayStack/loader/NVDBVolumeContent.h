@@ -81,7 +81,7 @@ namespace loader {
           std::cout << " #" << i << " : " << regions[i] << std::endl;
       }
 
-      std::string xfName = dataURL.get("xf","defaultVolume");
+      std::string xfName = dataURL.get("xf","xf0");
       for (int i = 0; i < dataURL.numParts; ++i) {
         loader->addContent(new NVDBVolumeContent(dataURL.where, i,
                                                  regions[i], fullDims,

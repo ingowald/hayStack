@@ -7,15 +7,17 @@
 namespace hs {
   namespace loader {
 
-    UMeshContent::UMeshContent(const std::string &fileName)
-      : fileName(fileName),
-        fileSize(getFileSize(fileName))
+    UMeshContent::UMeshContent(const ResourceSpecifier &dataURL)
+      : dataURL(dataURL),
+        fileName(dataURL.where),
+        fileSize(getFileSize(dataURL.where)),
+        xfName(dataURL.get("xf","xf0"))
     {}
 
     void UMeshContent::create(DataLoader *loader,
-                              const std::string &dataURL)
+                              const ResourceSpecifier &dataURL)
     {
-      loader->addContent(new UMeshContent(/* this is a plain filename for umesh:*/dataURL));
+      loader->addContent(new UMeshContent(dataURL));
     }
     
     std::string UMeshContent::toString() 
@@ -36,7 +38,7 @@ namespace hs {
       mesh->hexes.clear();
       mesh->wedges.clear();
 #endif
-      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(mesh));
+      dataRank.unsts.push_back(std::make_shared<UMeshVolume>(xfName,mesh));
 
       if (1 && (mesh->triangles.size() || mesh->quads.size())) {
         std::cout << "#hs: umesh seems to have surface triangles - extracting those." << std::endl;
@@ -79,7 +81,7 @@ namespace hs {
     void SpatiallyPartitionedUMeshContent::create(DataLoader *loader,
                                                   const ResourceSpecifier &dataURL)
     {
-      const std::string xfName = dataURL.get("xf","defaultVolume");
+      const std::string xfName = dataURL.get("xf","xf0");
       const std::string domainsFileName = dataURL.where+".domains";
       size_t domainsFileSize = getFileSize(domainsFileName.c_str());
       int numParts = (domainsFileSize - 2*sizeof(size_t)) / (sizeof(box3f)+sizeof(range1f));
@@ -124,7 +126,7 @@ namespace hs {
     void SpatiallyPartitionedUMeshContent::executeLoad(OnePartition &dataRank) 
     {
       dataRank.unsts.push_back
-        (std::make_shared<UMeshVolume>(umesh::UMesh::loadFrom(fileName),domain,xfName));
+        (std::make_shared<UMeshVolume>(xfName,umesh::UMesh::loadFrom(fileName),domain));
     }
 
   }  

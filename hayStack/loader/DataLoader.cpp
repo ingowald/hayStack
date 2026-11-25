@@ -5,7 +5,6 @@
 #include "hayStack/loader/TSTris.h"
 #include "hayStack/loader/TriangleMesh.h"
 #include "hayStack/loader/RAWVolumeContent.h"
-#include "hayStack/loader/GESTS.h"
 #include "hayStack/loader/TAMRContent.h"
 #include "hayStack/loader/CylindersFromFile.h"
 #include "hayStack/loader/SpheresFromFile.h"
@@ -383,8 +382,6 @@ namespace hs {
         else if (url.type == "nvdb")
           NVDBVolumeContent::create(this,url);
 #endif
-        else if (url.type == "gests") 
-          GESTSVolumeContent::create(this,url);
         else if (url.type == "tamr") 
           TAMRContent::create(this,url);
         else if (url.type == "boxes") 
@@ -394,6 +391,10 @@ namespace hs {
         else if (url.type == "spumesh")
           // spatially partitioned umeshes
           SpatiallyPartitionedUMeshContent::create(this,url);
+        else if (url.type == "vtu")
+          VTUContent::create(this,url);
+        else if (url.type == "umesh")
+          UMeshContent::create(this,url);
         else
           throw std::runtime_error
             ("could not recognize content type '"+url.type+"'");
@@ -403,11 +404,11 @@ namespace hs {
       // first, parse all the files we recognise from file name
       // extension:
       if (endsWith(contentDescriptor,".umesh")) {
-        UMeshContent::create(this,contentDescriptor);
+        UMeshContent::create(this,addIfRequired("umesh://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".vtp")) {
         VTPContent::create(this,contentDescriptor);
       } else if (endsWith(contentDescriptor,".vtu")) {
-        VTUContent::create(this,contentDescriptor);
+        VTUContent::create(this,addIfRequired("vtu://",contentDescriptor));
       } else if (endsWith(contentDescriptor,".obj")) {
         OBJContent::create(this,contentDescriptor);
       } else if (endsWith(contentDescriptor,".dgef")) {

@@ -29,7 +29,7 @@ namespace hs {
       gridSpacing = dataURL.get_vec3f("spacing",gridSpacing);
 
       fieldName = dataURL.get("field","");
-      xfName = dataURL.get("xf","defaultVolume");
+      xfName = dataURL.get("xf","xf0");
       
       showVolume = isnan(iso0) || dataURL.has("showVolume");
       showBlockDebug = dataURL.has("dbg");
@@ -67,13 +67,13 @@ namespace hs {
       }
 
       TAMRVolume::SP content
-        = std::make_shared<TAMRVolume>(model,
+        = std::make_shared<TAMRVolume>(xfName,
+                                       model,
                                        fieldID,
                                        iso0,iso1,iso2,iso3,
                                        color0,color1,color2,color3,
                                        showVolume,
-                                       gridOrigin,gridSpacing,
-                                       xfName);
+                                       gridOrigin,gridSpacing);
       dataGroup.amr.push_back(content);
       if (showBlockDebug)
         dataGroup.cylinderSets.push_back(TAMRVolume::createBlockDebugCylinders(model));

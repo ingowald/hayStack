@@ -11,7 +11,7 @@ namespace hs {
   struct NanoVDBVolume : public Volume {
     typedef std::shared_ptr<NanoVDBVolume> SP;
 
-    NanoVDBVolume(const std::string &xfName = "defaultVolume")
+    NanoVDBVolume(const std::string &xfName)
       : Volume(xfName)
     {}
 
