@@ -168,8 +168,10 @@ namespace hs {
         if (ImGui::BeginCombo("Colormap", colorMapName.c_str())) {
           const std::vector<std::string> mapNames = ColorMapLibrary::getNames();
           for (size_t i = 0; i < mapNames.size(); ++i) {
-            if (ImGui::Selectable(mapNames[i].c_str(), colorMapID == int(i)))
+            if (ImGui::Selectable(mapNames[i].c_str(), colorMapID == int(i))) {
               changeColorScheme(int(i));
+              colorSchemeSelected = true;
+            }
           }
           ImGui::EndCombo();
         }

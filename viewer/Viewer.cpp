@@ -250,11 +250,30 @@ namespace hm {
     ImGui::Text("scalar range [%f .. %f]",
                 worldBounds.scalars.lower,
                 worldBounds.scalars.upper);
+    if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
+                           worldBounds.scalars.lower,
+                           worldBounds.scalars.upper))
+      xfDirty = true;
+    if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
+                           worldBounds.scalars.lower,
+                           worldBounds.scalars.upper))
+      xfDirty = true;
+    if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
+                           0.f,200.f))
+      xfDirty = true;
     ImGui::PushID("opacityTransferFunction");
     const bool opacityChanged = xfEditor.runUI();
     ImGui::PopID();
     if (opacityChanged)
       xfDirty = true;
+    if (xfEditor.colorSchemeSelected) {
+      // user picked a new color map for the opacity transfer
+      // function; apply same color map to emission (keeping its own
+      // alpha values)
+      emissionXfEditor.changeColorScheme(xfEditor.getColorMapID());
+      emissionXfDirty = true;
+      xfEditor.colorSchemeSelected = false;
+    }
     ImGui::Separator();
     if (ImGui::CollapsingHeader("Volume rendering",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -280,18 +299,6 @@ namespace hm {
       if (emissionChanged)
         emissionXfDirty = true;
     }
-    
-    if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
-                           worldBounds.scalars.lower,
-                           worldBounds.scalars.upper))
-      xfDirty = true;
-    if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
-                           worldBounds.scalars.lower,
-                           worldBounds.scalars.upper))
-      xfDirty = true;
-    if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
-                           0.f,200.f))
-      xfDirty = true;
   }
   
   void Viewer::screenShot()

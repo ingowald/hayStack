@@ -33,8 +33,9 @@ namespace hs {
     emission.domain = domain;
     const ColorMap &cm = ColorMapLibrary::getMap(0);
     opacity.colorMap.assign(cm.begin(),cm.end());
-    if (const ColorMap *white = ColorMapLibrary::find("white"))
-      emission.colorMap.assign(white->begin(),white->end());
+    emission.colorMap.assign(cm.begin(),cm.end());
+    // if (const ColorMap *white = ColorMapLibrary::find("white"))
+    //   emission.colorMap.assign(white->begin(),white->end());
   }
 
   std::string VolumeTransferFunctionSet::toString() const

@@ -24,6 +24,13 @@ namespace hs {
       }
 
       bool colorMapUpdated = true;
+      /*! set to true by runUI() when the user selects a new color
+          map in the color map selector; the caller is expected to
+          reset it once it has reacted to it */
+      bool colorSchemeSelected = false;
+      /*! index of currently selected library color map, or -1 for
+          'custom' */
+      int getColorMapID() const { return colorMapID; }
 
     private:
       void mouseDragEnd();
