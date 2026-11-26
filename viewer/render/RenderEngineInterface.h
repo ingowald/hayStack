@@ -51,9 +51,10 @@ namespace hm {
     // ==================================================================
     virtual BoundsData getWorldBounds() = 0;
 
-    /*! returns the set of all (distinct) transfer function names
-        used by any of the volumes in the scene */
-    virtual std::set<std::string> gatherXFNames() = 0;
+    /*! returns all (distinct) transfer function names used by any
+        of the volumes in the scene, together with the range of
+        scalar values of all volumes using that name; sorted by name */
+    virtual std::vector<std::pair<std::string,range1f>> gatherXFNames() = 0;
     
   };
 
@@ -81,7 +82,7 @@ namespace hm {
       override
     { return pt->getWorldBounds(); }
 
-    std::set<std::string> gatherXFNames()
+    std::vector<std::pair<std::string,range1f>> gatherXFNames()
       override
     { return pt->gatherXFNames(); }
     

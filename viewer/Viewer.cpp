@@ -30,8 +30,8 @@ namespace hm {
     xf.domain = worldBounds.scalars;
     uiIsOn = !worldBounds.scalars.empty();
     emissionXF.domain = worldBounds.scalars;
-    for (auto &name : renderer->gatherXFNames())
-      xfNames.push_back(name);
+    for (auto &it : renderer->gatherXFNames())
+      xfNames.push_back(it.first);
     defaultXFEditState = saveXFEditState();
 
     // seed editor states of all names that had a transfer function

@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "hayStack/MPIWrappers.h"
+#include <cstring>
 #if HS_MPI
 # include <mpi.h>
 # define HS_MPI_CALL(fctCall)                                            \
@@ -48,25 +49,32 @@ namespace hs {
     return vec3f(allReduceMax(v.x),allReduceMax(v.y),allReduceMax(v.z));
   }
 
-  std::set<std::string> Comm::allReduceUnion(const std::set<std::string> &mine) const
+  std::vector<std::pair<std::string,range1f>>
+  Comm::allReduceUnion(const std::vector<std::pair<std::string,range1f>> &mine) const
   {
-    // serialize as sequence of 0-terminated strings
+    // serialize as sequence of (0-terminated string, range1f)
     std::vector<uint8_t> myBytes;
-    for (auto &s : mine) {
-      myBytes.insert(myBytes.end(),s.begin(),s.end());
+    for (auto &it : mine) {
+      myBytes.insert(myBytes.end(),it.first.begin(),it.first.end());
       myBytes.push_back(0);
+      const uint8_t *rangeBytes = (const uint8_t *)&it.second;
+      myBytes.insert(myBytes.end(),rangeBytes,rangeBytes+sizeof(range1f));
     }
     std::vector<uint8_t> allBytes;
     allGather(myBytes,allBytes);
 
-    std::set<std::string> result;
-    size_t begin = 0;
-    for (size_t i=0;i<allBytes.size();i++)
-      if (allBytes[i] == 0) {
-        result.insert(std::string((const char *)allBytes.data()+begin,i-begin));
-        begin = i+1;
-      }
-    return result;
+    std::map<std::string,range1f> merged;
+    size_t pos = 0;
+    while (pos < allBytes.size()) {
+      size_t end = pos;
+      while (allBytes[end] != 0) end++;
+      std::string name((const char *)allBytes.data()+pos,end-pos);
+      range1f range;
+      memcpy((void*)&range,allBytes.data()+end+1,sizeof(range));
+      pos = end+1+sizeof(range);
+      merged[name].extend(range);
+    }
+    return { merged.begin(), merged.end() };
   }
 
 

@@ -239,7 +239,7 @@ namespace hm {
   }
 
   // ==================================================================
-  std::set<std::string> MPIRenderEngine::gatherXFNames()
+  std::vector<std::pair<std::string,range1f>> MPIRenderEngine::gatherXFNames()
   {
     // ------------------------------------------------------------------
     // send request....
@@ -251,7 +251,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and do our own....
     // ------------------------------------------------------------------
-    std::set<std::string> xfNames;
+    std::vector<std::pair<std::string,range1f>> xfNames;
     if (passThrough)
       xfNames = passThrough->gatherXFNames();
     return comm->allReduceUnion(xfNames);
@@ -267,8 +267,7 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    std::set<std::string> xfNames = renderer->gatherXFNames();
-    comm->allReduceUnion(xfNames);
+    comm->allReduceUnion(renderer->gatherXFNames());
   }
 
 

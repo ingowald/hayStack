@@ -258,7 +258,8 @@ namespace hm {
   {
 
     // make sure every xf name used anywhere has a transfer function
-    for (auto &xfName : renderer->gatherXFNames()) {
+    for (auto &it : renderer->gatherXFNames()) {
+      const std::string &xfName = it.first;
       if (xfs.find(xfName) != xfs.end())
         continue;
       std::cout << "#hs: no transfer function loaded for '" << xfName
@@ -572,12 +573,13 @@ int main(int ac, char **av)
 
 # endif
 
-  const std::set<std::string> allUsedXfNames
+  const std::vector<std::pair<std::string,range1f>> allUsedXfNames
     = renderer->gatherXFNames();
-  for (auto &xfName : allUsedXfNames) {
+  for (auto &it : allUsedXfNames) {
+    const std::string &xfName = it.first;
     if (loadedXFs.find(xfName) != loadedXFs.end())
       continue;
-    auto xf = std::make_shared<VolumeTransferFunctionSet>();
+    auto xf = std::make_shared<VolumeTransferFunctionSet>(it.second);
     xf->scatterSettings = fromCL.scatterSettings;
     loadedXFs[xfName] = xf;
   }

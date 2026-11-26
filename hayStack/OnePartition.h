@@ -72,9 +72,10 @@ namespace hs {
     OnePartition(const PartitionsIndex &partitionsIndex);
     BoundsData getBounds() const;
 
-    /*! returns the set of all (distinct) transfer function names
-        used by any of the volumes in this partition */
-    std::set<std::string> gatherXFNames() const;
+    /*! returns all (distinct) transfer function names used by any
+        of the volumes in this partition, together with the range of
+        scalar values of all volumes using that name; sorted by name */
+    std::vector<std::pair<std::string,range1f>> gatherXFNames() const;
     
     mini::Material::SP                defaultMaterial;
     std::vector<mini::Scene::SP>      minis;

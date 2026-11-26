@@ -27,8 +27,10 @@ namespace hs {
     return ss.str();
   }
   
-  VolumeTransferFunctionSet::VolumeTransferFunctionSet()
+  VolumeTransferFunctionSet::VolumeTransferFunctionSet(range1f domain)
   {
+    opacity.domain = domain;
+    emission.domain = domain;
     const ColorMap &cm = ColorMapLibrary::getMap(0);
     opacity.colorMap.assign(cm.begin(),cm.end());
     if (const ColorMap *white = ColorMapLibrary::find("white"))

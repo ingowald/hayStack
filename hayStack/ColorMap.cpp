@@ -322,6 +322,8 @@ namespace hs {
     ADDCM(gray);
     ADDCM(white);
 
+    for (auto &cm : singleton.knownMaps)
+      *cm.second = cm.second->resampledTo(128);
 #undef ADDCM
   }
   

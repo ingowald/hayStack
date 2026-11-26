@@ -80,18 +80,18 @@ namespace hs {
     return bounds;
   }
 
-  std::set<std::string> OnePartition::gatherXFNames() const
+  std::vector<std::pair<std::string,range1f>> OnePartition::gatherXFNames() const
   {
-    std::set<std::string> xfNames;
+    std::map<std::string,range1f> xfNames;
     for (auto &vol : structuredVolumes)
-      xfNames.insert(vol->xfName);
+      xfNames[vol->xfName].extend(vol->getValueRange());
     for (auto &vol : nanovdbVolumes)
-      xfNames.insert(vol->xfName);
+      xfNames[vol->xfName].extend(vol->getValueRange());
     for (auto &vol : amr)
-      xfNames.insert(vol->xfName);
+      xfNames[vol->xfName].extend(vol->getValueRange());
     for (auto &vol : unsts)
-      xfNames.insert(vol->xfName);
-    return xfNames;
+      xfNames[vol->xfName].extend(vol->getValueRange());
+    return { xfNames.begin(), xfNames.end() };
   }
 
 } // ::hs

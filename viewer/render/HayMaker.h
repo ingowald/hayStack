@@ -59,7 +59,7 @@ namespace hm {
     // hs::VolumeScatterSettings getVolumeScatterSettings() const override;
 
     BoundsData getWorldBounds() override;
-    std::set<std::string> gatherXFNames() override;
+    std::vector<std::pair<std::string,range1f>> gatherXFNames() override;
     
     /*! go over all input content, and 'render' this into an
         anari::world; later renderFrame()'s can then simply use that

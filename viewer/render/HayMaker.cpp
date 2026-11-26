@@ -153,7 +153,7 @@ namespace hm {
     return bb;
   }
   
-  std::set<std::string> HayMaker::gatherXFNames()
+  std::vector<std::pair<std::string,range1f>> HayMaker::gatherXFNames()
   {
     return world->allReduceUnion(localPartitions->gatherXFNames());
   }

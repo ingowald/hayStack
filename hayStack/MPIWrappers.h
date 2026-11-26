@@ -20,6 +20,8 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <set>
+#include <map>
+#include <vector>
 #include <string>
 
 namespace hs {
@@ -64,8 +66,11 @@ namespace hs {
     vec3f allReduceMax(vec3f value) const;
     vec3f allReduceMin(vec3f value) const;
 
-    /*! returns the union of all ranks' sets of strings */
-    std::set<std::string> allReduceUnion(const std::set<std::string> &mine) const;
+    /*! returns the union of all ranks' (name,range) pairs; pairs
+        with same name get merged by extending their ranges. result
+        is sorted by name */
+    std::vector<std::pair<std::string,range1f>>
+    allReduceUnion(const std::vector<std::pair<std::string,range1f>> &mine) const;
 
     int rank = 0;
     int size = 1;

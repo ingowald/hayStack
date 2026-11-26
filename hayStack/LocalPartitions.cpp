@@ -73,19 +73,20 @@ namespace hs {
       part->mergeUnstructuredMeshes();
   }
 
-  std::set<std::string> LocalPartitions::gatherXFNames() const
+  std::vector<std::pair<std::string,range1f>> LocalPartitions::gatherXFNames() const
   {
-    std::set<std::string> xfNames;
+    std::map<std::string,range1f> xfNames;
     for (auto part : myPartitions) {
       if (!part) continue;
-      std::set<std::string> partXFNames = part->gatherXFNames();
-      xfNames.insert(partXFNames.begin(),partXFNames.end());
+      for (auto &it : part->gatherXFNames())
+        xfNames[it.first].extend(it.second);
     }
     // also add names of all transfer functions loaded as rank-0
-    // content (even if no volume refers to them)
+    // content (even if no volume refers to them, in which case their
+    // range stays empty)
     for (auto &it : rank0.transferFunctions)
-      xfNames.insert(it.first);
-    return xfNames;
+      xfNames[it.first];
+    return { xfNames.begin(), xfNames.end() };
   }
 
 } // ::hs
