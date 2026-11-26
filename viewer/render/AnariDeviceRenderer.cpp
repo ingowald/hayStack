@@ -198,6 +198,11 @@ namespace hm {
       // applyPrincipledScatterParams(volume, scatter);
       // principledScatterByVolume[volume] = scatter;
     } else {
+      std::cout << "=======================================================" << std::endl;
+      std::cout << "=======================================================" << std::endl;
+      std::cout << "WARNING: transferfunction 1d, not principled!" << std::endl;
+      std::cout << "=======================================================" << std::endl;
+      std::cout << "=======================================================" << std::endl;
       volume = anari::newObject<anari::Volume>(anari.device,
                                                "transferFunction1D");
       anari::setAndReleaseParameter(anari.device, volume, "value", field);
