@@ -81,6 +81,7 @@ namespace hm {
     void fromMaster(std::vector<T> &t);
     template<typename T>
     void fromMaster(T &t);
+    void fromMaster(std::string &s);
     
     Comm::SP comm;
     RenderEngineInterface *renderer;
@@ -118,6 +119,18 @@ namespace hm {
   void MPIRenderEngine::sendToWorkers(const T &t)
   {
     comm->bc_send(&t,sizeof(T));
+  }
+
+  void MPIRenderEngine::sendToWorkers(const std::string &s)
+  {
+    sendToWorkers(std::vector<char>(s.begin(),s.end()));
+  }
+
+  void WorkerLoop::fromMaster(std::string &s)
+  {
+    std::vector<char> chars;
+    fromMaster(chars);
+    s = std::string(chars.begin(),chars.end());
   }
     
     
@@ -406,13 +419,15 @@ namespace hm {
 
   // ==================================================================
 
-  void MPIRenderEngine::setTransferFunction(const TransferFunction &xf)
+  void MPIRenderEngine::setTransferFunction(const std::string &xfName,
+                                            const TransferFunction &xf)
   {
     // ------------------------------------------------------------------
     // send request....
     // ------------------------------------------------------------------
     int cmd = SET_XF;
     sendToWorkers(cmd);
+    sendToWorkers(xfName);
     sendToWorkers(xf.domain);
     sendToWorkers(xf.baseDensity);
     sendToWorkers(xf.colorMap);
@@ -421,7 +436,7 @@ namespace hm {
     // and do our own....
     // ------------------------------------------------------------------
     if (passThrough)
-      passThrough->setTransferFunction(xf);
+      passThrough->setTransferFunction(xfName,xf);
   }
 
   void WorkerLoop::cmd_setTransferFunction()
@@ -429,6 +444,8 @@ namespace hm {
     // ------------------------------------------------------------------
     // get args....
     // ------------------------------------------------------------------
+    std::string xfName;
+    fromMaster(xfName);
     TransferFunction xf;
     fromMaster(xf.domain);
     fromMaster(xf.baseDensity);
@@ -438,49 +455,57 @@ namespace hm {
     // ------------------------------------------------------------------
     // and execute
     // ------------------------------------------------------------------
-    renderer->setTransferFunction(xf);
+    renderer->setTransferFunction(xfName,xf);
   }
 
-  void MPIRenderEngine::setEmissionTransferFunction(const TransferFunction &xf)
+  void MPIRenderEngine::setEmissionTransferFunction(const std::string &xfName,
+                                                    const TransferFunction &xf)
   {
     const int cmd = SET_EMISSION_XF;
     sendToWorkers(cmd);
+    sendToWorkers(xfName);
     sendToWorkers(xf.domain);
     sendToWorkers(xf.baseDensity);
     sendToWorkers(xf.colorMap);
     sendEndOfMessage();
     if (passThrough)
-      passThrough->setEmissionTransferFunction(xf);
+      passThrough->setEmissionTransferFunction(xfName,xf);
   }
 
   void WorkerLoop::cmd_setEmissionTransferFunction()
   {
+    std::string xfName;
+    fromMaster(xfName);
     TransferFunction xf;
     fromMaster(xf.domain);
     fromMaster(xf.baseDensity);
     fromMaster(xf.colorMap);
     checkEndOfMessage();
-    renderer->setEmissionTransferFunction(xf);
+    renderer->setEmissionTransferFunction(xfName,xf);
   }
 
   // ==================================================================
 
-  void MPIRenderEngine::setVolumeScatterSettings(const VolumeScatterSettings &settings)
+  void MPIRenderEngine::setVolumeScatterSettings(const std::string &xfName,
+                                                 const VolumeScatterSettings &settings)
   {
     int cmd = SET_VOLUME_SCATTER;
     sendToWorkers(cmd);
+    sendToWorkers(xfName);
     sendToWorkers(settings);
     sendEndOfMessage();
     if (passThrough)
-      passThrough->setVolumeScatterSettings(settings);
+      passThrough->setVolumeScatterSettings(xfName,settings);
   }
 
   void WorkerLoop::cmd_setVolumeScatterSettings()
   {
+    std::string xfName;
+    fromMaster(xfName);
     VolumeScatterSettings settings;
     fromMaster(settings);
     checkEndOfMessage();
-    renderer->setVolumeScatterSettings(settings);
+    renderer->setVolumeScatterSettings(xfName,settings);
   }
   
   // ==================================================================

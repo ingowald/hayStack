@@ -50,6 +50,7 @@
 #include <stack>
 
 #include "hayStack/loader/USD.h"
+#include "hayStack/loader/DataLoader.h"
 #include "stb/stb_image.h"
 #ifndef _WIN32
 #include "tinyexr.h"

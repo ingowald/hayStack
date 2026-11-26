@@ -30,11 +30,9 @@ namespace hm {
   }
 
   HayMaker::HayMaker(Comm::SP world,
-                     GlobalRenderSettings &globalRenderSettings,
                      hs::LocalPartitions *localPartitions,
                      const std::vector<DeviceConfig> &deviceConfigs)
     : world(world),
-      globalRenderSettings(globalRenderSettings),
       localPartitions(localPartitions)
   {
     // computeWorldBounds();
@@ -84,7 +82,7 @@ namespace hm {
     BoundsData bb = getWorldBounds();
     if (!bb.mapped.empty()) {
       hs::ColorMapLibrary::init();
-      int cmID = globalRenderSettings.defaultColorMapIndex;
+      int cmID = localPartitions->replicated.globalRenderSettings.defaultColorMapIndex;
       std::cout << "#hs: using scalar-mapping color map #" << cmID
                 << " : " << hs::ColorMapLibrary::getMapName(cmID) << std::endl;
       for (auto pd : perDevice)
@@ -221,22 +219,25 @@ namespace hm {
       dev->renderInitialAnariWorld();
   }
 
-  void HayMaker::setTransferFunction(const hs::TransferFunction &xf)
+  void HayMaker::setTransferFunction(const std::string &xfName,
+                                     const hs::TransferFunction &xf)
   {
     for (auto dev : perDevice)
-      dev->setTransferFunction(xf);
+      dev->setTransferFunction(xfName,xf);
   }
 
-  void HayMaker::setEmissionTransferFunction(const hs::TransferFunction &xf)
+  void HayMaker::setEmissionTransferFunction(const std::string &xfName,
+                                             const hs::TransferFunction &xf)
   {
     for (auto dev : perDevice)
-      dev->setEmissionTransferFunction(xf);
+      dev->setEmissionTransferFunction(xfName,xf);
   }
 
-  void HayMaker::setVolumeScatterSettings(const hs::VolumeScatterSettings &settings)
+  void HayMaker::setVolumeScatterSettings(const std::string &xfName,
+                                          const hs::VolumeScatterSettings &settings)
   {
     for (auto dev : perDevice)
-      dev->setVolumeScatterSettings(settings);
+      dev->setVolumeScatterSettings(xfName,settings);
   }
   
 }

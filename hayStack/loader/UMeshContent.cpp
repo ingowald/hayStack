@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "UMeshContent.h"
+#include "hayStack/loader/DataLoader.h"
 #include "umesh/extractSurfaceMesh.h"
 
 namespace hs {

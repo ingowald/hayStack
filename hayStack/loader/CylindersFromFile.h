@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! a file of 'raw' spheres */
-    struct CylindersFromFile : public LoadableContent {
+    struct CylindersFromFile : public DistributedContent {
       CylindersFromFile(const std::string &fileName,
                         size_t fileSize,
                         int thisPartID,
@@ -41,7 +41,7 @@ namespace hs {
 
 
     /*! simple position/normal/color/index triangle meshes in binary format */
-    struct VMDCyls : public LoadableContent {
+    struct VMDCyls : public DistributedContent {
       VMDCyls(const ResourceSpecifier &data,
               int thisPartID);
       static void create(DataLoader *loader,

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "hayStack/loader/LoadableContent.h"
 #include "hayStack/loader/DataLoader.h"
 #include <fstream>
 
@@ -10,7 +11,7 @@ namespace hs {
   namespace loader {
     
     /*! Erik Nielsen Fun3D data dump format */
-    struct ENDumpContent : public LoadableContent {
+    struct ENDumpContent : public DistributedContent {
       ENDumpContent(const std::string &fileName,
                     size_t fileSize,
                     int thisPartID,

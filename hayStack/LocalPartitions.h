@@ -10,6 +10,8 @@
 #pragma once
 
 #include "hayStack/OnePartition.h"
+#include "hayStack/ReplicatedData.h"
+#include "hayStack/Rank0Data.h"
 
 namespace hs {
 
@@ -17,8 +19,10 @@ namespace hs {
       due to support for multi-gpu (in addition to multi-rank) each
       rank _can_ contain more than one model partitions */
   struct LocalPartitions {
-    LocalPartitions(const std::vector<int> &localDataRanks,
-                    int numPartitionsGlobally);
+    /*! creates the (still empty) partitions for the given global
+        data group IDs that this rank is supposed to hold */
+    void createPartitions(const std::vector<int> &localDataRanks,
+                          int numPartitionsGlobally);
     BoundsData getBounds() const;
 
     /*! returns whether this rank does *not* have any data; in this
@@ -45,7 +49,14 @@ namespace hs {
     /*! these are (only) the current rank's partitions; there might be
         more ranks with more data */
     std::vector<OnePartition *> myPartitions;
-    int const numPartitionsGlobally;
+
+    /*! data that every rank has a full copy of, independent of which
+        partition(s) it owns */
+    ReplicatedData replicated;
+
+    /*! data that only rank 0 has; empty on all other ranks */
+    Rank0Data rank0;
+    int numPartitionsGlobally = 0;
   };
 
 } // ::hs

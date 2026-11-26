@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 #include <fstream>
 
 namespace hs {
   namespace loader {
 
     /*! a 'umesh' file of unstructured mesh data */
-    struct UMeshContent : public LoadableContent {
+    struct UMeshContent : public DistributedContent {
       UMeshContent(const ResourceSpecifier &dataURL);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
@@ -26,7 +26,7 @@ namespace hs {
     };
 
     /*! a 'umesh' file of unstructured mesh data */
-    struct SpatiallyPartitionedUMeshContent : public LoadableContent {
+    struct SpatiallyPartitionedUMeshContent : public DistributedContent {
       SpatiallyPartitionedUMeshContent(const std::string umeshFileName,
                                        const box3f &domain,
                                        /*! name of transfer function to use for this volume */

@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! a file of 'raw' spheres */
-    struct Capsules : public LoadableContent {
+    struct Capsules : public DistributedContent {
       Capsules(const ResourceSpecifier &data,
                int thisPartID);
       static void create(DataLoader *loader,

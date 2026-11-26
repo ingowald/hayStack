@@ -6,32 +6,13 @@
 #include "hayStack/MPIWrappers.h"
 #include "hayStack/OnePartition.h"
 #include "hayStack/LocalPartitions.h"
+#include "hayStack/loader/ResourceSpecifier.h"
+#include "hayStack/loader/LoadableContent.h"
 #include <fstream>
 
 namespace hs {
   namespace loader {
     
-    struct ResourceSpecifier {
-      ResourceSpecifier(std::string s);
-      bool has(const std::string &key) const;
-      std::string get(const std::string &key, const std::string &defaultValue="") const;
-    
-      vec3f  get(const std::string &key, vec3f defaultValue) const
-      { return get_vec3f(key,defaultValue); }
-      vec2f  get(const std::string &key, vec2f defaultValue) const
-      { return get_vec2f(key,defaultValue); }
-      vec2f  get_vec2f(const std::string &key, vec2f defaultValue) const;
-      vec3f  get_vec3f(const std::string &key, vec3f defaultValue) const;
-      vec4f  get_vec4f(const std::string &key, vec4f defaultValue) const;
-      size_t get_size(const std::string &key, size_t defaultValue) const;
-      int    get_int(const std::string &key, int defaultValue) const;
-      float  get_float(const std::string &key, float defaultValue) const;
-      std::string where;
-      std::string type;
-      int numParts = 1;
-      std::map<std::string,std::string> keyValuePairs;
-    };
-
     /*! helper function that creates an mini::ANARIMaterial from
         parameters specified in the given dataURL */
     mini::ANARIMaterial::SP parseAnariMaterial(const ResourceSpecifier &dataURL);
@@ -48,15 +29,6 @@ namespace hs {
       (or throws an exception if this file cannot be opened */
     size_t getFileSize(const std::string &fileName);
   
-    /*! abstraction for some piece of renderable content, such as a
-      triangle mesh, a mini scene (or part thereof), a umesh, a
-      sub-set of spheres or triangles from a ray spheres/triangles
-      file, etc. Key feature of a `LoadableContent` is that it can do
-      'deferred' loading in the sense that it can execute the actual
-      loading only after different pieces of content have already been
-      assinged to different ranks/data groups. */
-    struct LoadableContent;
-
     /*! abstraction for an entity that can load one or more pieces of
       renderable data (i.e., "content") from a file */
     struct DataLoader {
@@ -66,9 +38,18 @@ namespace hs {
       int myRank() const { return workers->rank; }
       void addContent(const std::string &contentDescriptor);
     
-      /*! interface for any type of loadablecontent to add one or more
-        different pieces of content */
-      void addContent(LoadableContent *);
+      /*! interface for any type of distributed content to add one or
+        more different pieces of content; each of these gets
+        assigned to exactly one data group */
+      void addContent(DistributedContent *);
+      /*! interface for any type of replicated content to add one or
+        more different pieces of content; each of these gets loaded
+        on every rank */
+      void addContent(ReplicatedContent *);
+      /*! interface for any type of rank-0-only content to add one or
+        more different pieces of content; each of these gets loaded
+        only on rank 0 */
+      void addContent(Rank0Content *);
     
       virtual void assignGroups(int numDataRanks) = 0;
     
@@ -79,44 +60,26 @@ namespace hs {
       /*! actually loads one rank's data, based on which content got
         assigned to which rank. must get called on every worker
         collaboratively - but only on active workers */
-      LocalPartitions *loadData(int numDataRanks,
-                                int dataPerRank);
+      void loadData(/*! the local partitions to load into */
+                    LocalPartitions &localPartitions,
+                    int numDataRanks,
+                    int dataPerRank);
     
-      /*! list of all (abstract) pieces of content in the scene. */
+      /*! all distributed (abstract) pieces of content in the scene;
+          each of these gets assigned to exactly one data group */
       std::vector<std::tuple<double /*projected size*/,
                              int    /* linear index, to ensure stable sorting */,
-                             LoadableContent *>> allContent;
+                             DistributedContent *>> distributedContent;
+      /*! all replicated content - this does not get assigned to any
+          data group, but gets loaded on every rank */
+      std::vector<ReplicatedContent *> replicatedContent;
+      /*! all rank-0-only content - this does not get assigned to any
+          data group, and gets loaded only on rank 0 */
+      std::vector<Rank0Content *> rank0Content;
 
-      struct {
-        std::vector<mini::DirLight> directional;
-        std::vector<mini::QuadLight> quad;
-        std::string envMap;
-      } sharedLights;
       /*! default radius to use for spheres that do not have a radius specified */
       static float defaultRadius;
       hs::Comm::SP workers;
-    };
-
-    /*! abstraction for some piece of renderable content, such as a
-      triangle mesh, a mini scene (or part thereof), a umesh, a
-      sub-set of spheres or triangles from a ray spheres/triangles
-      file, etc. Key feature of a `LoadableContent` is that it can do
-      'deferred' loading in the sense that it can execute the actual
-      loading only after different pieces of content have already been
-      assinged to different ranks/data groups. */
-    struct LoadableContent {
-    
-      virtual std::string toString() = 0;
-    
-      /*! return an estimate of how much (GPU) memory this specific
-        piece of content is probably going to cost. this can/will be
-        used to assign different content to differnet gpus based on
-        weight */
-      virtual size_t projectedSize() = 0;
-
-      /*! make this content execute the actual load, and add the
-        actually loaded content to the specific data group */
-      virtual void   executeLoad(OnePartition &dataGroup) = 0;
     };
 
     /*! a data loader that assigns objects dynamically to data groups
@@ -130,7 +93,7 @@ namespace hs {
       virtual void loadPartition(OnePartition *dg) override;
     private:
       /*! loadable content per data group, after assigning it */
-      std::vector<std::vector<LoadableContent *>> contentOfGroup;
+      std::vector<std::vector<DistributedContent *>> contentOfGroup;
     
     };
 

@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! simple position/normal/color/index triangle meshes in binary format */
-    struct VMDMesh : public LoadableContent {
+    struct VMDMesh : public DistributedContent {
       VMDMesh(const ResourceSpecifier &data,
               int thisPartID);
       static void create(DataLoader *loader,
@@ -25,7 +25,7 @@ namespace hs {
     };
 
     /*! simple position/normal/color/index triangle meshes in binary format */
-    struct RGBTris : public LoadableContent {
+    struct RGBTris : public DistributedContent {
       RGBTris(const ResourceSpecifier &data,
               int thisPartID);
       static void create(DataLoader *loader,
@@ -41,7 +41,7 @@ namespace hs {
     };
 
     /*! haystack triangle-mesh format */
-    struct HSMesh : public LoadableContent {
+    struct HSMesh : public DistributedContent {
       HSMesh(const ResourceSpecifier &data,
                   int thisPartID);
       static void create(DataLoader *loader,

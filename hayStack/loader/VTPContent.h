@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
 
-    struct VTPContent : public LoadableContent {
+    struct VTPContent : public DistributedContent {
       VTPContent(const ResourceSpecifier &data);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &data);

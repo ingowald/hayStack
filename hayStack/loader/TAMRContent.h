@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
   
     /*! a file of 'TinyAMR' (tamr) AMR files */
-    struct TAMRContent : public LoadableContent {
+    struct TAMRContent : public DistributedContent {
     
       TAMRContent(const ResourceSpecifier &dataURL,
                   int thisPartID);

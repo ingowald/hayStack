@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/IsoDump.h"
+#include "hayStack/loader/DataLoader.h"
 
 namespace hs {
   namespace loader {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/RAWVolumeContent.h"
+#include "hayStack/loader/DataLoader.h"
 #include <fstream>
 #include <umesh/UMesh.h>
 #include <umesh/extractIsoSurface.h>

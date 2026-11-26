@@ -16,11 +16,20 @@ namespace hm {
     single node or multiple workers on the back */
   struct RenderEngineInterface {
 
-    virtual void setTransferFunction(const hs::TransferFunction &xf) {}
-    virtual void setEmissionTransferFunction(const hs::TransferFunction &xf) {}
-    virtual void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) {}
+    /*! @{ set the respective transfer function / scatter settings
+        for all volumes whose xfName matches the given one */
+    virtual void setTransferFunction(const std::string &xfName,
+                                     const hs::TransferFunction &xf) {}
+    virtual void setEmissionTransferFunction(const std::string &xfName,
+                                             const hs::TransferFunction &xf) {}
+    virtual void setVolumeScatterSettings(const std::string &xfName,
+                                          const hs::VolumeScatterSettings &settings) {}
+    /* @} */
 
-    void setTransferFunctionSet(const VolumeTransferFunctionSet &xf);
+    /*! sets the transfer function set that all volumes with given
+        xfName should use */
+    void setTransferFunctionSet(const std::string &xfName,
+                                const VolumeTransferFunctionSet &xf);
 
     virtual void renderFrame() {}
     virtual void resize(const vec2i &fbSize,
@@ -54,16 +63,19 @@ namespace hm {
       : pt(pt)
     {}
 
-    void setTransferFunction(const hs::TransferFunction &xf)
+    void setTransferFunction(const std::string &xfName,
+                             const hs::TransferFunction &xf)
       override
-    { pt->setTransferFunction(xf); }
-    void setEmissionTransferFunction(const hs::TransferFunction &xf) 
+    { pt->setTransferFunction(xfName,xf); }
+    void setEmissionTransferFunction(const std::string &xfName,
+                                     const hs::TransferFunction &xf) 
       override
-    { pt->setEmissionTransferFunction(xf); }
+    { pt->setEmissionTransferFunction(xfName,xf); }
     
-    void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings)
+    void setVolumeScatterSettings(const std::string &xfName,
+                                  const hs::VolumeScatterSettings &settings)
       override
-    { pt->setVolumeScatterSettings(settings); }
+    { pt->setVolumeScatterSettings(xfName,settings); }
     
     BoundsData getWorldBounds()
       override
@@ -101,10 +113,11 @@ namespace hm {
   };
   
   inline void RenderEngineInterface
-  ::setTransferFunctionSet(const VolumeTransferFunctionSet &xf)
+  ::setTransferFunctionSet(const std::string &xfName,
+                           const VolumeTransferFunctionSet &xf)
   {
-    setTransferFunction(xf.opacity);
-    setEmissionTransferFunction(xf.emission);
-    setVolumeScatterSettings(xf.scatterSettings);
+    setTransferFunction(xfName,xf.opacity);
+    setEmissionTransferFunction(xfName,xf.emission);
+    setVolumeScatterSettings(xfName,xf.scatterSettings);
   }
 }

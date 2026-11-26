@@ -3,6 +3,7 @@
 
 #include "hayStack/TriangleMesh.h"
 #include "hayStack/loader/TriangleMesh.h"
+#include "hayStack/loader/DataLoader.h"
 
 namespace hs {
   namespace loader {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/Capsules.h"
+#include "hayStack/loader/DataLoader.h"
 #include <fstream>
 
 namespace hs {

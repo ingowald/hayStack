@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! IsoDump: surfaces generated from a separate iso-surace
       generation-and-dump-to-disk tool */
-    struct IsoDumpContent : public LoadableContent {
+    struct IsoDumpContent : public DistributedContent {
       IsoDumpContent(const ResourceSpecifier &data,
                      int thisPartID);
       static void create(DataLoader *loader,

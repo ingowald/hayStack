@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! a file of 'raw' spheres */
-    struct MaterialsTest : public LoadableContent {
+    struct MaterialsTest : public DistributedContent {
       enum { gridRes = 10 };
     
       MaterialsTest(const ResourceSpecifier &data,

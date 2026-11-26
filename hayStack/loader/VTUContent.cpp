@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/VTUContent.h"
+#include "hayStack/loader/DataLoader.h"
 
 #if HS_VTK
 # include <vtkSmartPointer.h>

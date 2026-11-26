@@ -8,7 +8,7 @@
     functionality to be used in both triangles and spheres (and
     whereever else) */
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
@@ -45,7 +45,7 @@ namespace hs {
       int cmIndex;
     };
 
-    struct ColorMappingMetaContent : public LoadableContent {
+    struct ColorMappingMetaContent : public DistributedContent {
       static int   default_cmIndex;
       static vec2f default_domain;
       

@@ -50,6 +50,9 @@ namespace hm {
     anari::Group rootGroup;
 
     std::vector<anari::Volume>  rootVolumes;
+    /*! all of the volumes in rootVolumes, grouped by the xfName of
+        the hs::Volume they got created from */
+    std::map<std::string,std::vector<anari::Volume>> volumesByXFName;
     std::vector<anari::Surface> rootGeoms;
     std::map<anari::Volume, VolumeScatterParams> principledScatterByVolume;
       
@@ -62,19 +65,32 @@ namespace hm {
     
     void setCamera(const hs::Camera &camera);
     
-    void setTransferFunction(const TransferFunction &xf);
-    void setEmissionTransferFunction(const TransferFunction &xf);
+    /*! @{ set the respective transfer function for all volumes
+        with given xfName */
+    void setTransferFunction(const std::string &xfName,
+                             const TransferFunction &xf);
+    void setEmissionTransferFunction(const std::string &xfName,
+                                     const TransferFunction &xf);
+    /* @} */
       
     // void renderAll();
     void renderMiniScene(mini::Scene::SP miniScene);
     anari::Group render(const mini::Object::SP &miniObject);
 
-    void applyTransferFunction(const TransferFunction &xf);
+    void applyTransferFunction(const std::string &xfName,
+                               const TransferFunction &xf);
+    void applyEmissionTransferFunction(const std::string &xfName,
+                                       const TransferFunction &xf);
     void applyPrincipledScatterParams(anari::Volume volume,
                                       const VolumeScatterParams &scatter);
-    void applyVolumeScatterSettings(const VolumeScatterSettings &settings);
+    void applyVolumeScatterSettings(const std::string &xfName,
+                                    const VolumeScatterSettings &settings);
+    /*! the most recently set scatter settings; the per-volume
+        ('medium') part of these is used as default for newly
+        created volumes, the rest is global to the renderer */
     VolumeScatterSettings volumeScatterSettings;
-    void setVolumeScatterSettings(const VolumeScatterSettings &settings);
+    void setVolumeScatterSettings(const std::string &xfName,
+                                  const VolumeScatterSettings &settings);
     anari::Volume createVolume(anari::SpatialField field,
                                const VolumeScatterParams &scatter);
 
@@ -100,13 +116,19 @@ namespace hm {
     
     anari::Group createGroup(const std::vector<anari::Surface> &geoms,
                              const std::vector<anari::Volume>  &volumes);
-    anari::Volume create(const hs::StructuredVolume &vol);
-    anari::Volume create(const hs::NanoVDBVolume &vol);
-    std::pair<anari::Volume,std::vector<anari::Surface>>
+    /*! @{ volume create functions: each returns the created anari
+        volume, together with the xfName of the volume it was
+        created from */
+    std::pair<std::string,anari::Volume>
+    create(const hs::StructuredVolume &vol);
+    std::pair<std::string,anari::Volume>
+    create(const hs::NanoVDBVolume &vol);
+    /*! returns the (named) volume, plus any iso-surfaces */
+    std::pair<std::pair<std::string,anari::Volume>,std::vector<anari::Surface>>
     create(const hs::TAMRVolume &input);
-    
-    anari::Volume
+    std::pair<std::string,anari::Volume>
     create(const UMeshVolume::SP &vol);
+    /* @} */
 
     using Surfaces = std::vector<anari::Surface>;
     Surfaces create(const hs::SphereSet &content);
@@ -139,8 +161,10 @@ namespace hm {
     TextureLibrary  textureLibrary;
     MaterialLibrary materialLibrary;
 
-    TransferFunction currentXF;
-    TransferFunction currentEmissionXF;
+    /*! current transfer functions, by xfName */
+    std::map<std::string,TransferFunction> xfByName;
+    /*! current emission transfer functions, by xfName */
+    std::map<std::string,TransferFunction> emissionXFByName;
 
 
     void setInstances(const std::vector<anari::Group> &groups,

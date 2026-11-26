@@ -25,9 +25,12 @@ namespace hm {
                 float *fbDepth) override;
     void resetAccumulation() override;
     void setCamera(const Camera &camera) override;
-    void setTransferFunction(const TransferFunction &xf) override;
-    void setEmissionTransferFunction(const TransferFunction &xf) override;
-    void setVolumeScatterSettings(const VolumeScatterSettings &settings) override;
+    void setTransferFunction(const std::string &xfName,
+                             const TransferFunction &xf) override;
+    void setEmissionTransferFunction(const std::string &xfName,
+                                     const TransferFunction &xf) override;
+    void setVolumeScatterSettings(const std::string &xfName,
+                                  const VolumeScatterSettings &settings) override;
     void terminate() override;
     void setLights(float ambient,
                    const std::vector<hs::PointLight> &pointLights,
@@ -44,6 +47,8 @@ namespace hm {
     
     template<typename T>
     void sendToWorkers(const T &t);
+
+    void sendToWorkers(const std::string &s);
 
     void checkEndOfMessage();
     void sendEndOfMessage();

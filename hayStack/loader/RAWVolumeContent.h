@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 #include "hayStack/StructuredVolume.h"
 
 namespace hs {
   namespace loader {
   
     /*! a file of 'raw' spheres */
-    struct RAWVolumeContent : public LoadableContent {
+    struct RAWVolumeContent : public DistributedContent {
       // using ScalarType = StructuredVolume::ScalarType;
     
       RAWVolumeContent(const std::string &fileName,

@@ -3,6 +3,7 @@
 
 #include "viewer/render/HayMaker.h"
 #include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/XFContent.h"
 #if HS_SERVER || HS_CLIENT
 # include "viewer/ClientServer.h"
 #endif
@@ -52,7 +53,6 @@ namespace hm {
     std::string xfFileName = "";
     std::string outFileName = "hayStack.png";
     vec2i fbSize = { 800,600 };
-    bool createHeadNode = false;
     int  numExtraDisplayRanks = 0;
     int  numFramesAccum = 1;
     int  spp            = 1;
@@ -244,6 +244,37 @@ namespace hm {
       fromCL.cameraPath.push_back(c);
     }
   }
+
+  /*! passes all transfer functions that rank 0 has loaded (via
+      xf:// content, including the one from -xf) on to the
+      renderer. Must only be called on rank 0, since that's the only
+      rank that has them. Any xfName that is used by a volume but
+      that doesn't have a loaded transfer function gets a newly
+      created (default) one, using the scatter settings from the
+      command line. */
+  void applyAllTransferFunctions(RenderEngineInterface *renderer,
+                                 LocalPartitions *localPartitions)
+  {
+    auto &xfs = localPartitions->rank0.transferFunctions;
+
+    // make sure every xf name used anywhere has a transfer function
+    for (auto &xfName : renderer->gatherXFNames()) {
+      if (xfs.find(xfName) != xfs.end())
+        continue;
+      std::cout << "#hs: no transfer function loaded for '" << xfName
+                << "', creating default one" << std::endl;
+      auto xf = std::make_shared<VolumeTransferFunctionSet>();
+      xf->scatterSettings = fromCL.scatterSettings;
+      xfs[xfName] = xf;
+    }
+    
+    if (xfs.empty()) return;
+    for (auto &it : xfs) {
+      std::cout << "#hs: applying transfer function '" << it.first << "'" << std::endl;
+      renderer->setTransferFunctionSet(it.first,*it.second);
+    }
+    renderer->resetAccumulation();
+  }
   
 }
 
@@ -268,6 +299,9 @@ int main(int ac, char **av)
   world->barrier();
 
   hs::loader::DynamicDataLoader loader(world);
+  /*! the partition(s) this rank will load, plus the data all ranks
+      share; gets filled in by the cmdline parsing and the loader */
+  LocalPartitions *localPartitions = new LocalPartitions;
   for (int i=1;i<ac;i++) {
     const std::string arg = av[i];
     if (arg[0] != '-') {
@@ -300,7 +334,7 @@ int main(int ac, char **av)
       fromCL.cmID = std::stoi(av[++i]);
     } else if (arg == "-env" || arg == "--env-map") {
       fromCL.envMapFileName = av[++i];
-      loader.sharedLights.envMap = fromCL.envMapFileName;
+      localPartitions->replicated.sharedLights.envMap = fromCL.envMapFileName;
     } else if (arg == "--num-frames") {
       fromCL.numFramesAccum = std::stoi(av[++i]);
     } else if (arg == "--ambient") {
@@ -329,14 +363,14 @@ int main(int ac, char **av)
       mini::DirLight light;
       light.direction = get3f(av,i);
       light.radiance  = get3f(av,i);
-      loader.sharedLights.directional.push_back(light);
+      localPartitions->replicated.sharedLights.directional.push_back(light);
     } else if (arg == "--quad-light") {
       mini::QuadLight light;
       light.corner   = get3f(av,i);
       light.edge0    = get3f(av,i);
       light.edge1    = get3f(av,i);
       light.emission = get3f(av,i);
-      loader.sharedLights.quad.push_back(light);
+      localPartitions->replicated.sharedLights.quad.push_back(light);
     } else if (arg == "--quad-light-centered") {
       mini::QuadLight light;
       vec3f center   = get3f(av,i);
@@ -344,15 +378,15 @@ int main(int ac, char **av)
       light.edge1    = get3f(av,i);
       light.corner   = center - 0.5f*(light.edge0+light.edge1);
       light.emission = get3f(av,i);
-      loader.sharedLights.quad.push_back(light);
+      localPartitions->replicated.sharedLights.quad.push_back(light);
     } else if (arg == "--lights") {
       std::string lightsFileName = av[++i];
       std::cout << "#hs: importing lights from " << lightsFileName << std::endl;
       mini::Scene::SP lightsScene = mini::Scene::load(lightsFileName);
       for (auto light : lightsScene->quadLights)
-        loader.sharedLights.quad.push_back(light);
+        localPartitions->replicated.sharedLights.quad.push_back(light);
       for (auto light : lightsScene->dirLights)
-        loader.sharedLights.directional.push_back(light);
+        localPartitions->replicated.sharedLights.directional.push_back(light);
         
     } else if (arg == "--camera-pdu") {
       fromCL.camera.vp = get3f(av,i);
@@ -385,11 +419,6 @@ int main(int ac, char **av)
         : DPMODE_DATA_PARALLEL;
     } else if (arg == "-dpr") {
       fromCL.dpr = std::stoi(av[++i]);
-    } else if (arg == "-nhn" || arg == "--no-head-node") {
-      fromCL.createHeadNode = false;
-    } else if (arg == "-hn" || arg == "-chn" ||
-               arg == "--head-node" || arg == "--create-head-node") {
-      fromCL.createHeadNode = true;
     } else if (arg == "-h" || arg == "--help") {
       usage();
     } else {
@@ -397,13 +426,19 @@ int main(int ac, char **av)
     }    
   }
 
-  hs::VolumeTransferFunctionSet cliVolumeXfs;
-  bool haveCliVolumeXfs = false;
-  if (!fromCL.xfFileName.empty()) {
-    cliVolumeXfs = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
-    haveCliVolumeXfs = true;
-    fromCL.scatterSettings = cliVolumeXfs.scatterSettings;
-  }
+  if (!fromCL.xfFileName.empty())
+    // transfer function specified on cmdline - load this as
+    // replicated content (under default name, "xf0")
+    hs::loader::XFContent::create
+      (&loader,hs::loader::ResourceSpecifier("xf://"+fromCL.xfFileName));
+
+  // hs::VolumeTransferFunctionSet cliVolumeXfs;
+  // bool haveCliVolumeXfs = false;
+  // if (!fromCL.xfFileName.empty()) {
+  //   cliVolumeXfs = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
+  //   haveCliVolumeXfs = true;
+  //   fromCL.scatterSettings = cliVolumeXfs.scatterSettings;
+  // }
 
   int localRank = 0, localSize = 1;
 #if HS_MPI
@@ -435,8 +470,7 @@ int main(int ac, char **av)
   int numDataGroupsGlobally = fromCL.ndg;
   int dataPerRank   = fromCL.dpr;
   //  LocalModel thisRankData;
-  LocalPartitions *localPartitions
-    = loader.loadData(numDataGroupsGlobally,dataPerRank);
+  loader.loadData(*localPartitions,numDataGroupsGlobally,dataPerRank);
   if (fromCL.mergeUnstructuredMeshes) {
     std::cout << "merging potentially separate unstructured "
               << "meshes into single mesh" << std::endl;
@@ -458,7 +492,8 @@ int main(int ac, char **av)
     deviceConfigs.push_back(dc);
   }
 
-  GlobalRenderSettings globalRenderSettings;
+  GlobalRenderSettings &globalRenderSettings
+    = localPartitions->replicated.globalRenderSettings;
   globalRenderSettings.enablePrincipledVolumes = fromCL.scatterSettings.enabled;
   globalRenderSettings.samplesPerPixel = fromCL.spp;
   globalRenderSettings.ambientRadiance = fromCL.ambientRadiance;
@@ -475,10 +510,8 @@ int main(int ac, char **av)
   HayMaker *hayMaker
     = new HayMaker(// mpi/peers:
                    world,
-                   globalRenderSettings,
                    // the parition(s) we have loaded locally on this rank
                    localPartitions,
-                   
                    deviceConfigs);
 
   world->barrier();
@@ -500,18 +533,19 @@ int main(int ac, char **av)
 
   // hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
   // hayMaker->setEmissionTransferFunction(
-  //   haveCliVolumeXfs ? cliVolumeXfs.emission : hs::TransferFunction{});
+  //   haveCliVolumeXfs ? crliVolumeXfs.emission : hs::TransferFunction{});
 
   // if (!fromCL.xfFileName.empty()) {
   //   hayMaker->setTransferFunction(cliVolumeXfs.opacity);
   // }
-  if (!fromCL.xfFileName.empty()) {
-    auto xf = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
-    renderer->setTransferFunctionSet(xf);
-    renderer->resetAccumulation();
-  }
+  // if (!fromCL.xfFileName.empty()) {
+  //   auto xf = hs::VolumeTransferFunctionSet::load(fromCL.xfFileName);
+  //   renderer->setTransferFunctionSet(xf);
+  //   renderer->resetAccumulation();
+  // }
 
-                   
+
+  applyAllTransferFunctions(renderer,localPartitions);
 
   // world->barrier();
   if (world->rank == 0)
@@ -539,6 +573,15 @@ int main(int ac, char **av)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
               << MINI_TERMINAL_DEFAULT << std::endl;
+
+  const std::set<std::string> xfNames = renderer->gatherXFNames();
+  if (world->rank == 0) {
+    std::cout << MINI_TERMINAL_CYAN
+              << "#hs: found " << xfNames.size() << " transfer function name(s):";
+    for (auto &xfName : xfNames)
+      std::cout << " '" << xfName << "'";
+    std::cout << MINI_TERMINAL_DEFAULT << std::endl;
+  }
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
@@ -569,8 +612,8 @@ int main(int ac, char **av)
      /*up-vector*/fromCL.camera.vu,
 /*fovy(deg)*//*ignore now ,we handle that differently*/fromCL.camera.perspective.fovy);
 
-  if (!fromCL.xfFileName.empty())
-    viewer.loadXF(fromCL.xfFileName);
+  // if (!fromCL.xfFileName.empty())
+  //   viewer.loadXF(fromCL.xfFileName);
 
   viewer.showAndRun();
 #else

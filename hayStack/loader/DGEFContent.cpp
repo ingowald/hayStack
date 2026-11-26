@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/DGEFContent.h"
+#include "hayStack/loader/DataLoader.h"
 #include "DGEF.h"
 
 namespace mini {

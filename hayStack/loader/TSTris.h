@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
 
     /*! "Tim Sandstrom" type ".tri" files */
-    struct TSTriContent : public LoadableContent {
+    struct TSTriContent : public DistributedContent {
       enum { vertices_only, vertex_and_scalar, vertex_and_color } Type;
       TSTriContent(const ResourceSpecifier &data,
                    size_t fileSize,

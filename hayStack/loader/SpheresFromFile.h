@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
   /*! a file of 'raw' spheres */
-    struct SpheresFromFile : public LoadableContent {
+    struct SpheresFromFile : public DistributedContent {
       SpheresFromFile(const ResourceSpecifier &data,
                       int thisPartID,
                       float defaultRadius);
@@ -26,7 +26,7 @@ namespace hs {
       const int thisPartID = 0;
     };
 
-    struct VMDSpheres : public LoadableContent {
+    struct VMDSpheres : public DistributedContent {
       VMDSpheres(const ResourceSpecifier &data,
                  int thisPartID);
       static void create(DataLoader *loader,

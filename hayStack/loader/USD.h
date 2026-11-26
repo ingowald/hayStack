@@ -3,13 +3,14 @@
 
 #pragma once
 
+#include "hayStack/loader/LoadableContent.h"
 #include "hayStack/loader/DataLoader.h"
 
 namespace hs {
   namespace loader {
     
     /*! a 'umesh' file of unstructured mesh data */
-    struct USDContent : public LoadableContent {
+    struct USDContent : public DistributedContent {
       USDContent(const std::string &fileName)
         : fileName(fileName),
           fileSize(getFileSize(fileName))

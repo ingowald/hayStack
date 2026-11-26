@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "TAMRContent.h"
+#include "hayStack/loader/DataLoader.h"
 #include <fstream>
 #include <tinyAMR/Model.h>
 

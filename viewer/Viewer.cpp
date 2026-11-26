@@ -22,6 +22,8 @@ namespace hm {
     xf.domain = worldBounds.scalars;
     uiIsOn = !worldBounds.scalars.empty();
     emissionXF.domain = worldBounds.scalars;
+    for (auto &name : renderer->gatherXFNames())
+      xfNames.push_back(name);
   }
 
 
@@ -153,7 +155,6 @@ namespace hm {
         ImGui::PopID();
         if (opacityChanged)
           xfDirty = true;
-#if 1 //HS_USE_MULTI_SCATTERING
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Volume rendering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -179,7 +180,6 @@ namespace hm {
           if (emissionChanged)
             emissionXfDirty = true;
         }
-#endif
         
         if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
                                worldBounds.scalars.lower,
@@ -206,20 +206,20 @@ namespace hm {
                    fbPointer,fbSize.x*sizeof(uint32_t));
   }
 
-  void Viewer::loadXF(const std::string &fileName)
-  {
-    auto set = hs::VolumeTransferFunctionSet::load(fileName);
-    xf              = set.opacity;
-    scatterSettings = set.scatterSettings;
-    emissionXF      = set.emission;
-    emissionXfEditor.setColorAndAlpha(emissionXF.colorMap.data(),
-                                      emissionXF.colorMap.size());
-    xfEditor.setColorAndAlpha(xf.colorMap.data(),
-                              xf.colorMap.size());
-    scatterDirty = true;
-    emissionXfDirty = true;
-    xfDirty = true;
-  }
+  // void Viewer::loadXF(const std::string &fileName)
+  // {
+  //   auto set = hs::VolumeTransferFunctionSet::load(fileName);
+  //   xf              = set.opacity;
+  //   scatterSettings = set.scatterSettings;
+  //   emissionXF      = set.emission;
+  //   emissionXfEditor.setColorAndAlpha(emissionXF.colorMap.data(),
+  //                                     emissionXF.colorMap.size());
+  //   xfEditor.setColorAndAlpha(xf.colorMap.data(),
+  //                             xf.colorMap.size());
+  //   scatterDirty = true;
+  //   emissionXfDirty = true;
+  //   xfDirty = true;
+  // }
   
   void Viewer::key(char key, const vec2i &where) 
   {
@@ -344,13 +344,13 @@ namespace hm {
       emissionXfEditor.setColorOnly(cm.data(), cm.size());
       emissionXfDirty = true;
         
-      renderer->setTransferFunction(xf);
+      renderer->setTransferFunction(xfName,xf);
       xfDirty = false;
       accumDirty = true;
     }
 
     if (scatterDirty) {
-      renderer->setVolumeScatterSettings(scatterSettings);
+      renderer->setVolumeScatterSettings(xfName,scatterSettings);
       scatterDirty = false;
       accumDirty = true;
     }
@@ -358,7 +358,7 @@ namespace hm {
       auto cm = emissionXfEditor.getColorMap();
       emissionXF.set(cm.data(), cm.size());
       emissionXF.domain = xf.domain;
-      renderer->setEmissionTransferFunction(emissionXF);
+      renderer->setEmissionTransferFunction(xfName,emissionXF);
       emissionXfDirty = false;
       accumDirty = true;
     }

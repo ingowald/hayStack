@@ -83,22 +83,20 @@ namespace hm {
 
     anari::setParameter(anari.device, anari.renderer,
                         "ambientRadiance",
-                        hayMaker->globalRenderSettings.ambientRadiance);
+                        hayMaker->localPartitions->replicated.globalRenderSettings.ambientRadiance);
     anari::setParameter(anari.device, anari.renderer,
                         "pixelSamples",
-                        hayMaker->globalRenderSettings.samplesPerPixel);
+                        hayMaker->localPartitions->replicated.globalRenderSettings.samplesPerPixel);
     anari::setParameter(anari.device, anari.renderer,
                         "denoise",
-                        hayMaker->globalRenderSettings.denoise);
-#if HS_USE_MULTI_SCATTERING
+                        hayMaker->localPartitions->replicated.globalRenderSettings.denoise);
     anari::setParameter(anari.device, anari.renderer,
                         "volumeMultiScatter",
                         volumeScatterSettings.enabled);
     anari::setParameter(anari.device, anari.renderer,
                         "maxVolumeBounces",
                         volumeScatterSettings.maxVolumeBounces);
-#endif
-    auto &bgColor = hayMaker->globalRenderSettings.bgColor;
+    auto &bgColor = hayMaker->localPartitions->replicated.globalRenderSettings.bgColor;
     if (isnan(bgColor.x) ||
         bgColor.x < 0.f) { 
       std::vector<vec4f> bgGradient = {
@@ -142,7 +140,8 @@ namespace hm {
   void AnariDeviceRenderer::renderFrame()
   {
     if (dirty) {
-      applyTransferFunction(currentXF);
+      for (auto &it : xfByName)
+        applyTransferFunction(it.first,it.second);
       dirty = false;
     }
     anari::render(anari.device, anari.frame);
@@ -161,8 +160,11 @@ namespace hm {
   }
 
   void AnariDeviceRenderer
-  ::applyVolumeScatterSettings(const VolumeScatterSettings &settings)
+  ::applyVolumeScatterSettings(const std::string &xfName,
+                               const VolumeScatterSettings &settings)
   {
+    // note: these are global to the renderer, so whichever xfName
+    // sets them last wins
     if (anari.renderer) {
       anari::setParameter(anari.device, anari.renderer, "volumeMultiScatter",
                           (bool)settings.enabled);
@@ -171,20 +173,26 @@ namespace hm {
       anari::commitParameters(anari.device, anari.renderer);
     }
 
-    for (auto &entry : this->principledScatterByVolume) {
-      applyPrincipledScatterParams(entry.first, settings.medium);
-      entry.second = settings.medium;
-      anari::commitParameters(anari.device, entry.first);
+    // ... while the 'medium' ones are per volume
+    auto volumes = volumesByXFName.find(xfName);
+    if (volumes == volumesByXFName.end())
+      return;
+    for (auto vol : volumes->second) {
+      auto principledIt = principledScatterByVolume.find(vol);
+      if (principledIt == principledScatterByVolume.end())
+        continue;
+      applyPrincipledScatterParams(vol, settings.medium);
+      principledIt->second = settings.medium;
+      anari::commitParameters(anari.device, vol);
     }
   }
 
   void AnariDeviceRenderer
-  ::setVolumeScatterSettings(const VolumeScatterSettings &settings)
+  ::setVolumeScatterSettings(const std::string &xfName,
+                             const VolumeScatterSettings &settings)
   {
     volumeScatterSettings = settings;
-    for (auto &entry : principledScatterByVolume)
-      entry.second = settings.medium;
-    this->applyVolumeScatterSettings(settings);
+    this->applyVolumeScatterSettings(xfName,settings);
   }
 
   anari::Volume AnariDeviceRenderer
@@ -193,7 +201,7 @@ namespace hm {
     if (!field)
       return {};
     anari::Volume volume;
-    if (hayMaker->globalRenderSettings.enablePrincipledVolumes) {
+    if (hayMaker->localPartitions->replicated.globalRenderSettings.enablePrincipledVolumes) {
       volume = anari::newObject<anari::Volume>(anari.device,
                                                "principledVolume");
       anari::setAndReleaseParameter(anari.device, volume, "value", field);
@@ -208,34 +216,46 @@ namespace hm {
     return volume;
   }
   
-  void AnariDeviceRenderer::setTransferFunction(const TransferFunction &xf)
+  void AnariDeviceRenderer::setTransferFunction(const std::string &xfName,
+                                                const TransferFunction &xf)
   {
-    currentXF = xf;
+    xfByName[xfName] = xf;
     if (rootInstances.groups.empty()) {
       dirty = true;
       return;
     }
-    applyTransferFunction(xf);
+    applyTransferFunction(xfName,xf);
   }
 
   void AnariDeviceRenderer
-  ::setEmissionTransferFunction(const TransferFunction &xf)
+  ::setEmissionTransferFunction(const std::string &xfName,
+                                const TransferFunction &xf)
   {
-    currentEmissionXF = xf;
-#if HS_USE_MULTI_SCATTERING
-    for (auto &entry : principledScatterByVolume) {
-      const int count = int(xf.colorMap.size());
-      if (count < 1)
+    emissionXFByName[xfName] = xf;
+    applyEmissionTransferFunction(xfName,xf);
+  }
+
+  void AnariDeviceRenderer
+  ::applyEmissionTransferFunction(const std::string &xfName,
+                                  const TransferFunction &xf)
+  {
+    auto volumes = volumesByXFName.find(xfName);
+    if (volumes == volumesByXFName.end())
+      return;
+    const int count = int(xf.colorMap.size());
+    if (count < 1)
+      return;
+    for (auto vol : volumes->second) {
+      if (principledScatterByVolume.find(vol) == principledScatterByVolume.end())
         continue;
       auto map = anari::newArray1D(anari.device, ANARI_FLOAT32_VEC4, count);
       memcpy(anariMapArray(anari.device, map), xf.colorMap.data(),
              count * sizeof(xf.colorMap[0]));
       anariUnmapArray(anari.device, map);
-      anari::setAndReleaseParameter(anari.device, entry.first,
+      anari::setAndReleaseParameter(anari.device, vol,
                                     "emissionMap", map);
-      anari::commitParameters(anari.device, entry.first);
+      anari::commitParameters(anari.device, vol);
     }
-#endif
   }
   
   anari::Group AnariDeviceRenderer
@@ -385,31 +405,39 @@ namespace hm {
     // render all structured volumes
     // -----------------------------------------------------------------
     for (auto vol : myData.structuredVolumes) {
-      anari::Volume createdVolume = create(*vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      std::pair<std::string,anari::Volume> createdVolume = create(*vol);
+      if (createdVolume.second) {
+        rootVolumes.push_back(createdVolume.second);
+        volumesByXFName[createdVolume.first].push_back(createdVolume.second);
+      }
     }
     for (auto vol : myData.nanovdbVolumes) {
-      anari::Volume createdVolume = create(*vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      std::pair<std::string,anari::Volume> createdVolume = create(*vol);
+      if (createdVolume.second) {
+        rootVolumes.push_back(createdVolume.second);
+        volumesByXFName[createdVolume.first].push_back(createdVolume.second);
+      }
     }
     // ------------------------------------------------------------------
     // render all *UN*-structured volumes
     // -----------------------------------------------------------------
     for (auto vol : myData.unsts) {
-      anari::Volume createdVolume = create(vol);
-      if (createdVolume)
-        rootVolumes.push_back(createdVolume);
+      std::pair<std::string,anari::Volume> createdVolume = create(vol);
+      if (createdVolume.second) {
+        rootVolumes.push_back(createdVolume.second);
+        volumesByXFName[createdVolume.first].push_back(createdVolume.second);
+      }
     }
     // ------------------------------------------------------------------
     // render all *AMR* volumes
     // -----------------------------------------------------------------
     for (auto vol : myData.amr) {
-      std::pair<anari::Volume,std::vector<anari::Surface>>
+      std::pair<std::pair<std::string,anari::Volume>,std::vector<anari::Surface>>
         created = create(*vol);
-      if (created.first)
-        rootVolumes.push_back(created.first);
+      if (created.first.second) {
+        rootVolumes.push_back(created.first.second);
+        volumesByXFName[created.first.first].push_back(created.first.second);
+      }
       for (auto surf : created.second)
         rootGeoms.push_back(surf);
     }
@@ -436,17 +464,12 @@ namespace hm {
     // generated
     // -----------------------------------------------------------------
 
-    // #if HS_USE_MULTI_SCATTERING
-    //     const bool skipTfApply =
-    //       isUnsetTransferFunctionDomain(currentXF.domain)
-    //       && !rootVolumes.empty()
-    //       && principledScatterByVolume.size() == rootVolumes.size();
-    // #else
-    //     const bool skipTfApply = false;
-    // #endif
-    //     if (!skipTfApply)
-    applyTransferFunction(currentXF);
-    setEmissionTransferFunction(currentEmissionXF);
+    // apply current (or, if none set yet, default) transfer
+    // functions to all volumes, by xfName
+    for (auto &it : volumesByXFName) {
+      applyTransferFunction(it.first,xfByName[it.first]);
+      applyEmissionTransferFunction(it.first,emissionXFByName[it.first]);
+    }
 
     setInstances(rootInstances.groups,rootInstances.xfms);
   }
@@ -610,12 +633,14 @@ namespace hm {
     return { surface };
   }
 
-  void AnariDeviceRenderer::applyTransferFunction(const TransferFunction &xf)
+  void AnariDeviceRenderer::applyTransferFunction(const std::string &xfName,
+                                                  const TransferFunction &xf)
   {
-    if (rootVolumes.empty())
+    auto volumes = volumesByXFName.find(xfName);
+    if (volumes == volumesByXFName.end())
       return;
 
-    for (auto vol : rootVolumes) {
+    for (auto vol : volumes->second) {
       auto principledIt = principledScatterByVolume.find(vol);
       const bool isPrincipled = principledIt != principledScatterByVolume.end();
       int N = xf.colorMap.size();
@@ -746,7 +771,8 @@ namespace hm {
     lights.push_back(light);
   }
 
-  anari::Volume AnariDeviceRenderer::create(const StructuredVolume &vol)
+  std::pair<std::string,anari::Volume>
+  AnariDeviceRenderer::create(const StructuredVolume &vol)
   {
     anari::math::int3 volumeDims = (const anari::math::int3&)vol.dims;
       
@@ -780,17 +806,18 @@ namespace hm {
         
     anari::commitParameters(anari.device, field);
 
-    return createVolume(field, volumeScatterSettings.medium);
+    return { vol.xfName, createVolume(field, volumeScatterSettings.medium) };
   }
 
-  anari::Volume AnariDeviceRenderer::create(const NanoVDBVolume &vol)
+  std::pair<std::string,anari::Volume>
+  AnariDeviceRenderer::create(const NanoVDBVolume &vol)
   {
     auto field = anari::newObject<anari::SpatialField>(anari.device,
                                                        "nanovdb");
     anari::setParameterArray1D(anari.device, field, "data",
                                vol.data.data(), vol.data.size());
     anari::commitParameters(anari.device, field);
-    return createVolume(field, volumeScatterSettings.medium);
+    return { vol.xfName, createVolume(field, volumeScatterSettings.medium) };
   }
 
   void AnariDeviceRenderer
@@ -1004,7 +1031,7 @@ namespace hm {
     return { surface };
   }
   
-  std::pair<anari::Volume,std::vector<anari::Surface>>
+  std::pair<std::pair<std::string,anari::Volume>,std::vector<anari::Surface>>
   AnariDeviceRenderer::create(const TAMRVolume &input)
   {
     auto field = anari::newObject<anari::SpatialField>(anari.device, "blockStructured");
@@ -1125,10 +1152,10 @@ namespace hm {
     createIso(input.iso2,input.color2);
     createIso(input.iso3,input.color3);
     
-    return { volume, isoSurfaces };
+    return { { input.xfName, volume }, isoSurfaces };
   }
   
-  anari::Volume AnariDeviceRenderer
+  std::pair<std::string,anari::Volume> AnariDeviceRenderer
   ::create(const UMeshVolume::SP &vol)
   {
     auto mesh = vol->mesh;
@@ -1215,7 +1242,7 @@ namespace hm {
 
     anari::commitParameters(anari.device, field);
     
-    return createVolume(field, volumeScatterSettings.medium);
+    return { vol->xfName, createVolume(field, volumeScatterSettings.medium) };
   }
 
 

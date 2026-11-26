@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "hayStack/loader/DataLoader.h"
+#include "hayStack/loader/LoadableContent.h"
 
 namespace hs {
   namespace loader {
     
     /*! a VTK .vtu file of unstructured grid data, including polyhedral cells */
-    struct VTUContent : public LoadableContent {
+    struct VTUContent : public DistributedContent {
       VTUContent(const ResourceSpecifier &dataURL);
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);

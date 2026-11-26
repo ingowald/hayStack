@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/VTPContent.h"
+#include "hayStack/loader/DataLoader.h"
 #include "hayStack/TriangleMesh.h"
 
 #if HS_VTK

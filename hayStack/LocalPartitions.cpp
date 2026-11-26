@@ -11,11 +11,12 @@
 
 namespace hs {
 
-  LocalPartitions::LocalPartitions(const std::vector<int> &localDataRanks,
-                                   int numPartitionsGlobally)
-    : numPartitionsGlobally(numPartitionsGlobally)
+  void LocalPartitions::createPartitions(const std::vector<int> &localDataRanks,
+                                         int numPartitionsGlobally)
   {
+    assert(myPartitions.empty());
     assert(!localDataRanks.empty());
+    this->numPartitionsGlobally = numPartitionsGlobally;
     for (int i=0;i<localDataRanks.size();i++) {
       PartitionsIndex pi;
       pi.global.index = localDataRanks[i];
@@ -80,6 +81,10 @@ namespace hs {
       std::set<std::string> partXFNames = part->gatherXFNames();
       xfNames.insert(partXFNames.begin(),partXFNames.end());
     }
+    // also add names of all transfer functions loaded as rank-0
+    // content (even if no volume refers to them)
+    for (auto &it : rank0.transferFunctions)
+      xfNames.insert(it.first);
     return xfNames;
   }
 

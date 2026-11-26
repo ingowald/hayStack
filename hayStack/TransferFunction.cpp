@@ -108,27 +108,6 @@ namespace hs {
     return domain;
   }
 
-//   void TransferFunction::load(const std::string &fileName)
-//   {
-// #if HS_USE_MULTI_SCATTERING
-//     *this = loadVolumeTransferFunctions(fileName).opacity;
-// #else
-//     std::cout << "#hs: loading transfer function " << fileName << std::endl;
-//     std::ifstream in(fileName.c_str(),std::ios::binary);
-//     size_t magic;
-//     in.read((char*)&magic,sizeof(xfFileFormatMagic));
-
-//     in.read((char*)&baseDensity,sizeof(baseDensity));
-//     in.read((char*)&absDomain,sizeof(absDomain));
-//     in.read((char*)&relDomain,sizeof(relDomain));
-
-//     int numColorMapValues;
-//     in.read((char*)&numColorMapValues,sizeof(numColorMapValues));
-//     colorMap.resize(numColorMapValues);
-//     in.read((char*)colorMap.data(),colorMap.size()*sizeof(colorMap[0]));
-// #endif
-//   }
-
   void VolumeTransferFunctionSet::save(const std::string &fileName) const
   {
     std::ofstream out(fileName, std::ios::binary);

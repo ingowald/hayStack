@@ -51,7 +51,7 @@ namespace hm {
     
     void cameraChanged() override;
 
-    void loadXF(const std::string &fileName);
+    // void loadXF(const std::string &fileName);
     
     //    TransferFunction xf;
     bool xfDirty = true;
@@ -73,6 +73,12 @@ namespace hm {
     // the objec that stores the _haystack_ idea of what a xf is (with
     // domain, color, and alpha)
     hs::TransferFunction xf;
+    /*! the xfName of the volumes that the transfer function editor
+        edits the transfer function of */
+    std::string xfName = "xf0";
+    /*! all xfNames used by the scene (from renderer->gatherXFNames()),
+        in sorted order */
+    std::vector<std::string> xfNames;
     hs::Camera currentCamera;
 
     std::vector<float> fbDepth;

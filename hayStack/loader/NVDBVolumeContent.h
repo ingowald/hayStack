@@ -3,8 +3,8 @@
 
 #pragma once
 
-#if HS_USE_MULTI_SCATTERING
 
+#include "hayStack/loader/LoadableContent.h"
 #include "hayStack/loader/DataLoader.h"
 #include "hayStack/NanoVDBVolume.h"
 
@@ -19,7 +19,7 @@
 namespace hs {
 namespace loader {
 
-  struct NVDBVolumeContent : public LoadableContent {
+  struct NVDBVolumeContent : public DistributedContent {
     NVDBVolumeContent(const std::string &fileName,
                       int thisPartID,
                       const box3i &cellRange,
@@ -215,4 +215,3 @@ namespace loader {
 } // namespace loader
 } // namespace hs
 
-#endif

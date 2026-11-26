@@ -15,21 +15,6 @@ namespace hm {
   /*! the actual anari renderer part for the a given gpu/device */
   struct AnariDeviceRenderer;
 
-  struct GlobalRenderSettings {
-    int   samplesPerPixel = 1;
-    float ambientRadiance = .8f;
-    
-    // invalid value: leave this to the renderer, allowing to create
-    // the default gradient
-    vec4f bgColor { -1.f };
-    
-    /*! default color map index to use */
-    int defaultColorMapIndex = 0;
-
-    bool denoise = true;
-    bool enablePrincipledVolumes = true;
-  };
-  
   struct DeviceConfig {
     /*! which gpu to use. which actual gpu that refers to depends on
         the backend; for a cuda/optix based backend this'll be the
@@ -46,7 +31,6 @@ namespace hm {
     
   struct HayMaker : public RenderEngineInterface {
     HayMaker(Comm::SP world,
-             GlobalRenderSettings &globalRenderSettings,
              hs::LocalPartitions *localPartitions,
              const std::vector<DeviceConfig> &deviceConfigs);
 
@@ -66,9 +50,12 @@ namespace hm {
     /*! clean up and shut down */
     void terminate() {}
 
-    void setTransferFunction(const hs::TransferFunction &xf) override;
-    void setEmissionTransferFunction(const hs::TransferFunction &xf) override;
-    void setVolumeScatterSettings(const hs::VolumeScatterSettings &settings) override;
+    void setTransferFunction(const std::string &xfName,
+                             const hs::TransferFunction &xf) override;
+    void setEmissionTransferFunction(const std::string &xfName,
+                                     const hs::TransferFunction &xf) override;
+    void setVolumeScatterSettings(const std::string &xfName,
+                                  const hs::VolumeScatterSettings &settings) override;
     // hs::VolumeScatterSettings getVolumeScatterSettings() const override;
 
     BoundsData getWorldBounds() override;
@@ -95,7 +82,6 @@ namespace hm {
 
     Comm::SP world;
     hs::LocalPartitions *const localPartitions;
-    GlobalRenderSettings globalRenderSettings;
     const std::vector<DeviceConfig> deviceConfigs;
 #if HS_EXP_ALTFRAME
     vec2i alt_fbSize{2*1600,1*1200};

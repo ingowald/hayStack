@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/loader/ColorMapper.h"
+#include "hayStack/loader/DataLoader.h"
 #include "hayStack/ColorMap.h"
 
 namespace hs {

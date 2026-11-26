@@ -9,11 +9,6 @@ target_include_directories(hs-config INTERFACE
 )
 target_link_libraries(hs-config INTERFACE hs_stb_image)
 
-if (HS_USE_MULTI_SCATTERING)
-  target_compile_definitions(hs-config INTERFACE HS_USE_MULTI_SCATTERING=1)
-else()
-  target_compile_definitions(hs-config INTERFACE HS_USE_MULTI_SCATTERING=0)
-endif()
 # link to miniscene and umesh - we need those in either config
 target_link_libraries(hs-config
   INTERFACE
@@ -32,7 +27,13 @@ set(LOADER_SOURCES
   loader/ColorMapper.cpp
   loader/DataLoader.h
   loader/DataLoader.cpp
+  loader/ResourceSpecifier.h
+  loader/LoadableContent.h
+  loader/ResourceSpecifier.cpp
   loader/MiniContent.h
+  loader/MiniContent.cpp
+  loader/XFContent.h
+  loader/XFContent.cpp
   loader/IsoDump.h
   loader/IsoDump.cpp
   loader/OBJContent.h
@@ -135,6 +136,8 @@ add_library(hayStack
   OnePartition.cpp
   # whatever partition(s) the local rank/process owns
   LocalPartitions.h
+  ReplicatedData.h
+  Rank0Data.h
   LocalPartitions.cpp
   
   Cylinders.h
