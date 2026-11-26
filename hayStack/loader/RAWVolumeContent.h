@@ -24,7 +24,13 @@ namespace hs {
                          the resulting surface(s) */
                        const float isoValue,
                        /*! name of transfer function to use for this volume */
-                       const std::string &xfName);
+                       const std::string &xfName,
+                       /*! world-space position of the full volume's
+                           first voxel */
+                       vec3f gridOrigin,
+                       /*! world-space distance between two
+                           neighboring voxels */
+                       vec3f gridSpacing);
     
       static void create(DataLoader *loader,
                          const ResourceSpecifier &dataURL);
@@ -41,6 +47,8 @@ namespace hs {
       const std::string   texelFormat;
       const float         isoValue;
       const std::string   xfName;
+      const vec3f         gridOrigin;
+      const vec3f         gridSpacing;
     };
   
   }

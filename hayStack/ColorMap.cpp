@@ -238,6 +238,16 @@ namespace hs {
   }
 
 
+  /*! find color map with given name, and return pointer to it; or
+    null if this does not exist */
+  const ColorMap *ColorMapLibrary::find(const std::string &name)
+  {
+    init();
+    for (auto &cm : singleton.knownMaps)
+      if (cm.first == name) return cm.second.get();
+    return nullptr;
+  }
+
   /*! return map with given index */
   const ColorMap &ColorMapLibrary::getMap(const int mapID) 
   {

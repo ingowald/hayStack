@@ -54,7 +54,7 @@ namespace hm {
         the hs::Volume they got created from */
     std::map<std::string,std::vector<anari::Volume>> volumesByXFName;
     std::vector<anari::Surface> rootGeoms;
-    std::map<anari::Volume, VolumeScatterParams> principledScatterByVolume;
+    // std::map<anari::Volume, VolumeScatterParams> principledScatterByVolume;
       
     anari::Light envLight;
     std::vector<anari::Light> lights;
@@ -160,12 +160,6 @@ namespace hm {
     
     TextureLibrary  textureLibrary;
     MaterialLibrary materialLibrary;
-
-    /*! current transfer functions, by xfName */
-    std::map<std::string,TransferFunction> xfByName;
-    /*! current emission transfer functions, by xfName */
-    std::map<std::string,TransferFunction> emissionXFByName;
-
 
     void setInstances(const std::vector<anari::Group> &groups,
                       const std::vector<affine3f> &xfms);

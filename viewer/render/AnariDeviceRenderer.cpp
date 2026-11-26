@@ -139,11 +139,6 @@ namespace hm {
   
   void AnariDeviceRenderer::renderFrame()
   {
-    if (dirty) {
-      for (auto &it : xfByName)
-        applyTransferFunction(it.first,it.second);
-      dirty = false;
-    }
     anari::render(anari.device, anari.frame);
 #if HS_EXP_ALTFRAME
     anari::render(anari.device, anari.alt.frame);
@@ -157,6 +152,8 @@ namespace hm {
     auto device = anari.device;
     anari::setParameter(device, volume, "anisotropy", scatter.anisotropy);
     anari::setParameter(device, volume, "emissionStrength", scatter.emissionStrength);
+    PING; PRINT((int*)volume); PRINT(scatter.anisotropy);
+    PRINT(scatter.emissionStrength);
   }
 
   void AnariDeviceRenderer
@@ -174,15 +171,8 @@ namespace hm {
     }
 
     // ... while the 'medium' ones are per volume
-    auto volumes = volumesByXFName.find(xfName);
-    if (volumes == volumesByXFName.end())
-      return;
-    for (auto vol : volumes->second) {
-      auto principledIt = principledScatterByVolume.find(vol);
-      if (principledIt == principledScatterByVolume.end())
-        continue;
+    for (auto vol : volumesByXFName[xfName]) {
       applyPrincipledScatterParams(vol, settings.medium);
-      principledIt->second = settings.medium;
       anari::commitParameters(anari.device, vol);
     }
   }
@@ -205,8 +195,8 @@ namespace hm {
       volume = anari::newObject<anari::Volume>(anari.device,
                                                "principledVolume");
       anari::setAndReleaseParameter(anari.device, volume, "value", field);
-      applyPrincipledScatterParams(volume, scatter);
-      principledScatterByVolume[volume] = scatter;
+      // applyPrincipledScatterParams(volume, scatter);
+      // principledScatterByVolume[volume] = scatter;
     } else {
       volume = anari::newObject<anari::Volume>(anari.device,
                                                "transferFunction1D");
@@ -219,11 +209,6 @@ namespace hm {
   void AnariDeviceRenderer::setTransferFunction(const std::string &xfName,
                                                 const TransferFunction &xf)
   {
-    xfByName[xfName] = xf;
-    if (rootInstances.groups.empty()) {
-      dirty = true;
-      return;
-    }
     applyTransferFunction(xfName,xf);
   }
 
@@ -231,7 +216,7 @@ namespace hm {
   ::setEmissionTransferFunction(const std::string &xfName,
                                 const TransferFunction &xf)
   {
-    emissionXFByName[xfName] = xf;
+    PING; PRINT(xf.toString());
     applyEmissionTransferFunction(xfName,xf);
   }
 
@@ -246,8 +231,8 @@ namespace hm {
     if (count < 1)
       return;
     for (auto vol : volumes->second) {
-      if (principledScatterByVolume.find(vol) == principledScatterByVolume.end())
-        continue;
+      // if (principledScatterByVolume.find(vol) == principledScatterByVolume.end())
+      //   continue;
       auto map = anari::newArray1D(anari.device, ANARI_FLOAT32_VEC4, count);
       memcpy(anariMapArray(anari.device, map), xf.colorMap.data(),
              count * sizeof(xf.colorMap[0]));
@@ -354,7 +339,11 @@ namespace hm {
     anari::commitParameters(anari.device, anari.alt.camera);
 #endif
   }
-  
+
+  /*! render the initial haystack scene graph into an anari
+      world. note that for volume data that will _create_ the volumes
+      but not yet set their transfer functions, we do this later
+      through decidated settransferfunction calls */
   void AnariDeviceRenderer::renderInitialAnariWorld()
   {
     // ==================================================================
@@ -466,10 +455,6 @@ namespace hm {
 
     // apply current (or, if none set yet, default) transfer
     // functions to all volumes, by xfName
-    for (auto &it : volumesByXFName) {
-      applyTransferFunction(it.first,xfByName[it.first]);
-      applyEmissionTransferFunction(it.first,emissionXFByName[it.first]);
-    }
 
     setInstances(rootInstances.groups,rootInstances.xfms);
   }
@@ -641,8 +626,8 @@ namespace hm {
       return;
 
     for (auto vol : volumes->second) {
-      auto principledIt = principledScatterByVolume.find(vol);
-      const bool isPrincipled = principledIt != principledScatterByVolume.end();
+      // auto principledIt = principledScatterByVolume.find(vol);
+      // const bool isPrincipled = principledIt != principledScatterByVolume.end();
       int N = xf.colorMap.size();
       auto colorArray = anari::newArray1D(anari.device,ANARI_FLOAT32_VEC3,N);
       auto alphaArray = anari::newArray1D(anari.device,ANARI_FLOAT32,N);
@@ -667,7 +652,7 @@ namespace hm {
                           // xf.baseDensity
                           );
       range1f valueRange = xf.getDomain();
-      if (isPrincipled && isUnsetTransferFunctionDomain(valueRange))
+      if (isUnsetTransferFunctionDomain(valueRange))
         valueRange = {0.f, 1.f};
       anariSetParameter(anari.device, vol, "valueRange",
                         ANARI_FLOAT32_BOX1,

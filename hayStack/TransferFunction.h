@@ -35,9 +35,15 @@ namespace hs {
     emission map. Alpha masks emission independently of opacity. */
   struct VolumeTransferFunctionSet {
     typedef std::shared_ptr<VolumeTransferFunctionSet> SP;
+
+    /*! initializes the opacity color map to the color map library's
+        default map (#0), and the emission color map to its "white"
+        map */
+    VolumeTransferFunctionSet();
     
     void save(const std::string &fileName) const;
     static VolumeTransferFunctionSet load(const std::string &fileName);
+    std::string toString() const;
     
     TransferFunction opacity;
     TransferFunction emission;

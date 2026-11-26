@@ -229,6 +229,7 @@ namespace hm {
   void HayMaker::setEmissionTransferFunction(const std::string &xfName,
                                              const hs::TransferFunction &xf)
   {
+    PING; PRINT(xf.toString());
     for (auto dev : perDevice)
       dev->setEmissionTransferFunction(xfName,xf);
   }

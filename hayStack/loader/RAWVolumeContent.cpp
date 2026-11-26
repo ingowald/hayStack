@@ -26,7 +26,9 @@ namespace hs {
                                        const std::string &texelFormat,
                                        int numChannels,
                                        float isoValue,
-                                       const std::string &xfName)
+                                       const std::string &xfName,
+                                       vec3f gridOrigin,
+                                       vec3f gridSpacing)
       : fileName(fileName),
         thisPartID(thisPartID),
         cellRange(cellRange),
@@ -34,7 +36,9 @@ namespace hs {
         texelFormat(texelFormat),
         numChannels(numChannels),
         isoValue(isoValue),
-        xfName(xfName)
+        xfName(xfName),
+        gridOrigin(gridOrigin),
+        gridSpacing(gridSpacing)
     {}
 
     void splitKDTree(std::vector<box3i> &regions,
@@ -114,7 +118,6 @@ namespace hs {
         PRINT(fileName);
         while (true) {
           const char *nextUS = strstr(nextScanPos,"_");
-          PRINT(nextUS);
           if (!nextUS)
             throw std::runtime_error
               ("could not find '_<width>x<height>x<depth>_' in RAW file name");
@@ -162,6 +165,10 @@ namespace hs {
       if (!isoString.empty())
         isoValue = std::stof(isoString);
       std::string xfName = dataURL.get("xf","xf0");
+      // world-space placement of the full volume; defaults give one
+      // unit per voxel, with first voxel at the origin
+      vec3f gridOrigin  = dataURL.get_vec3f("gridOrigin",vec3f(0.f));
+      vec3f gridSpacing = dataURL.get_vec3f("gridSpacing",vec3f(1.f));
     
       for (int i=0;i<dataURL.numParts;i++) {
         loader->addContent(new RAWVolumeContent(dataURL.where,i,
@@ -169,7 +176,9 @@ namespace hs {
                                                 dims,texelFormat,//scalarType,
                                                 numChannels,
                                                 isoValue,
-                                                xfName));
+                                                xfName,
+                                                gridOrigin,
+                                                gridSpacing));
       }
     }
   
@@ -237,8 +246,9 @@ namespace hs {
             }
           }
         }
-      vec3f gridOrigin(cellRange.lower);
-      vec3f gridSpacing(1.f);
+      // world-space position of this part's first voxel
+      vec3f gridOrigin
+        = this->gridOrigin + vec3f(cellRange.lower) * gridSpacing;
     
       bool doIso = !isnan(isoValue);
       if (doIso) {

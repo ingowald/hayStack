@@ -16,7 +16,9 @@ namespace hm {
     Viewer(BoundsData worldBounds,
            VolumeScatterSettings scatterSettings,
            RenderEngineInterface *const renderer,
-           Camera defaultCamera);
+           Camera defaultCamera,
+           const std::map<std::string,VolumeTransferFunctionSet::SP>
+           &loadedXFs = {});
 
     const BoundsData worldBounds;
     
@@ -28,6 +30,11 @@ namespace hm {
     int panelWidthFor(int width) const;
     
     void runImgui() override;
+    /*! draws the imgui control panel (only called if uiIsOn) */
+    void drawPanel();
+    /*! draws the transfer function / volume rendering part of the
+        control panel (only called if there is volume data) */
+    void drawVolumeEditor();
 
     vec2i viewportMousePosition(const vec2i &position) const;
     void mouseMotion(const vec2i &position) override;
@@ -79,6 +86,32 @@ namespace hm {
     /*! all xfNames used by the scene (from renderer->gatherXFNames()),
         in sorted order */
     std::vector<std::string> xfNames;
+
+    /*! everything the volume editor edits for one xfName, so we can
+        switch between transfer functions without losing edits */
+    struct XFEditState {
+      ColorMap            xfColorMap;
+      ColorMap            emissionColorMap;
+      hs::TransferFunction xf;
+      hs::TransferFunction emissionXF;
+      VolumeScatterSettings scatterSettings;
+    };
+    /*! stored editor state of each xfName that has been edited so far */
+    std::map<std::string,XFEditState> xfEditStates;
+    /*! the editor state the viewer started with; used for xfNames
+        that haven't been edited yet */
+    XFEditState defaultXFEditState;
+
+    /*! creates an editor state from a loaded transfer function set */
+    XFEditState makeXFEditState(const VolumeTransferFunctionSet &xfSet) const;
+    /*! returns the editor's current state */
+    XFEditState saveXFEditState();
+    /*! sets the editor to given state, and marks everything dirty
+        so it gets sent to the renderer under the current xfName */
+    void loadXFEditState(const XFEditState &state);
+    /*! saves state of current xfName, then switches the editor to
+        the given xfName */
+    void selectXF(const std::string &newXFName);
     hs::Camera currentCamera;
 
     std::vector<float> fbDepth;

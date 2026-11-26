@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "hayStack/TransferFunction.h"
+#include "hayStack/ColorMap.h"
 #include <fstream>
 
 namespace hs {
@@ -14,16 +15,34 @@ namespace hs {
     std::stringstream ss;
     ss << "TransferFunction{domain=" << domain
        << ",dens="<<baseDensity
-       << ",cmap]{cnt=" << colorMap.size() << ":";
-    for (int i=0;i<std::min(3,(int)colorMap.size());i++)
-      ss << colorMap[i] << ",";
-    ss << "...,";
-    if (!colorMap.empty())
-      ss << colorMap.back();
+       << ",colorMap{cnt=" << colorMap.size() << ":";
+    const size_t n = colorMap.size();
+    if (n <= 3) {
+      // short enough to print completely
+      for (size_t i=0;i<n;i++)
+        ss << (i ? "," : "") << colorMap[i];
+    } else
+      ss << colorMap[0] << "," << colorMap[1] << ",...," << colorMap.back();
     ss << "}}";
     return ss.str();
   }
   
+  VolumeTransferFunctionSet::VolumeTransferFunctionSet()
+  {
+    const ColorMap &cm = ColorMapLibrary::getMap(0);
+    opacity.colorMap.assign(cm.begin(),cm.end());
+    if (const ColorMap *white = ColorMapLibrary::find("white"))
+      emission.colorMap.assign(white->begin(),white->end());
+  }
+
+  std::string VolumeTransferFunctionSet::toString() const
+  {
+    std::stringstream ss;
+    ss << "{opacity=" << opacity.toString()
+       << ",emission=" << emission.toString() << "}";
+    return ss.str();
+  }
+
   void TransferFunction::write(std::ostream &out) const
   {
     out.write((const char *)&this->baseDensity, sizeof(this->baseDensity));

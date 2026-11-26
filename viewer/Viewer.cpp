@@ -13,17 +13,93 @@ namespace hm {
   Viewer::Viewer(BoundsData worldBounds,
                  VolumeScatterSettings scatterSettings,
                  RenderEngineInterface *const renderer,
-                 Camera defaultCamera)
+                 Camera defaultCamera,
+                 const std::map<std::string,VolumeTransferFunctionSet::SP>
+                 &loadedXFs)
     : renderer(renderer),
       scatterSettings(scatterSettings),
       worldBounds(worldBounds),
       currentCamera(defaultCamera)
   {
+    PING; PRINT(loadedXFs.size());
+    for (auto &xf : loadedXFs) {
+      PRINT(xf.first);
+      PRINT(xf.second->toString());
+    }
+    
     xf.domain = worldBounds.scalars;
     uiIsOn = !worldBounds.scalars.empty();
     emissionXF.domain = worldBounds.scalars;
     for (auto &name : renderer->gatherXFNames())
       xfNames.push_back(name);
+    defaultXFEditState = saveXFEditState();
+
+    // seed editor states of all names that had a transfer function
+    // loaded from file, so the editor starts with those instead of
+    // overwriting them with the default
+    for (auto &it : loadedXFs)
+      if (it.second)
+        xfEditStates[it.first] = makeXFEditState(*it.second);
+
+    // start with "xf0" if the scene uses it, else with the first name
+    if (!xfNames.empty() &&
+        std::find(xfNames.begin(),xfNames.end(),xfName) == xfNames.end())
+      xfName = xfNames[0];
+    auto it = xfEditStates.find(xfName);
+    if (it != xfEditStates.end())
+      loadXFEditState(it->second);
+  }
+
+  Viewer::XFEditState
+  Viewer::makeXFEditState(const VolumeTransferFunctionSet &xfSet) const
+  {
+    XFEditState state = defaultXFEditState;
+    state.xf = xfSet.opacity;
+    if (isUnsetTransferFunctionDomain(state.xf.domain))
+      state.xf.domain = worldBounds.scalars;
+    state.xfColorMap.assign(xfSet.opacity.colorMap.begin(),
+                            xfSet.opacity.colorMap.end());
+    state.emissionXF = xfSet.emission;
+    state.emissionXF.domain = state.xf.domain;
+    state.emissionColorMap.assign(xfSet.emission.colorMap.begin(),
+                                  xfSet.emission.colorMap.end());
+    state.scatterSettings = xfSet.scatterSettings;
+    return state;
+  }
+
+  Viewer::XFEditState Viewer::saveXFEditState()
+  {
+    XFEditState state;
+    state.xfColorMap       = xfEditor.getColorMap();
+    state.emissionColorMap = emissionXfEditor.getColorMap();
+    state.xf               = xf;
+    state.emissionXF       = emissionXF;
+    state.scatterSettings  = scatterSettings;
+    return state;
+  }
+
+  void Viewer::loadXFEditState(const XFEditState &state)
+  {
+    PRINT(state.xfColorMap[0]);
+    xfEditor.setColorAndAlpha(state.xfColorMap.data(),
+                              state.xfColorMap.size());
+    emissionXfEditor.setColorAndAlpha(state.emissionColorMap.data(),
+                                      state.emissionColorMap.size());
+    xf              = state.xf;
+    emissionXF      = state.emissionXF;
+    scatterSettings = state.scatterSettings;
+    xfDirty         = true;
+    emissionXfDirty = true;
+    scatterDirty    = true;
+  }
+
+  void Viewer::selectXF(const std::string &newXFName)
+  {
+    if (newXFName == xfName) return;
+    xfEditStates[xfName] = saveXFEditState();
+    xfName = newXFName;
+    auto it = xfEditStates.find(xfName);
+    loadXFEditState(it != xfEditStates.end() ? it->second : defaultXFEditState);
   }
 
 
@@ -130,71 +206,92 @@ namespace hm {
                                         ImVec2(maxPanelWidth,
                                                displaySize.y));
     ImGui::SetNextWindowBgAlpha(1.f);
-    if (uiIsOn) {
+    if (uiIsOn)
+      drawPanel();
+  }
 
-      ImGui::Begin("HayStack/Imgui", nullptr,
-                   ImGuiWindowFlags_NoMove
-                   | ImGuiWindowFlags_NoCollapse
-                   | ImGuiWindowFlags_NoSavedSettings);
+  /*! draws the imgui control panel (only called if uiIsOn) */
+  void Viewer::drawPanel()
+  {
+    ImGui::Begin("HayStack/Imgui", nullptr,
+                 ImGuiWindowFlags_NoMove
+                 | ImGuiWindowFlags_NoCollapse
+                 | ImGuiWindowFlags_NoSavedSettings);
 
-      const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
-      if (resizedPanelWidth != controlPanelWidth) {
-        controlPanelWidth = resizedPanelWidth;
-        if (windowSize.x > 0 && windowSize.y > 0)
-          resize(windowSize);
-      }
-      
-      if (worldBounds.scalars.empty()) {
-        ImGui::Text("(no volume data)");
-      } else {
-        ImGui::Text("scalar range [%f .. %f]",
-                    worldBounds.scalars.lower,
-                    worldBounds.scalars.upper);
-        ImGui::PushID("opacityTransferFunction");
-        const bool opacityChanged = xfEditor.runUI();
-        ImGui::PopID();
-        if (opacityChanged)
-          xfDirty = true;
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("Volume rendering",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
-            scatterDirty = true;
-          if (ImGui::SliderInt("Volume bounces",
-                               &scatterSettings.maxVolumeBounces, 1, 64))
-            scatterDirty = true;
-          if (ImGui::SliderFloat("Anisotropy",
-                                 &scatterSettings.medium.anisotropy,
-                                 -.99f, .99f))
-            scatterDirty = true;
-        }
-        if (ImGui::CollapsingHeader("Emission",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::DragFloat("Emission strength",
-                               &scatterSettings.medium.emissionStrength,
-                               .001f, 0.f, 3.f, "%.4f"))
-            scatterDirty = true;
-          ImGui::PushID("emissionTransferFunction");
-          const bool emissionChanged = emissionXfEditor.runUI(false);
-          ImGui::PopID();
-          if (emissionChanged)
-            emissionXfDirty = true;
-        }
-        
-        if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
-                               worldBounds.scalars.lower,
-                               worldBounds.scalars.upper))
-          xfDirty = true;
-        if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
-                               worldBounds.scalars.lower,
-                               worldBounds.scalars.upper))
-          xfDirty = true;
-        if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
-                               0.f,200.f))
-          xfDirty = true;
-      }
-      ImGui::End();
+    const int resizedPanelWidth = int(ImGui::GetWindowWidth() + .5f);
+    if (resizedPanelWidth != controlPanelWidth) {
+      controlPanelWidth = resizedPanelWidth;
+      if (windowSize.x > 0 && windowSize.y > 0)
+        resize(windowSize);
     }
+    
+    if (worldBounds.scalars.empty())
+      ImGui::Text("(no volume data)");
+    else
+      drawVolumeEditor();
+    ImGui::End();
+  }
+
+  /*! draws the transfer function / volume rendering part of the
+      control panel (only called if there is volume data) */
+  void Viewer::drawVolumeEditor()
+  {
+    if (!xfNames.empty() &&
+        ImGui::BeginCombo("transfer function", xfName.c_str())) {
+      for (auto &name : xfNames) {
+        const bool isSelected = (name == xfName);
+        if (ImGui::Selectable(name.c_str(), isSelected))
+          selectXF(name);
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+    ImGui::Text("scalar range [%f .. %f]",
+                worldBounds.scalars.lower,
+                worldBounds.scalars.upper);
+    ImGui::PushID("opacityTransferFunction");
+    const bool opacityChanged = xfEditor.runUI();
+    ImGui::PopID();
+    if (opacityChanged)
+      xfDirty = true;
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Volume rendering",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (ImGui::Checkbox("Multi-scatter", &scatterSettings.enabled))
+        scatterDirty = true;
+      if (ImGui::SliderInt("Volume bounces",
+                           &scatterSettings.maxVolumeBounces, 1, 64))
+        scatterDirty = true;
+      if (ImGui::SliderFloat("Anisotropy",
+                             &scatterSettings.medium.anisotropy,
+                             -.99f, .99f))
+        scatterDirty = true;
+    }
+    if (ImGui::CollapsingHeader("Emission",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (ImGui::DragFloat("Emission strength",
+                           &scatterSettings.medium.emissionStrength,
+                           .001f, 0.f, 3.f, "%.4f"))
+        scatterDirty = true;
+      ImGui::PushID("emissionTransferFunction");
+      const bool emissionChanged = emissionXfEditor.runUI(false);
+      ImGui::PopID();
+      if (emissionChanged)
+        emissionXfDirty = true;
+    }
+    
+    if (ImGui::SliderFloat("xfDomain.x", &xf.domain.lower,
+                           worldBounds.scalars.lower,
+                           worldBounds.scalars.upper))
+      xfDirty = true;
+    if (ImGui::SliderFloat("xfDomain.y", &xf.domain.upper, 
+                           worldBounds.scalars.lower,
+                           worldBounds.scalars.upper))
+      xfDirty = true;
+    if (ImGui::SliderFloat("baseDensity", &xf.baseDensity, 
+                           0.f,200.f))
+      xfDirty = true;
   }
   
   void Viewer::screenShot()
@@ -341,8 +438,8 @@ namespace hm {
       auto cm = xfEditor.getColorMap();
       xf.set(cm.data(),
              cm.size());
-      emissionXfEditor.setColorOnly(cm.data(), cm.size());
-      emissionXfDirty = true;
+      // emissionXfEditor.setColorOnly(cm.data(), cm.size());
+      // emissionXfDirty = true;
         
       renderer->setTransferFunction(xfName,xf);
       xfDirty = false;
@@ -356,6 +453,7 @@ namespace hm {
     }
     if (emissionXfDirty) {
       auto cm = emissionXfEditor.getColorMap();
+      PING; PRINT(cm[0]);
       emissionXF.set(cm.data(), cm.size());
       emissionXF.domain = xf.domain;
       renderer->setEmissionTransferFunction(xfName,emissionXF);

@@ -245,17 +245,17 @@ namespace hm {
     }
   }
 
-  /*! passes all transfer functions that rank 0 has loaded (via
-      xf:// content, including the one from -xf) on to the
+  /*! passes all given transfer functions (those that rank 0 has
+      loaded via xf:// content, including the one from -xf) on to the
       renderer. Must only be called on rank 0, since that's the only
       rank that has them. Any xfName that is used by a volume but
-      that doesn't have a loaded transfer function gets a newly
-      created (default) one, using the scatter settings from the
-      command line. */
+      that doesn't have a transfer function in 'xfs' gets a newly
+      created (default) one added to 'xfs', using the scatter
+      settings from the command line. */
   void applyAllTransferFunctions(RenderEngineInterface *renderer,
-                                 LocalPartitions *localPartitions)
+                                 std::map<std::string,
+                                 VolumeTransferFunctionSet::SP> &xfs)
   {
-    auto &xfs = localPartitions->rank0.transferFunctions;
 
     // make sure every xf name used anywhere has a transfer function
     for (auto &xfName : renderer->gatherXFNames()) {
@@ -503,6 +503,14 @@ int main(int ac, char **av)
   
   RenderEngineInterface *renderer = nullptr;
 
+  // remember which transfer functions were actually loaded from
+  // file, before applyAllTransferFunctions() adds defaults for the
+  // rest; the viewer uses these to initialize its editor. names used
+  // by volumes but without a loaded xf get added once the renderer
+  // exists, below
+  std::map<std::string,VolumeTransferFunctionSet::SP> loadedXFs
+    = localPartitions->rank0.transferFunctions;
+
 #if HS_CLIENT
   HSClient remote(fromCL.remote.server,fromCL.remote.port);
   renderer = &remote;
@@ -531,6 +539,8 @@ int main(int ac, char **av)
     exit(0);
   }
 
+
+
   // hayMaker->setVolumeScatterSettings(fromCL.scatterSettings);
   // hayMaker->setEmissionTransferFunction(
   //   haveCliVolumeXfs ? crliVolumeXfs.emission : hs::TransferFunction{});
@@ -544,8 +554,6 @@ int main(int ac, char **av)
   //   renderer->resetAccumulation();
   // }
 
-
-  applyAllTransferFunctions(renderer,localPartitions);
 
   // world->barrier();
   if (world->rank == 0)
@@ -564,6 +572,20 @@ int main(int ac, char **av)
 
 # endif
 
+  const std::set<std::string> allUsedXfNames
+    = renderer->gatherXFNames();
+  for (auto &xfName : allUsedXfNames) {
+    if (loadedXFs.find(xfName) != loadedXFs.end())
+      continue;
+    auto xf = std::make_shared<VolumeTransferFunctionSet>();
+    xf->scatterSettings = fromCL.scatterSettings;
+    loadedXFs[xfName] = xf;
+  }
+
+
+
+  applyAllTransferFunctions(renderer,loadedXFs);
+
 
 
   const BoundsData worldBounds = renderer->getWorldBounds();
@@ -573,15 +595,6 @@ int main(int ac, char **av)
     std::cout << MINI_TERMINAL_CYAN
               << "#hs: world bounds is " << worldBounds
               << MINI_TERMINAL_DEFAULT << std::endl;
-
-  const std::set<std::string> xfNames = renderer->gatherXFNames();
-  if (world->rank == 0) {
-    std::cout << MINI_TERMINAL_CYAN
-              << "#hs: found " << xfNames.size() << " transfer function name(s):";
-    for (auto &xfName : xfNames)
-      std::cout << " '" << xfName << "'";
-    std::cout << MINI_TERMINAL_DEFAULT << std::endl;
-  }
 
   if (fromCL.camera.vp == fromCL.camera.vi) {
     fromCL.camera.vp
@@ -600,7 +613,8 @@ int main(int ac, char **av)
   Viewer viewer(worldBounds,
                 fromCL.scatterSettings,
                 renderer,//&world,
-                fromCL.camera);
+                fromCL.camera,
+                loadedXFs);
 
   // viewer.show();
   viewer.enableFlyMode();

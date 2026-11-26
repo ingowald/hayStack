@@ -161,10 +161,11 @@ namespace hs {
 
       ImGui::Text("TransferFct (draw w/ left/right mouse btn");
       if (showColorMapSelector) {
-        const char *colorMapName = colorMapID == -1
+        std::string colorMapName
+          = (colorMapID == -1)
           ? "custom"
           : ColorMapLibrary::getMapName(colorMapID).c_str();
-        if (ImGui::BeginCombo("Colormap", colorMapName)) {
+        if (ImGui::BeginCombo("Colormap", colorMapName.c_str())) {
           const std::vector<std::string> mapNames = ColorMapLibrary::getNames();
           for (size_t i = 0; i < mapNames.size(); ++i) {
             if (ImGui::Selectable(mapNames[i].c_str(), colorMapID == int(i)))
